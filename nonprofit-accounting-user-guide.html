@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Non-Profit Fund Accounting System - User Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+        }
+        .guide-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+        }
+        .cover-page {
+            text-align: center;
+            padding: 50px 20px;
+            border-bottom: 2px solid #1976d2;
+            margin-bottom: 30px;
+        }
+        .cover-page h1 {
+            font-size: 36px;
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        .cover-page h2 {
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        .cover-page p {
+            font-size: 14px;
+            color: #777;
+        }
+        .toc {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        .toc h2 {
+            font-size: 20px;
+            color: #1976d2;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .toc ul li {
+            margin-bottom: 8px;
+        }
+        .toc ul li a {
+            text-decoration: none;
+            color: #2e7d32;
+        }
+        .toc ul li a:hover {
+            text-decoration: underline;
+        }
+        .toc ul ul {
+            padding-left: 20px;
+            margin-top: 5px;
+        }
+        h1.main-title {
+            font-size: 32px;
+            color: #1976d2;
+            border-bottom: 2px solid #1976d2;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        h2.section-title {
+            font-size: 24px;
+            color: #2e7d32;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 8px;
+        }
+        h3.subsection-title {
+            font-size: 20px;
+            color: #455a64;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        h4.subsubsection-title {
+            font-size: 16px;
+            color: #555;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        p {
+            margin-bottom: 15px;
+        }
+        ul.feature-list {
+            list-style-type: disc;
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        ul.feature-list li {
+            margin-bottom: 8px;
+        }
+        .text-screenshot {
+            background-color: #f0f0f0;
+            border: 1px dashed #ccc;
+            padding: 15px;
+            margin: 15px 0;
+            font-style: italic;
+            color: #555;
+        }
+        .text-screenshot strong {
+            color: #333;
+            font-style: normal;
+        }
+        .tip {
+            background-color: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+        .tip strong {
+            color: #1976d2;
+        }
+        table.guide-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table.guide-table th, table.guide-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        table.guide-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        .page-header, .page-footer {
+            position: fixed;
+            width: 100%;
+            background-color: #f0f0f0;
+            padding: 5px 20px;
+            font-size: 12px;
+            color: #666;
+            box-sizing: border-box;
+        }
+        .page-header {
+            top: 0;
+            left: 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .page-footer {
+            bottom: 0;
+            left: 0;
+            border-top: 1px solid #ddd;
+            text-align: center;
+        }
+        .page-footer .page-number::before {
+            content: "Page ";
+        }
+        .page-break-before {
+            page-break-before: always;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 20mm; /* Standard print margins */
+                font-size: 10pt;
+            }
+            .guide-container {
+                border: none;
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+            }
+            .cover-page {
+                page-break-after: always;
+            }
+            .toc {
+                page-break-after: always;
+            }
+            h2.section-title {
+                page-break-before: always;
+            }
+            .page-header, .page-footer {
+                display: none; /* Typically handled by browser print settings */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="guide-container">
+        <div class="cover-page">
+            <h1>Non-Profit Fund Accounting System</h1>
+            <h2>User Guide</h2>
+            <p>Version 1.0</p>
+            <p>Date: June 18, 2025</p>
+        </div>
+
+        <div class="toc page-break-before">
+            <h2>Table of Contents</h2>
+            <ul>
+                <li><a href="#introduction">1. Introduction</a></li>
+                <li><a href="#getting-started">2. Getting Started</a>
+                    <ul>
+                        <li><a href="#accessing">2.1 Accessing the Application</a></li>
+                        <li><a href="#logging-in">2.2 Logging In</a></li>
+                        <li><a href="#interface-overview">2.3 Interface Overview</a></li>
+                    </ul>
+                </li>
+                <li><a href="#dashboard">3. Dashboard</a>
+                    <ul>
+                        <li><a href="#dashboard-overview">3.1 Dashboard Overview</a></li>
+                        <li><a href="#financial-summary-cards">3.2 Financial Summary Cards</a></li>
+                        <li><a href="#fund-balances-table">3.3 Fund Balances Table</a></li>
+                        <li><a href="#quick-actions">3.4 Using Quick Actions</a></li>
+                    </ul>
+                </li>
+                <li><a href="#chart-of-accounts">4. Chart of Accounts</a>
+                    <ul>
+                        <li><a href="#coa-access">4.1 Accessing Chart of Accounts</a></li>
+                        <li><a href="#coa-list-view">4.2 List View</a></li>
+                        <li><a href="#coa-tree-view">4.3 Tree View</a></li>
+                        <li><a href="#coa-add-edit">4.4 Adding/Editing Accounts (Conceptual)</a></li>
+                    </ul>
+                </li>
+                <li><a href="#funds-management">5. Funds Management</a>
+                    <ul>
+                        <li><a href="#funds-access">5.1 Accessing Funds Management</a></li>
+                        <li><a href="#funds-list">5.2 Viewing Funds List</a></li>
+                        <li><a href="#funds-add-edit">5.3 Adding/Editing Funds (Conceptual)</a></li>
+                    </ul>
+                </li>
+                <li><a href="#journal-entries">6. Journal Entries</a>
+                    <ul>
+                        <li><a href="#journal-access">6.1 Accessing Journal Entries</a></li>
+                        <li><a href="#journal-list">6.2 Viewing Journal Entries</a></li>
+                        <li><a href="#journal-add-post">6.3 Adding/Posting Entries (Conceptual)</a></li>
+                    </ul>
+                </li>
+                <li><a href="#financial-reports">7. Financial Reports</a>
+                    <ul>
+                        <li><a href="#reports-access">7.1 Accessing Reports Page</a></li>
+                        <li><a href="#report-financial-position">7.2 Statement of Financial Position</a></li>
+                        <li><a href="#report-activities">7.3 Statement of Activities</a></li>
+                        <li><a href="#report-functional-expenses">7.4 Statement of Functional Expenses</a></li>
+                        <li><a href="#report-budget-vs-actual">7.5 Budget vs. Actual Report</a></li>
+                    </ul>
+                </li>
+                <li><a href="#system-settings">8. System Settings</a>
+                    <ul>
+                        <li><a href="#settings-access">8.1 Accessing Settings</a></li>
+                        <li><a href="#settings-users">8.2 User Management</a></li>
+                        <li><a href="#settings-organization">8.3 Organization Settings</a></li>
+                        <li><a href="#settings-fiscal-years">8.4 Fiscal Year Management</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div id="introduction" class="page-break-before">
+            <h2 class="section-title">1. Introduction</h2>
+            <p>Welcome to the Non-Profit Fund Accounting System! This user guide is designed to help you effectively use the application to manage your organization's finances. Our system provides a comprehensive suite of tools for fund accounting, financial reporting, and system administration, tailored to the needs of non-profit organizations.</p>
+            <p>This guide is intended for all users of the system, including finance staff, accountants, administrators, and anyone who needs to view financial information or reports.</p>
+            <p>Key benefits of using this system include:</p>
+            <ul class="feature-list">
+                <li>Accurate fund accounting and segregation of funds.</li>
+                <li>Comprehensive financial reporting capabilities.</li>
+                <li>User-friendly interface for managing accounts, funds, and transactions.</li>
+                <li>Centralized system for all your non-profit's financial data.</li>
+            </ul>
+        </div>
+
+        <div id="getting-started" class="page-break-before">
+            <h2 class="section-title">2. Getting Started</h2>
+            <h3 id="accessing" class="subsection-title">2.1 Accessing the Application</h3>
+            <p>To access the Non-Profit Fund Accounting System, open your web browser and navigate to the following URL:</p>
+            <p><code>http://localhost:8080/simple-centered-app.html</code></p>
+            <p>(Note: This URL is for the local demo version. Your production URL may differ.)</p>
+
+            <h3 id="logging-in" class="subsection-title">2.2 Logging In</h3>
+            <p>While the current demo version does not feature a live login screen, a typical login process would involve entering your assigned username and password. For demonstration purposes, the system assumes you are logged in as "John Doe (Admin)".</p>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Login Page</strong>
+                <p>A typical login page would display fields for "Username" and "Password", along with a "Sign In" button.</p>
+            </div>
+
+            <h3 id="interface-overview" class="subsection-title">2.3 Interface Overview</h3>
+            <p>The application interface is designed for ease of use and consists of several key areas:</p>
+            <ul class="feature-list">
+                <li><strong>Header:</strong> Located at the very top, displaying the application title ("Non-Profit Fund Accounting System") and user information (e.g., "John Doe") with a "Logout" button.</li>
+                <li><strong>Main Navigation Bar:</strong> A horizontal bar below the header, containing links to the main sections of the application: Dashboard, Chart of Accounts, Funds, Journal Entries, Reports, and Settings. The active section is highlighted.</li>
+                <li><strong>Sidebar:</strong> Located on the left side of the main content area.
+                    <ul>
+                        <li>When on the Dashboard, it displays "Quick Actions" (e.g., Financial Overview, Recent Transactions).</li>
+                        <li>When on other pages, it displays "Page Actions" (placeholder text in the demo).</li>
+                    </ul>
+                </li>
+                <li><strong>Main Content Area:</strong> The central part of the screen where the content for the selected page or section is displayed.</li>
+            </ul>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Main Interface</strong>
+                <p>The header is at the top. Below it is the main navigation bar. The main content area is to the right, with a sidebar on its left.</p>
+            </div>
+        </div>
+
+        <div id="dashboard" class="page-break-before">
+            <h2 class="section-title">3. Dashboard</h2>
+            <h3 id="dashboard-overview" class="subsection-title">3.1 Dashboard Overview</h3>
+            <p>The Dashboard is the default page you see after logging in. It provides a high-level overview of your organization's financial status and quick access to key information.</p>
+            
+            <h3 id="financial-summary-cards" class="subsection-title">3.2 Financial Summary Cards</h3>
+            <p>At the top of the Dashboard, you'll find several summary cards displaying key financial figures:</p>
+            <ul class="feature-list">
+                <li><strong>Total Assets:</strong> The total value of what your organization owns. (e.g., $1,254,897.00)</li>
+                <li><strong>Total Liabilities:</strong> The total value of what your organization owes. (e.g., $341,250.00)</li>
+                <li><strong>Net Assets:</strong> The difference between Total Assets and Total Liabilities. (e.g., $913,647.00)</li>
+                <li><strong>YTD Revenue:</strong> Year-to-Date revenue. (e.g., $567,890.00)</li>
+            </ul>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Financial Summary Cards</strong>
+                <p>Four cards are displayed horizontally, each with a title (e.g., "Total Assets") and a large monetary value below it.</p>
+            </div>
+
+            <h3 id="fund-balances-table" class="subsection-title">3.3 Fund Balances Table (Default Dashboard View)</h3>
+            <p>Below the summary cards, the "Fund Balances" table is displayed by default (as part of the "Financial Overview" quick action). This table shows:</p>
+            <ul class="feature-list">
+                <li><strong>Fund Name:</strong> The name of each fund.</li>
+                <li><strong>Type:</strong> The restriction type of the fund (e.g., Unrestricted, Temporarily Restricted).</li>
+                <li><strong>Balance:</strong> The current balance of the fund.</li>
+                <li><strong>% of Total:</strong> The fund's balance as a percentage of total fund balances.</li>
+            </ul>
+
+            <h3 id="quick-actions" class="subsection-title">3.4 Using Quick Actions</h3>
+            <p>The sidebar on the Dashboard page contains "Quick Actions" to switch between different dashboard views:</p>
+            <ul class="feature-list">
+                <li><strong>Financial Overview:</strong> (Default) Shows summary cards and the main fund balances table.</li>
+                <li><strong>Recent Transactions:</strong> Displays a table of recent journal entries with details like Date, Reference, Description, Amount, and Status.</li>
+                <li><strong>Unposted Entries:</strong> Shows a list of journal entries that are pending and have not yet been posted to the general ledger. Includes an action button to "Post" entries.</li>
+                <li><strong>Budget Analysis:</strong> Presents a "Budget vs. Actual" table for the current fiscal year, showing categories, budgeted amounts, actual amounts, variance, and percentage used.</li>
+                <li><strong>Fund Balances (Detailed View):</strong> Displays a detailed table of fund balances including Fund ID, Name, Type, Beginning Balance, Revenue, Expenses, and Current Balance.</li>
+            </ul>
+            <p>To switch views, simply click on the desired link in the "Quick Actions" sidebar menu. The main content area of the dashboard will update accordingly. The active Quick Action link is highlighted.</p>
+            <div class="tip">
+                <strong>Tip:</strong> The Quick Actions sidebar is only visible when you are on the Dashboard page. If you navigate to another main section (e.g., Chart of Accounts), the sidebar will show "Page Actions" instead.
+            </div>
+        </div>
+
+        <div id="chart-of-accounts" class="page-break-before">
+            <h2 class="section-title">4. Chart of Accounts</h2>
+            <h3 id="coa-access" class="subsection-title">4.1 Accessing Chart of Accounts</h3>
+            <p>To access the Chart of Accounts, click on "Chart of Accounts" in the main navigation bar.</p>
+            
+            <h3 id="coa-list-view" class="subsection-title">4.2 List View</h3>
+            <p>The default view for the Chart of Accounts is the "List View" tab. This displays a table of your accounts with the following columns:</p>
+            <ul class="feature-list">
+                <li><strong>Code:</strong> The unique identifier for the account (e.g., 1000).</li>
+                <li><strong>Name:</strong> The descriptive name of the account (e.g., Cash and Cash Equivalents).</li>
+                <li><strong>Type:</strong> The account type (e.g., Asset, Liability).</li>
+                <li><strong>Balance:</strong> The current balance of the account (e.g., $145,250.00).</li>
+                <li><strong>Status:</strong> Indicates if the account is Active or Inactive.</li>
+                <li><strong>Actions:</strong> Buttons to perform actions like "Edit" (conceptual in demo).</li>
+            </ul>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Chart of Accounts - List View</strong>
+                <p>A table with columns: Code, Name, Type, Balance, Status, Actions. Sample rows show account data. An "Add Account" button is visible above the table.</p>
+            </div>
+
+            <h3 id="coa-tree-view" class="subsection-title">4.3 Tree View</h3>
+            <p>You can switch to a hierarchical view of your accounts by clicking the "Tree View" tab.</p>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Chart of Accounts - Tree View</strong>
+                <p>The Tree View tab is active. The content area displays: "Tree view of accounts would be displayed here with proper hierarchy."</p>
+            </div>
+            <p>In a fully implemented system, this view would show parent-child relationships between accounts, allowing you to expand and collapse account categories.</p>
+
+            <h3 id="coa-add-edit" class="subsection-title">4.4 Adding/Editing Accounts (Conceptual)</h3>
+            <p>While the "Add Account" and "Edit" buttons are present in the demo, their full functionality (saving to a database) is conceptual.</p>
+            <h4>Adding a New Account:</h4>
+            <ol>
+                <li>Click the "Add Account" button on the Chart of Accounts page.</li>
+                <li>A modal dialog would appear with fields for: Account Code, Account Name, Account Type, Normal Balance, Status, etc.</li>
+                <li>Fill in the required information.</li>
+                <li>Click "Save Account".</li>
+            </ol>
+            <h4>Editing an Existing Account:</h4>
+            <ol>
+                <li>Click the "Edit" button next to an account in the list.</li>
+                <li>A modal dialog would appear pre-filled with the account's current information.</li>
+                <li>Make the necessary changes.</li>
+                <li>Click "Save Account".</li>
+            </ol>
+        </div>
+
+        <div id="funds-management" class="page-break-before">
+            <h2 class="section-title">5. Funds Management</h2>
+            <h3 id="funds-access" class="subsection-title">5.1 Accessing Funds Management</h3>
+            <p>To manage funds, click on "Funds" in the main navigation bar.</p>
+
+            <h3 id="funds-list" class="subsection-title">5.2 Viewing Funds List</h3>
+            <p>The Funds Management page displays a table of all funds with the following columns:</p>
+            <ul class="feature-list">
+                <li><strong>Fund Code:</strong> The unique identifier for the fund (e.g., GEN, BLDG).</li>
+                <li><strong>Fund Name:</strong> The descriptive name of the fund (e.g., General Operating Fund).</li>
+                <li><strong>Type:</strong> The restriction type of the fund (e.g., Unrestricted, Temporarily Restricted).</li>
+                <li><strong>Balance:</strong> The current balance of the fund.</li>
+                <li><strong>Status:</strong> Indicates if the fund is Active or Inactive.</li>
+                <li><strong>Actions:</strong> Buttons to perform actions like "Edit" (conceptual in demo).</li>
+            </ul>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Funds Management Page</strong>
+                <p>A table listing funds with their codes, names, types, balances, and statuses. An "Add Fund" button is visible above the table.</p>
+            </div>
+
+            <h3 id="funds-add-edit" class="subsection-title">5.3 Adding/Editing Funds (Conceptual)</h3>
+            <p>Similar to accounts, adding and editing funds is conceptual in the demo.</p>
+            <h4>Adding a New Fund:</h4>
+            <ol>
+                <li>Click the "Add Fund" button.</li>
+                <li>A modal dialog would appear with fields for: Fund Code, Fund Name, Fund Type, Description, Status.</li>
+                <li>Fill in the details.</li>
+                <li>Click "Save Fund".</li>
+            </ol>
+            <h4>Editing an Existing Fund:</h4>
+            <ol>
+                <li>Click the "Edit" button next to a fund.</li>
+                <li>A modal dialog would appear with the fund's current information.</li>
+                <li>Modify the details as needed.</li>
+                <li>Click "Save Fund".</li>
+            </ol>
+        </div>
+
+        <div id="journal-entries" class="page-break-before">
+            <h2 class="section-title">6. Journal Entries</h2>
+            <h3 id="journal-access" class="subsection-title">6.1 Accessing Journal Entries</h3>
+            <p>To work with journal entries, click on "Journal Entries" in the main navigation bar.</p>
+
+            <h3 id="journal-list" class="subsection-title">6.2 Viewing Journal Entries</h3>
+            <p>This page lists journal entries with the following details:</p>
+            <ul class="feature-list">
+                <li><strong>Date:</strong> The date of the journal entry.</li>
+                <li><strong>Reference:</strong> A unique reference number for the entry (e.g., JE-2025-0146).</li>
+                <li><strong>Description:</strong> A brief description of the transaction.</li>
+                <li><strong>Total Amount:</strong> The total debit or credit amount of the entry.</li>
+                <li><strong>Status:</strong> Whether the entry is "Posted" or "Unposted".</li>
+                <li><strong>Created By:</strong> The user who created the entry.</li>
+                <li><strong>Actions:</strong> Buttons to "View" or potentially edit/post the entry.</li>
+            </ul>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Journal Entries Page</strong>
+                <p>A table listing journal entries. Each row shows date, reference, description, amount, status, creator, and an action button. A "New Journal Entry" button is at the top.</p>
+            </div>
+
+            <h3 id="journal-add-post" class="subsection-title">6.3 Adding/Posting Entries (Conceptual)</h3>
+            <h4>Adding a New Journal Entry:</h4>
+            <ol>
+                <li>Click the "New Journal Entry" button.</li>
+                <li>A form would appear to enter details such as date, description, and multiple lines for accounts, funds, debit/credit amounts.</li>
+                <li>Save the entry (it might initially be "Unposted").</li>
+            </ol>
+            <h4>Posting Journal Entries:</h4>
+            <p>Unposted entries can be reviewed and then posted to the general ledger. This action would typically be available from the entry's view or action menu.</p>
+        </div>
+
+        <div id="financial-reports" class="page-break-before">
+            <h2 class="section-title">7. Financial Reports</h2>
+            <h3 id="reports-access" class="subsection-title">7.1 Accessing Reports Page</h3>
+            <p>To access financial reports, click on "Reports" in the main navigation bar. This page initially shows a gallery of available reports.</p>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Reports Gallery</strong>
+                <p>A grid of cards, each representing a report (e.g., "Statement of Financial Position"). Each card has a title, description, and a "Generate" button.</p>
+            </div>
+            <p>To generate a specific report, click its "Generate" button. The view will change to display the selected report.</p>
+            
+            <h3 id="report-financial-position" class="subsection-title">7.2 Statement of Financial Position (Balance Sheet)</h3>
+            <p><strong>Purpose:</strong> Shows the organization's assets, liabilities, and net assets at a specific point in time.</p>
+            <p><strong>Key Sections:</strong></p>
+            <ul class="feature-list">
+                <li><strong>Assets:</strong> Current Assets (Cash, Receivables, Prepaid Expenses) and Fixed Assets (Land, Buildings, Equipment, Accumulated Depreciation).</li>
+                <li><strong>Liabilities:</strong> Current Liabilities (Payables, Accrued Expenses, Deferred Revenue) and Long-Term Liabilities (Mortgage).</li>
+                <li><strong>Net Assets:</strong> Broken down by restrictions (Without Donor Restrictions, With Donor Restrictions).</li>
+                <li>Totals for each section and a final "Total Liabilities and Net Assets" which should equal "Total Assets".</li>
+            </ul>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Balance Sheet Report</strong>
+                <p>A formatted report with the organization name, report title, and date. Sections for Assets, Liabilities, and Net Assets are clearly laid out in a table format with amounts aligned to the right.</p>
+            </div>
+            <p>The report view includes buttons for "Back to Reports", "Print", "Export PDF", and "Export Excel".</p>
+
+            <h3 id="report-activities" class="subsection-title">7.3 Statement of Activities (Income Statement)</h3>
+            <p><strong>Purpose:</strong> Shows revenues, expenses, and the change in net assets over a period of time (typically a fiscal year).</p>
+            <p><strong>Key Sections:</strong></p>
+            <ul class="feature-list">
+                <li><strong>Revenue and Support:</strong> Contributions, Grants, Program Fees, Investment Income, Special Events, Net Assets Released from Restrictions. Shown in columns for "Without Donor Restrictions", "With Donor Restrictions", and "Total".</li>
+                <li><strong>Expenses:</strong> Program Services, Management and General, Fundraising.</li>
+                <li><strong>Change in Net Assets:</strong> The difference between total revenue and total expenses.</li>
+                <li><strong>Net Assets, Beginning of Year.</strong></li>
+                <li><strong>Net Assets, End of Year.</strong></li>
+            </ul>
+
+            <h3 id="report-functional-expenses" class="subsection-title">7.4 Statement of Functional Expenses</h3>
+            <p><strong>Purpose:</strong> Details expenses by their natural classification (e.g., Salaries, Rent) and their functional classification (Program Services, Management & General, Fundraising).</p>
+            <p><strong>Key Sections:</strong></p>
+            <ul class="feature-list">
+                <li>Rows for expense categories (Salaries, Benefits, Rent, Supplies, etc.).</li>
+                <li>Columns for functional classifications: Program Services, Management & General, Fundraising, and Total.</li>
+                <li>Percentage of total for each functional classification.</li>
+            </ul>
+
+            <h3 id="report-budget-vs-actual" class="subsection-title">7.5 Budget vs. Actual Report</h3>
+            <p><strong>Purpose:</strong> Compares budgeted amounts to actual financial performance for a specific period, highlighting variances.</p>
+            <p><strong>Key Sections:</strong></p>
+            <ul class="feature-list">
+                <li>Rows for revenue and expense accounts/categories.</li>
+                <li>Columns for: Budget, Actual, $ Variance (Dollar Variance), % Variance (Percentage Variance).</li>
+                <li>Subtotals for Total Revenue and Total Expenses.</li>
+                <li>Net Surplus/(Deficit) comparison.</li>
+            </ul>
+            <p>This report includes filter options at the top for Fund and Period (e.g., Year to Date, Q1, Q2).</p>
+        </div>
+
+        <div id="system-settings" class="page-break-before">
+            <h2 class="section-title">8. System Settings</h2>
+            <h3 id="settings-access" class="subsection-title">8.1 Accessing Settings</h3>
+            <p>To access system settings, click on "Settings" in the main navigation bar. The Settings page uses a tabbed interface for different categories of settings.</p>
+
+            <h3 id="settings-users" class="subsection-title">8.2 User Management</h3>
+            <p>Select the "Users" tab to manage user accounts.</p>
+            <ul class="feature-list">
+                <li><strong>Viewing Users:</strong> A table lists existing users with their Name, Email, Role, and Status. An "Edit" button is available for each user.</li>
+                <li><strong>Adding a New User:</strong> Click the "Add User" button. A form would appear to enter user details (Name, Email, Username, Password, Role, Active Status).</li>
+                <li><strong>Editing Users:</strong> Clicking "Edit" next to a user would allow modification of their details and role assignments.</li>
+            </ul>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: User Management Tab</strong>
+                <p>A table lists users. Above the table is an "Add User" button. Columns include Name, Email, Role, Status, Actions.</p>
+            </div>
+
+            <h3 id="settings-organization" class="subsection-title">8.3 Organization Settings</h3>
+            <p>Select the "Organization" tab to configure details about your non-profit.</p>
+            <ul class="feature-list">
+                <li><strong>General Information:</strong> Fields for Organization Name, EIN/Tax ID, Phone Number, Email Address.</li>
+                <li><strong>Address:</strong> Fields for Street Address, City, State, ZIP Code.</li>
+                <li><strong>Financial Settings:</strong> Options for Default Currency, Currency Display format, Financial Statement Precision, and Transaction Entry Precision.</li>
+                <li><strong>System Settings:</strong> Options for Default Login Page, Session Timeout (minutes), and Organization Logo upload.</li>
+            </ul>
+            <p>After making changes, click the "Save Changes" button at the top or bottom of the form.</p>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Organization Settings Tab</strong>
+                <p>A form with sections for General Information, Address, Financial Settings, and System Settings. Input fields and dropdowns are present for each setting. "Save Changes" button is available.</p>
+            </div>
+
+            <h3 id="settings-fiscal-years" class="subsection-title">8.4 Fiscal Year Management</h3>
+            <p>Select the "Fiscal Years" tab to manage your organization's fiscal years and periods.</p>
+            <ul class="feature-list">
+                <li><strong>Viewing Fiscal Years:</strong> A table lists existing fiscal years with their Name/Code, Start Date, End Date, and Status (e.g., Current, Closed). Action buttons allow viewing or editing.</li>
+                <li><strong>Adding a New Fiscal Year:</strong> Click the "Add Fiscal Year" button. A form appears with sections for:
+                    <ul>
+                        <li>Basic Information: Fiscal Year Name, Code, Start Date, End Date.</li>
+                        <li>Period Configuration: Number of Periods (e.g., 12 for Monthly), Period Naming convention.</li>
+                        <li>Options: Checkboxes to automatically create periods, copy chart of accounts, or copy budget data from the previous fiscal year.</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>Click "Create Fiscal Year" to save the new fiscal year setup.</p>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Fiscal Year Management Tab</strong>
+                <p>A table lists fiscal years. Above it is an "Add Fiscal Year" button. Below the table is a form to add a new fiscal year with fields for name, code, dates, period configuration, and data copy options.</p>
+            </div>
+        </div>
+        
+        <div class="page-footer">
+            <span class="page-number"></span> | Non-Profit Fund Accounting System - User Guide | Generated: <script>document.write(new Date().toLocaleDateString());</script>
+        </div>
+    </div>
+</body>
+</html>

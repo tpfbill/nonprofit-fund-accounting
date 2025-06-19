@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fund Accounting - Simplest Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+        button { padding: 10px 15px; margin: 10px; font-size: 16px; cursor: pointer; }
+        #outputDiv { margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; min-height: 50px; }
+        .status { position: fixed; bottom: 5px; right: 5px; background-color: #ffffe0; border: 1px solid #ccc; padding: 5px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <h1>Simplest JavaScript Event Test</h1>
+    <p>Click the buttons to test inline JavaScript handlers.</p>
+
+    <button onclick="document.getElementById('outputDiv').innerText = 'Button 1 Clicked! Timestamp: ' + new Date().toLocaleTimeString(); console.log('SIMPLE_DEBUG: Button 1 clicked.'); alert('Button 1 was clicked!');">
+        Test Button 1 (Alert & Div Update)
+    </button>
+
+    <button onclick="changeOutputText('Button 2 was pressed.', 'green'); console.log('SIMPLE_DEBUG: Button 2 clicked.');">
+        Test Button 2 (Function Call & Div Update)
+    </button>
+
+    <button onclick="this.innerText = 'Clicked Me!'; this.style.backgroundColor = 'lightgreen'; console.log('SIMPLE_DEBUG: Button 3 clicked.');">
+        Test Button 3 (Change Self)
+    </button>
+
+    <div id="outputDiv">
+        Output will appear here.
+    </div>
+
+    <div id="jsStatus" class="status" style="background-color: lightcoral;">
+        JavaScript not yet confirmed.
+    </div>
+
+    <script>
+        // This is a very simple script block, mainly for one function and to confirm script execution.
+        console.log("SIMPLE_DEBUG: Main script block started.");
+
+        function changeOutputText(text, color) {
+            console.log(`SIMPLE_DEBUG: changeOutputText called with: "${text}", "${color}"`);
+            const outputDiv = document.getElementById('outputDiv');
+            if (outputDiv) {
+                outputDiv.innerText = text + ' Timestamp: ' + new Date().toLocaleTimeString();
+                outputDiv.style.color = color || 'black';
+                console.log("SIMPLE_DEBUG: outputDiv text and color changed.");
+            } else {
+                console.error("SIMPLE_DEBUG: outputDiv not found!");
+            }
+        }
+        
+        // Confirm script execution by changing the status div
+        // Using a try-catch in case DOM is not ready, though for inline script this is less likely an issue.
+        try {
+            const statusDiv = document.getElementById('jsStatus');
+            if (statusDiv) {
+                statusDiv.textContent = 'SIMPLE_DEBUG: JavaScript has executed!';
+                statusDiv.style.backgroundColor = 'lightgreen';
+                console.log("SIMPLE_DEBUG: jsStatus div updated.");
+            } else {
+                console.error("SIMPLE_DEBUG: jsStatus div not found on initial script run.");
+            }
+        } catch (e) {
+            console.error("SIMPLE_DEBUG: Error accessing jsStatus div on initial script run:", e);
+        }
+        
+        console.log("SIMPLE_DEBUG: Main script block finished.");
+    </script>
+
+</body>
+</html>

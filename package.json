@@ -1,0 +1,12 @@
+﻿{
+  "name": "nonprofit-fund-accounting-web-demo",
+  "version": "1.0.0",
+  "description": "Frontend demo for Non-Profit Fund Accounting System",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server . -p 8080 -c-1"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  }
+}
