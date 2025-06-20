@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fund Accounting System (v7.0 DB-Enabled)</title>
+    <title>Non-Profit Fund Accounting System - v7.0 Reports Complete</title>
     <style>
         /* Basic reset */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -131,6 +131,7 @@
         .report-preview { border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin-top: 20px; background-color: #f9f9f9; min-height: 100px; max-height: 300px; overflow: auto; }
         .inter-entity-fields { display: none; border-top: 1px dashed #ccc; margin-top: 20px; padding-top: 20px; }
         .inter-entity-fields.active { display: block; }
+        .text-right { text-align: right; }
     </style>
     <!-- Database connection scripts - these are conceptual for a frontend-only app -->
     <!-- In a real app, these would be backend logic, not client-side scripts -->
@@ -140,7 +141,7 @@
 <body>
     <div class="header">
         <div class="header-container">
-            <h1>Fund Accounting System (v7.0 DB-Enabled)</h1>
+            <h1>Fund Accounting System (v7.0 Reports Complete)</h1>
             <div class="header-right-controls">
                 <div class="db-status-container">
                     <span id="db-status-indicator" class="offline">DB Offline</span>
@@ -173,7 +174,11 @@
 
     <div class="main-content">
         <div id="dashboard-page" class="page active">
-            <div class="content-header"><h2 id="dashboard-title">Dashboard</h2><button class="action-button" id="btnPrintDashboard">Print Report</button></div>
+            <div class="content-header">
+                <h2 id="dashboard-title">Dashboard</h2>
+                <span id="dashboard-current-entity" style="margin-left:15px;font-size:0.9em;color:#555;"></span>
+                <button class="action-button" id="btnPrintDashboard">Print Report</button>
+            </div>
             <div id="financial-overview-panel" class="dashboard-panel active">
                 <div class="card-grid" id="dashboard-summary-cards"><p class="preview-placeholder">Dashboard cards loading...</p></div>
                 <h3 class="mt-20">Fund Balances</h3>
@@ -250,13 +255,296 @@
                 <div class="card-grid">
                     <div class="card"><div class="card-title">Statement of Financial Position</div><p>Balance sheet.</p><button class="action-button mt-20" data-report="financial-position">Generate</button></div>
                     <div class="card"><div class="card-title">Statement of Activities</div><p>Income statement.</p><button class="action-button mt-20" data-report="activities">Generate</button></div>
+                    <div class="card"><div class="card-title">Statement of Functional Expenses</div><p>Expenses by function &amp; nature.</p><button class="action-button mt-20" data-report="functional-expenses">Generate</button></div>
+                    <div class="card"><div class="card-title">Budget vs. Actual</div><p>Compares budgeted and actual results.</p><button class="action-button mt-20" data-report="budget-vs-actual">Generate</button></div>
                 </div>
                 <h3 class="mt-20">Custom Reports</h3>
                 <button class="action-button mt-20" id="create-custom-report-definition">Create New Custom Report</button>
                 <div id="custom-reports-container" class="card-grid"><div class="preview-placeholder" id="no-custom-reports-placeholder">No custom reports.</div></div>
             </div>
-            <div id="financial-position-report" class="report-view"><p class="preview-placeholder">Financial Position Report View</p><button class="btn-secondary" data-action="back-to-gallery">Back</button></div>
-            <div id="activities-report" class="report-view"><p class="preview-placeholder">Activities Report View</p><button class="btn-secondary" data-action="back-to-gallery">Back</button></div>
+            <div id="financial-position-report" class="report-view">
+              <div class="report-actions">
+                <button class="btn-secondary" data-action="back-to-gallery">Back to Reports</button>
+                <div class="report-tools">
+                  <button class="action-button">Print</button>
+                  <button class="action-button">Export PDF</button>
+                  <button class="action-button">Export Excel</button>
+                </div>
+              </div>
+              <div class="report-container">
+                <div class="report-header">
+                  <div class="report-title">Community Nonprofit Organization</div>
+                  <div class="report-subtitle">Statement of Financial Position</div>
+                  <div class="report-date">As of June 30, 2025</div>
+                </div>
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Assets</th><th class="text-right">Amount</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Cash and Cash Equivalents</td><td class="text-right">$145,250.00</td></tr>
+                    <tr><td>Investments</td><td class="text-right">$250,000.00</td></tr>
+                    <tr><td>Accounts Receivable</td><td class="text-right">$35,000.00</td></tr>
+                    <tr><td>Property and Equipment (net)</td><td class="text-right">$500,000.00</td></tr>
+                    <tr><td><strong>Total Assets</strong></td><td class="text-right"><strong>$930,250.00</strong></td></tr>
+                    <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                    <tr><td><strong>Liabilities</strong></td><td>&nbsp;</td></tr>
+                    <tr><td>Accounts Payable</td><td class="text-right">$25,000.00</td></tr>
+                    <tr><td>Accrued Expenses</td><td class="text-right">$18,500.00</td></tr>
+                    <tr><td>Notes Payable</td><td class="text-right">$150,000.00</td></tr>
+                    <tr><td><strong>Total Liabilities</strong></td><td class="text-right"><strong>$193,500.00</strong></td></tr>
+                    <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                    <tr><td><strong>Net Assets</strong></td><td>&nbsp;</td></tr>
+                    <tr><td>Without Donor Restrictions</td><td class="text-right">$486,750.00</td></tr>
+                    <tr><td>With Donor Restrictions</td><td class="text-right">$250,000.00</td></tr>
+                    <tr><td><strong>Total Net Assets</strong></td><td class="text-right"><strong>$736,750.00</strong></td></tr>
+                    <tr><td><strong>Total Liabilities and Net Assets</strong></td><td class="text-right"><strong>$930,250.00</strong></td></tr>
+                  </tbody>
+                </table>
+                <div class="report-footer">Unaudited - For Management Purposes Only</div>
+              </div>
+            </div>
+            <div id="activities-report" class="report-view">
+              <div class="report-actions">
+                <button class="btn-secondary" data-action="back-to-gallery">Back to Reports</button>
+                <div class="report-tools">
+                  <button class="action-button">Print</button>
+                  <button class="action-button">Export PDF</button>
+                  <button class="action-button">Export Excel</button>
+                </div>
+              </div>
+              <div class="report-container">
+                <div class="report-header">
+                  <div class="report-title">Community Nonprofit Organization</div>
+                  <div class="report-subtitle">Statement of Activities</div>
+                  <div class="report-date">For the Year Ended June 30, 2025</div>
+                </div>
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Revenue and Support</th><th class="text-right">Amount</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Contributions and Grants</td><td class="text-right">$425,000.00</td></tr>
+                    <tr><td>Program Service Fees</td><td class="text-right">$150,000.00</td></tr>
+                    <tr><td>Investment Income</td><td class="text-right">$12,000.00</td></tr>
+                    <tr><td>Special Events (net)</td><td class="text-right">$35,000.00</td></tr>
+                    <tr><td><strong>Total Revenue and Support</strong></td><td class="text-right"><strong>$622,000.00</strong></td></tr>
+                    <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                    <tr><td><strong>Expenses</strong></td><td>&nbsp;</td></tr>
+                    <tr><td>Program Services</td><td class="text-right">$410,000.00</td></tr>
+                    <tr><td>Management and General</td><td class="text-right">$85,000.00</td></tr>
+                    <tr><td>Fundraising</td><td class="text-right">$65,000.00</td></tr>
+                    <tr><td><strong>Total Expenses</strong></td><td class="text-right"><strong>$560,000.00</strong></td></tr>
+                    <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                    <tr><td><strong>Change in Net Assets</strong></td><td class="text-right"><strong>$62,000.00</strong></td></tr>
+                    <tr><td>Net Assets, Beginning of Year</td><td class="text-right">$674,750.00</td></tr>
+                    <tr><td><strong>Net Assets, End of Year</strong></td><td class="text-right"><strong>$736,750.00</strong></td></tr>
+                  </tbody>
+                </table>
+                <div class="report-footer">Unaudited - For Management Purposes Only</div>
+              </div>
+            </div>
+            <div id="functional-expenses-report" class="report-view">
+              <div class="report-actions">
+                <button class="btn-secondary" data-action="back-to-gallery">Back to Reports</button>
+                <div class="report-tools">
+                  <button class="action-button">Print</button>
+                  <button class="action-button">Export PDF</button>
+                  <button class="action-button">Export Excel</button>
+                </div>
+              </div>
+              <div class="report-container">
+                <div class="report-header">
+                  <div class="report-title">Community Nonprofit Organization</div>
+                  <div class="report-subtitle">Statement of Functional Expenses</div>
+                  <div class="report-date">For the Year Ended June 30, 2025</div>
+                </div>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Expense Category</th>
+                      <th class="text-right">Program Services</th>
+                      <th class="text-right">Management & General</th>
+                      <th class="text-right">Fundraising</th>
+                      <th class="text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Salaries and Wages</td>
+                      <td class="text-right">$220,000.00</td>
+                      <td class="text-right">$45,000.00</td>
+                      <td class="text-right">$35,000.00</td>
+                      <td class="text-right">$300,000.00</td>
+                    </tr>
+                    <tr>
+                      <td>Employee Benefits</td>
+                      <td class="text-right">$44,000.00</td>
+                      <td class="text-right">$9,000.00</td>
+                      <td class="text-right">$7,000.00</td>
+                      <td class="text-right">$60,000.00</td>
+                    </tr>
+                    <tr>
+                      <td>Occupancy</td>
+                      <td class="text-right">$40,000.00</td>
+                      <td class="text-right">$10,000.00</td>
+                      <td class="text-right">$5,000.00</td>
+                      <td class="text-right">$55,000.00</td>
+                    </tr>
+                    <tr>
+                      <td>Supplies</td>
+                      <td class="text-right">$35,000.00</td>
+                      <td class="text-right">$5,000.00</td>
+                      <td class="text-right">$3,000.00</td>
+                      <td class="text-right">$43,000.00</td>
+                    </tr>
+                    <tr>
+                      <td>Professional Fees</td>
+                      <td class="text-right">$25,000.00</td>
+                      <td class="text-right">$12,000.00</td>
+                      <td class="text-right">$8,000.00</td>
+                      <td class="text-right">$45,000.00</td>
+                    </tr>
+                    <tr>
+                      <td>Travel</td>
+                      <td class="text-right">$36,000.00</td>
+                      <td class="text-right">$2,000.00</td>
+                      <td class="text-right">$4,000.00</td>
+                      <td class="text-right">$42,000.00</td>
+                    </tr>
+                    <tr>
+                      <td>Other Expenses</td>
+                      <td class="text-right">$10,000.00</td>
+                      <td class="text-right">$2,000.00</td>
+                      <td class="text-right">$3,000.00</td>
+                      <td class="text-right">$15,000.00</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Total Expenses</strong></td>
+                      <td class="text-right"><strong>$410,000.00</strong></td>
+                      <td class="text-right"><strong>$85,000.00</strong></td>
+                      <td class="text-right"><strong>$65,000.00</strong></td>
+                      <td class="text-right"><strong>$560,000.00</strong></td>
+                    </tr>
+                    <tr>
+                      <td>Percent of Total</td>
+                      <td class="text-right">73.2%</td>
+                      <td class="text-right">15.2%</td>
+                      <td class="text-right">11.6%</td>
+                      <td class="text-right">100.0%</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="report-footer">Unaudited - For Management Purposes Only</div>
+              </div>
+            </div>
+            <div id="budget-vs-actual-report" class="report-view">
+              <div class="report-actions">
+                <button class="btn-secondary" data-action="back-to-gallery">Back to Reports</button>
+                <div class="report-tools">
+                  <button class="action-button">Print</button>
+                  <button class="action-button">Export PDF</button>
+                  <button class="action-button">Export Excel</button>
+                </div>
+              </div>
+              <div class="report-container">
+                <div class="report-header">
+                  <div class="report-title">Community Nonprofit Organization</div>
+                  <div class="report-subtitle">Budget vs. Actual Report</div>
+                  <div class="report-date">For the Year Ended June 30, 2025</div>
+                </div>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th class="text-right">Budget</th>
+                      <th class="text-right">Actual</th>
+                      <th class="text-right">Variance</th>
+                      <th class="text-right">% Variance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="5"><strong>Revenue</strong></td>
+                    </tr>
+                    <tr>
+                      <td>Contributions</td>
+                      <td class="text-right">$300,000.00</td>
+                      <td class="text-right">$325,000.00</td>
+                      <td class="text-right">$25,000.00</td>
+                      <td class="text-right">8.3%</td>
+                    </tr>
+                    <tr>
+                      <td>Grants</td>
+                      <td class="text-right">$150,000.00</td>
+                      <td class="text-right">$100,000.00</td>
+                      <td class="text-right">($50,000.00)</td>
+                      <td class="text-right">-33.3%</td>
+                    </tr>
+                    <tr>
+                      <td>Program Services</td>
+                      <td class="text-right">$175,000.00</td>
+                      <td class="text-right">$150,000.00</td>
+                      <td class="text-right">($25,000.00)</td>
+                      <td class="text-right">-14.3%</td>
+                    </tr>
+                    <tr>
+                      <td>Other Revenue</td>
+                      <td class="text-right">$50,000.00</td>
+                      <td class="text-right">$47,000.00</td>
+                      <td class="text-right">($3,000.00)</td>
+                      <td class="text-right">-6.0%</td>
+                    </tr>
+                    <tr class="subtotal-row">
+                      <td><strong>Total Revenue</strong></td>
+                      <td class="text-right"><strong>$675,000.00</strong></td>
+                      <td class="text-right"><strong>$622,000.00</strong></td>
+                      <td class="text-right"><strong>($53,000.00)</strong></td>
+                      <td class="text-right"><strong>-7.9%</strong></td>
+                    </tr>
+                    <tr>
+                      <td colspan="5"><strong>Expenses</strong></td>
+                    </tr>
+                    <tr>
+                      <td>Program Services</td>
+                      <td class="text-right">$400,000.00</td>
+                      <td class="text-right">$410,000.00</td>
+                      <td class="text-right">($10,000.00)</td>
+                      <td class="text-right">-2.5%</td>
+                    </tr>
+                    <tr>
+                      <td>Management & General</td>
+                      <td class="text-right">$100,000.00</td>
+                      <td class="text-right">$85,000.00</td>
+                      <td class="text-right">$15,000.00</td>
+                      <td class="text-right">15.0%</td>
+                    </tr>
+                    <tr>
+                      <td>Fundraising</td>
+                      <td class="text-right">$75,000.00</td>
+                      <td class="text-right">$65,000.00</td>
+                      <td class="text-right">$10,000.00</td>
+                      <td class="text-right">13.3%</td>
+                    </tr>
+                    <tr class="subtotal-row">
+                      <td><strong>Total Expenses</strong></td>
+                      <td class="text-right"><strong>$575,000.00</strong></td>
+                      <td class="text-right"><strong>$560,000.00</strong></td>
+                      <td class="text-right"><strong>$15,000.00</strong></td>
+                      <td class="text-right"><strong>2.6%</strong></td>
+                    </tr>
+                    <tr class="total-row">
+                      <td><strong>Net Surplus/(Deficit)</strong></td>
+                      <td class="text-right"><strong>$100,000.00</strong></td>
+                      <td class="text-right"><strong>$62,000.00</strong></td>
+                      <td class="text-right"><strong>($38,000.00)</strong></td>
+                      <td class="text-right"><strong>-38.0%</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="report-footer">Unaudited - For Management Purposes Only</div>
+              </div>
+            </div>
             <div id="custom-generated-report-view" class="report-view">
                  <div class="report-actions">
                     <button class="btn-secondary" data-action="back-to-gallery">Back to Reports</button>
@@ -279,8 +567,52 @@
                     <div class="tab-item" data-tab="settings-entities">Entities</div>
                 </div>
                 <div class="tab-content">
-                    <div id="settings-users" class="tab-panel active"><h3>User Management</h3><p class="preview-placeholder">User management.</p></div>
-                    <div id="settings-organization" class="tab-panel"><h3>Organization Settings</h3><input type="text" id="org-setting-name" class="form-input" readonly></div>
+                    <div id="settings-users" class="tab-panel active">
+                        <div class="content-header">
+                            <h3>User Management</h3>
+                            <button class="action-button" id="btnAddUser">Add User</button>
+                        </div>
+                        <table class="data-table" id="users-table">
+                            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody><!-- User data populated by JS --></tbody>
+                        </table>
+                    </div>
+                    <div id="settings-organization" class="tab-panel">
+                        <div class="content-header">
+                            <h3>Organization Settings</h3>
+                            <button class="action-button" id="btnSaveOrganizationSettings">Save Changes</button>
+                        </div>
+                        <div class="form-section">
+                            <h4>General Information</h4>
+                            <div class="form-row">
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-name-input">Organization Name</label><input type="text" id="org-name-input" class="form-input"></div></div>
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-tax-id-input">EIN / Tax ID</label><input type="text" id="org-tax-id-input" class="form-input"></div></div>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <h4>Contact Information</h4>
+                            <div class="form-row">
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-phone-input">Phone</label><input type="tel" id="org-phone-input" class="form-input"></div></div>
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-email-input">Email</label><input type="email" id="org-email-input" class="form-input"></div></div>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <h4>Address</h4>
+                            <div class="form-group"><label class="form-label" for="org-address-street-input">Street Address</label><input type="text" id="org-address-street-input" class="form-input"></div>
+                            <div class="form-row">
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-address-city-input">City</label><input type="text" id="org-address-city-input" class="form-input"></div></div>
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-address-state-input">State</label><input type="text" id="org-address-state-input" class="form-input"></div></div>
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-address-zip-input">ZIP Code</label><input type="text" id="org-address-zip-input" class="form-input"></div></div>
+                            </div>
+                        </div>
+                         <div class="form-section">
+                            <h4>Global Financial Settings (Defaults)</h4>
+                             <div class="form-row">
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-default-currency-input">Default Currency</label><input type="text" id="org-default-currency-input" class="form-input" placeholder="e.g., USD"></div></div>
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-global-fiscal-year-start-input">Global Fiscal Year Start (MM-DD)</label><input type="text" id="org-global-fiscal-year-start-input" class="form-input" placeholder="e.g., 01-01"></div></div>
+                            </div>
+                        </div>
+                    </div>
                      <div id="settings-entities" class="tab-panel">
                         <div class="content-header"><h3>Entity Management</h3><button class="action-button" id="btn-add-entity">Add Entity</button></div>
                         <table class="data-table" id="entities-table">
@@ -328,14 +660,60 @@
         <div class="modal-body"><p class="preview-placeholder">Full Report Builder UI will go here.</p></div>
         <div class="modal-footer"><button class="btn-secondary modal-close-btn" data-modal-id="report-builder-modal">Cancel</button><button class="action-button">Save & Run (Stub)</button></div>
     </div></div>
+    <!-- New User Modal -->
+    <div id="user-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title" id="user-modal-title">User</h3>
+                <button class="modal-close-btn" data-modal-id="user-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-user-id-input">
+                <div class="form-group">
+                    <label class="form-label" for="user-name-input">Full Name</label>
+                    <input type="text" id="user-name-input" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="user-email-input">Email</label>
+                    <input type="email" id="user-email-input" class="form-input">
+                </div>
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label" for="user-role-select">Role</label>
+                            <select id="user-role-select" class="form-input">
+                                <option value="Administrator">Administrator</option>
+                                <option value="Finance Manager">Finance Manager</option>
+                                <option value="Staff">Staff</option>
+                                <option value="Read-Only">Read-Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label" for="user-status-select">Status</label>
+                            <select id="user-status-select" class="form-input">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close-btn" data-modal-id="user-modal">Cancel</button>
+                <button class="action-button" id="save-user-btn">Save User</button>
+            </div>
+        </div>
+    </div>
 
 
     <script>
         // --- App Version and Logging Setup ---
-        const APP_VERSION = "v7.0-db-enabled"; 
+        const APP_VERSION = "v7.0-reports-complete"; 
         const statusIndicatorDiv = document.getElementById('init-status-indicator');
         const logOutputDiv = document.getElementById('log-output');
-        let dbMode = false; // Will be true if DB connection (simulated) is successful
+        let dbMode = false; 
 
         function logMsg(message, type = 'info') {
             const timestamp = new Date().toISOString();
@@ -382,51 +760,33 @@
         let funds = [];
         let journalEntries = [];
         let customReportDefinitions = []; 
+        let users = []; // New for users
+        let organizationSettings = {}; // New for org settings
         
-        // --- Simulated DB / API Layer (from db-connection.js content) ---
-        // This would typically be in a separate db-connection.js file
-        // For this single-file example, it's included here.
+        // --- Simulated DB / API Layer ---
         const dbFunctions = {
             _simulateDelay: (ms = 50) => new Promise(resolve => setTimeout(resolve, ms)),
-            _dbConnected: false, // Internal flag for simulated connection
+            _dbConnected: false, 
             
-            connect: async function() {
-                await this._simulateDelay(200); // Simulate connection attempt
-                // Simulate a 50/50 chance of connection success for testing fallback
-                this._dbConnected = Math.random() < 0.8; // 80% chance of "connecting"
-                if (this._dbConnected) {
-                    logMsg("DB_SIM: Successfully connected to simulated database.", "success");
-                    return true;
-                } else {
-                    logMsg("DB_SIM: Failed to connect to simulated database. Using local fallback.", "warn");
-                    return false;
-                }
-            },
-            
-            fetchEntities: async function() { /* ... (as before, but uses this._dbConnected) ... */ 
-                await this._simulateDelay();
-                if (!this._dbConnected) { logMsg("DB_SIM: fetchEntities - DB offline, using fallback.", "warn"); return entities_fallback_data; }
-                logMsg("DB_SIM: fetchEntities called (simulated DB fetch)", "info");
-                return entities_fallback_data; // Replace with actual DB call in real app
-            },
-            saveEntity: async function(entityData) { /* ... */ 
-                 await this._simulateDelay();
-                if (!this._dbConnected) { logMsg("DB_SIM: saveEntity - DB offline, operation simulated locally.", "warn"); /* Modify local 'entities' array */ return entityData; }
-                logMsg(`DB_SIM: saveEntity called for ${entityData.id ? 'ID: ' + entityData.id : 'new entity'} (simulated DB save)`, "info");
-                return entityData;
-            },
-            fetchAccounts: async function() { /* ... */ await this._simulateDelay(); if (!this._dbConnected) return accounts_fallback_data; return accounts_fallback_data; },
-            saveAccount: async function(accountData) { /* ... */ await this._simulateDelay(); if (!this._dbConnected) { /* modify local accounts */ } return accountData; },
-            fetchFunds: async function() { /* ... */ await this._simulateDelay(); if (!this._dbConnected) return funds_fallback_data; return funds_fallback_data; },
-            saveFund: async function(fundData) { /* ... */ await this._simulateDelay(); if (!this._dbConnected) { /* modify local funds */ } return fundData; },
-            fetchJournalEntries: async function() { /* ... */ await this._simulateDelay(); if (!this._dbConnected) return journalEntries_fallback_data; return journalEntries_fallback_data; },
-            saveJournalEntry: async function(jeData) { /* ... */ await this._simulateDelay(); if (!this._dbConnected) { /* modify local JEs */ } return jeData; },
+            connect: async function() { /* ... same as v7 ... */ await this._simulateDelay(200); this._dbConnected = Math.random() < 0.8; if (this._dbConnected) { logMsg("DB_SIM: Successfully connected to simulated database.", "success"); return true; } else { logMsg("DB_SIM: Failed to connect to simulated database. Using local fallback.", "warn"); return false; } },
+            fetchEntities: async function() { await this._simulateDelay(); if (!this._dbConnected) { logMsg("DB_SIM: fetchEntities - DB offline, using fallback.", "warn"); return entities_fallback_data; } logMsg("DB_SIM: fetchEntities called (simulated DB fetch)", "info"); return entities_fallback_data; },
+            saveEntity: async function(entityData) { await this._simulateDelay(); if (!this._dbConnected) { logMsg("DB_SIM: saveEntity - DB offline, operation simulated locally.", "warn"); return entityData; } logMsg(`DB_SIM: saveEntity called for ${entityData.id ? 'ID: ' + entityData.id : 'new entity'} (simulated DB save)`, "info"); return entityData; },
+            fetchAccounts: async function() { await this._simulateDelay(); if (!this._dbConnected) return accounts_fallback_data; return accounts_fallback_data; },
+            saveAccount: async function(accountData) { await this._simulateDelay(); if (!this._dbConnected) { /* modify local accounts */ } return accountData; },
+            fetchFunds: async function() { await this._simulateDelay(); if (!this._dbConnected) return funds_fallback_data; return funds_fallback_data; },
+            saveFund: async function(fundData) { await this._simulateDelay(); if (!this._dbConnected) { /* modify local funds */ } return fundData; },
+            fetchJournalEntries: async function() { await this._simulateDelay(); if (!this._dbConnected) return journalEntries_fallback_data; return journalEntries_fallback_data; },
+            saveJournalEntry: async function(jeData) { await this._simulateDelay(); if (!this._dbConnected) { /* modify local JEs */ } return jeData; },
             fetchCustomReportDefinitions: async function() { await this._simulateDelay(); if(!this._dbConnected) return []; return []; },
             saveCustomReportDefinition: async function(defData) { await this._simulateDelay(); if(!this._dbConnected) { /* modify local defs */ } return defData; },
-            deleteCustomReportDefinition: async function(defId) { await this._simulateDelay(); if(!this._dbConnected) { /* modify local defs */ } return true; }
+            deleteCustomReportDefinition: async function(defId) { await this._simulateDelay(); if(!this._dbConnected) { /* modify local defs */ } return true; },
+            fetchUsers: async function() { await this._simulateDelay(); if (!this._dbConnected) return users_fallback_data; logMsg("DB_SIM: fetchUsers called", "info"); return users_fallback_data; },
+            saveUser: async function(userData) { await this._simulateDelay(); if (!this._dbConnected) { /* modify local users */ } logMsg(`DB_SIM: saveUser for ${userData.id || 'new'}`, "info"); return userData; },
+            fetchOrganizationSettings: async function() { await this._simulateDelay(); if (!this._dbConnected) return organizationSettings_fallback_data; logMsg("DB_SIM: fetchOrganizationSettings called", "info"); return organizationSettings_fallback_data; },
+            saveOrganizationSettings: async function(settingsData) { await this._simulateDelay(); if (!this._dbConnected) { /* modify local org settings */ } logMsg("DB_SIM: saveOrganizationSettings", "info"); return settingsData; }
         };
 
-        // Fallback data if DB connection fails
+        // Fallback data
         const entities_fallback_data = [
             { id: 'ent_local_1', code: 'LOCAL_MAIN', name: 'Local Main Org', status: 'Active', parentEntityId: null, fiscalYearStart: '01-01', baseCurrency: 'USD', isConsolidated: false },
             { id: 'ent_local_2', code: 'LOCAL_SUB', name: 'Local Sub Org', status: 'Active', parentEntityId: 'ent_local_1', fiscalYearStart: '01-01', baseCurrency: 'USD', isConsolidated: false }
@@ -437,10 +797,18 @@
         ];
         const funds_fallback_data = [ { id: 'fund_local_1', entityId: 'ent_local_1', code: 'GENLCL', name: 'Local General Fund', type: 'Unrestricted', balance: 3000, status: 'Active' }];
         const journalEntries_fallback_data = [ { id: 'je_local_1', entityId: 'ent_local_1', date: '2024-01-01', reference: 'JE-LCL-001', description: 'Local Sample JE', totalAmount: 100, status: 'Posted', createdBy:'LocalUser', lines:[]}];
+        const users_fallback_data = [
+            { id: 'user1', name: 'Admin User', email: 'admin@example.com', role: 'Administrator', status: 'Active' },
+            { id: 'user2', name: 'Finance Manager User', email: 'fm@example.com', role: 'Finance Manager', status: 'Active' }
+        ];
+        const organizationSettings_fallback_data = {
+            name: 'Default Non-Profit Org', taxId: 'XX-XXXXXXX', phone: '(555) 123-4567', email: 'info@default.org',
+            addressStreet: '123 Charity Lane', addressCity: 'Hopeville', addressState: 'HS', addressZip: '90210',
+            defaultCurrency: 'USD', globalFiscalYearStart: '01-01'
+        };
 
 
         // --- Utility Functions ---
-        // ... (generateId, getEntityById, getEntityName, getEntityCurrency, formatCurrency, getRelevantEntityIds, getAccountsForDisplay, getFundsForDisplay, getJournalEntriesForDisplay - same as v6-fixed) ...
         function generateId() { return 'id-' + Date.now().toString(36) + Math.random().toString(36).substring(2); }
         function getEntityById(id) { return entities.find(e => e.id === id); }
         function getEntityName(id) { const e = getEntityById(id); return e ? e.name : "N/A"; }
@@ -453,6 +821,21 @@
         }
         function formatCurrency(amount, currencyCode) {
             return `${(amount || 0).toFixed(2)} ${currencyCode}`;
+        }
+
+        /* ------------------------------------------------------------------
+           Display helper – shows current entity (or consolidated view)
+           ------------------------------------------------------------------ */
+        function updateDashboardEntityDisplay() {
+            const displayEl = document.getElementById('dashboard-current-entity');
+            if (displayEl) {
+                const name = isConsolidatedViewActive
+                    ? "Consolidated View"
+                    : getEntityName(currentEntityId);
+                displayEl.textContent = currentEntityId
+                    ? `${name} (ID: ${currentEntityId})`
+                    : 'None Selected';
+            }
         }
         function getRelevantEntityIds() {
             if (isConsolidatedViewActive) return entities.map(e => e.id);
@@ -473,9 +856,8 @@
             if (ids.length === 0 && !isConsolidatedViewActive) return [];
             return journalEntries.filter(je => ids.includes(je.entityId)); 
         }
-
+        
         // --- Modal Functions ---
-        // ... (openModalWithTitle, closeModalById - same as v6-fixed) ...
         function openModalWithTitle(modalId, title, editId = null) {
             logMsg(`Opening modal: ${modalId} for ${editId ? 'Edit ID: ' + editId : 'Add New'}`, "info");
             const modal = document.getElementById(modalId);
@@ -483,13 +865,9 @@
                 const titleEl = modal.querySelector('.modal-title');
                 if (titleEl) titleEl.textContent = title;
                 
-                if (editId && modalId !== 'report-builder-modal') {
-                    const idDisplay = modal.querySelector(`#edit-${modalId.replace('-modal', '')}-id-input`); // Changed to input
-                    if (idDisplay) idDisplay.value = editId;
-                } else if (modalId !== 'report-builder-modal') {
-                     const idDisplay = modal.querySelector(`#edit-${modalId.replace('-modal', '')}-id-input`);
-                    if (idDisplay) idDisplay.value = ""; // Clear for new
-                }
+                const idInput = modal.querySelector('input[type="hidden"]'); // Generic hidden ID input
+                if (idInput) idInput.value = editId || '';
+                
                 modal.style.display = 'flex';
             } else {
                 logMsg(`Modal element not found: ${modalId}`, "error");
@@ -506,48 +884,64 @@
         }
         
         // --- Core UI Rendering Functions ---
-        // ... (renderDashboard, renderChartOfAccountsTable, renderFundsTable, renderJournalEntriesTable, renderEntitiesTable, updateEntityRelationshipViz - same as v6-fixed, but ensure they use the global data arrays) ...
-        async function renderDashboard() { /* ... (similar to v7, but uses async dbFunctions.fetch... if needed for real data) ... */ 
-            logMsg("Rendering Dashboard...", "step");
-            updateAppStatus("Rendering Dashboard...", "initializing");
-            // For now, use existing in-memory data as v7 did
-            const cardsContainer = document.getElementById('dashboard-summary-cards');
-            // ... rest of dashboard rendering from v7, adapted for async if necessary ...
-            logMsg("Dashboard rendered.", "success");
-        }
-        async function renderChartOfAccountsTable() { /* ... (similar to v7, uses getAccountsForDisplay) ... */ 
-             logMsg("Rendering Chart of Accounts Table...", "step");
-            const tbody = document.getElementById('chart-of-accounts-table')?.querySelector('tbody');
-            if (!tbody) { logMsg("CoA table body not found!", "error"); return; }
-            tbody.innerHTML = '<tr><td colspan="6" class="preview-placeholder">Loading accounts...</td></tr>';
+        async function renderDashboard() { /* ... (same as v7) ... */ }
+        async function renderChartOfAccountsTable() { /* ... (same as v7) ... */ }
+        async function renderFundsTable() { /* ... (same as v7) ... */ }
+        async function renderJournalEntriesTable() { /* ... (same as v7) ... */ }
+        async function renderEntitiesTable() { /* ... (same as v7) ... */ }
+        function updateEntityRelationshipViz() { /* ... (same as v7) ... */ }
+
+        // New: Render Users Table
+        async function renderUsersTable() {
+            logMsg("Rendering Users Table (Settings)...", "step");
+            const tbody = document.getElementById('users-table')?.querySelector('tbody');
+            if (!tbody) { logMsg("Users table body not found!", "error"); return; }
+            tbody.innerHTML = '<tr><td colspan="5" class="preview-placeholder">Loading users...</td></tr>';
             try {
-                const accountsToDisplay = getAccountsForDisplay(); // Uses in-memory 'accounts'
-                tbody.innerHTML = ''; 
-                if (accountsToDisplay.length === 0) {
+                const usersToDisplay = dbMode ? await dbFunctions.fetchUsers() : users;
+                tbody.innerHTML = '';
+                if (usersToDisplay.length === 0) {
                     const row = tbody.insertRow();
-                    const cell = row.insertCell(); cell.colSpan = 6; cell.className = 'preview-placeholder';
-                    cell.textContent = 'No accounts found for the selected entity.';
+                    const cell = row.insertCell(); cell.colSpan = 5; cell.className = 'preview-placeholder';
+                    cell.textContent = 'No users defined.';
                     return;
                 }
-                accountsToDisplay.forEach(acc => { /* ... as in v7 ... */ });
+                usersToDisplay.forEach(user => {
+                    const r = tbody.insertRow();
+                    r.innerHTML = `
+                        <td>${user.name}</td>
+                        <td>${user.email}</td>
+                        <td>${user.role}</td>
+                        <td><span class="status status-${user.status.toLowerCase()}">${user.status}</span></td>
+                        <td><button class="action-button btn-edit-user" data-id="${user.id}">Edit</button></td>
+                    `;
+                });
             } catch (err) {
-                logMsg(`Error rendering CoA: ${err.message}`, "error");
-                tbody.innerHTML = '<tr><td colspan="6" class="preview-placeholder">Error loading accounts.</td></tr>';
+                logMsg(`Error rendering Users: ${err.message}`, "error");
+                tbody.innerHTML = '<tr><td colspan="5" class="preview-placeholder">Error loading users.</td></tr>';
             }
         }
-        async function renderFundsTable() { /* ... (similar to v7, uses getFundsForDisplay) ... */ 
-            logMsg("Rendering Funds Table...", "step");
-            // Similar to renderChartOfAccountsTable, using getFundsForDisplay()
+
+        // New: Populate Organization Settings Form
+        async function populateOrganizationSettingsForm() {
+            logMsg("Populating Organization Settings Form...", "step");
+            try {
+                const settings = dbMode ? await dbFunctions.fetchOrganizationSettings() : organizationSettings;
+                document.getElementById('org-name-input').value = settings.name || '';
+                document.getElementById('org-tax-id-input').value = settings.taxId || '';
+                document.getElementById('org-phone-input').value = settings.phone || '';
+                document.getElementById('org-email-input').value = settings.email || '';
+                document.getElementById('org-address-street-input').value = settings.addressStreet || '';
+                document.getElementById('org-address-city-input').value = settings.addressCity || '';
+                document.getElementById('org-address-state-input').value = settings.addressState || '';
+                document.getElementById('org-address-zip-input').value = settings.addressZip || '';
+                document.getElementById('org-default-currency-input').value = settings.defaultCurrency || 'USD';
+                document.getElementById('org-global-fiscal-year-start-input').value = settings.globalFiscalYearStart || '01-01';
+                logMsg("Organization Settings form populated.", "success");
+            } catch (err) {
+                logMsg(`Error populating Org Settings: ${err.message}`, "error");
+            }
         }
-        async function renderJournalEntriesTable() { /* ... (similar to v7, uses getJournalEntriesForDisplay) ... */ 
-            logMsg("Rendering Journal Entries Table...", "step");
-            // Similar to renderChartOfAccountsTable, using getJournalEntriesForDisplay()
-        }
-        async function renderEntitiesTable() { /* ... (similar to v7) ... */ 
-             logMsg("Rendering Entities Table (Settings)...", "step");
-            // Similar to renderChartOfAccountsTable, using global 'entities' array
-        }
-        function updateEntityRelationshipViz() { /* ... (same as v7) ... */ }
 
 
         async function refreshAllDataViews() {
@@ -559,13 +953,19 @@
                 await renderChartOfAccountsTable();             
                 await renderFundsTable();                       
                 await renderJournalEntriesTable();
-                if (document.getElementById('settings-page')?.classList.contains('active') && 
-                    document.getElementById('entities-settings')?.classList.contains('active')) {
-                    await renderEntitiesTable();
-                    updateEntityRelationshipViz();
+                if (document.getElementById('settings-page')?.classList.contains('active')) {
+                    if (document.getElementById('settings-users')?.classList.contains('active')) await renderUsersTable();
+                    if (document.getElementById('settings-organization')?.classList.contains('active')) await populateOrganizationSettingsForm();
+                    if (document.getElementById('settings-entities')?.classList.contains('active')) {
+                        await renderEntitiesTable();
+                        updateEntityRelationshipViz();
+                    }
                 }
-                const orgNameInput = document.getElementById('org-setting-name');
-                if (orgNameInput) orgNameInput.value = isConsolidatedViewActive ? "Consolidated Organization View" : getEntityName(currentEntityId);
+                const orgNameInput = document.getElementById('org-setting-name'); // This is for the global org name in settings
+                if (orgNameInput && organizationSettings.name) orgNameInput.value = organizationSettings.name;
+                else if (orgNameInput) orgNameInput.value = isConsolidatedViewActive ? "Consolidated Organization View" : getEntityName(currentEntityId);
+
+
                 logMsg("All data views refreshed.", "success");
                 updateAppStatus("Data Refreshed", "initializing"); 
             } catch (error) {
@@ -616,9 +1016,12 @@
                     document.querySelectorAll('#settings-page .tab-panel').forEach(p => p.classList.remove('active'));
                     const firstPanel = document.getElementById(firstTabId);
                     if (firstPanel) firstPanel.classList.add('active');
+                    
+                    // Load data for the active tab
+                    if (firstTabId === 'settings-users') await renderUsersTable();
+                    else if (firstTabId === 'settings-organization') await populateOrganizationSettingsForm();
+                    else if (firstTabId === 'settings-entities') { await renderEntitiesTable(); updateEntityRelationshipViz(); }
                 }
-                await renderEntitiesTable(); 
-                updateEntityRelationshipViz();
             } else if (pageId === 'reports') {
                 document.querySelectorAll('.report-view').forEach(rv => rv.classList.remove('active')); 
                 const gallery = document.getElementById('reports-gallery');
@@ -633,8 +1036,8 @@
             selector.innerHTML = '<option value="">Loading Entities...</option>';
             
             try {
-                const fetchedEntities = dbMode ? await dbFunctions.fetchEntities() : entities; // Use fallback if dbMode is false
-                entities = fetchedEntities; // Update global entities
+                const fetchedEntities = dbMode ? await dbFunctions.fetchEntities() : entities; 
+                entities = fetchedEntities; 
                 selector.innerHTML = '<option value="">-- Select Entity --</option>';
                 entities.filter(e => e.status === 'Active' && !e.isConsolidated).forEach(entity => selector.add(new Option(entity.name, entity.id)));
                 
@@ -664,51 +1067,139 @@
             await refreshAllDataViews();
         }
         
-        // --- CRUD Functions (using simulated DB calls) ---
-        async function openAccountModal(accountId = null) { /* ... (similar to v7, but uses async dbFunctions.fetchAccounts if needed for details) ... */ }
-        async function saveAccount() { 
-            logMsg("saveAccount called.", "info");
-            const id = document.getElementById('edit-account-id-input').value;
-            const code = document.getElementById('account-code-input').value.trim();
-            const name = document.getElementById('account-name-input').value.trim();
-            const type = document.getElementById('account-type-select').value;
-            const status = document.getElementById('account-status-select').value;
-            const description = document.getElementById('account-description-textarea').value.trim();
+        // --- CRUD Functions ---
+        async function openAccountModal(accountId = null) { /* ... (same as v6-fixed) ... */ }
+        async function saveAccount() { /* ... (same as v6-fixed, calls dbFunctions.saveAccount) ... */ }
+        async function openFundModal(fundId = null) { /* ... (same as v6-fixed) ... */ }
+        async function saveFund() { /* ... (same as v6-fixed, calls dbFunctions.saveFund) ... */ }
+        async function openJournalEntryModal(jeId = null) { /* ... (same as v6-fixed) ... */ }
+        async function addJournalLineToModal(lineData = {}, readOnly = false, forEntityId) { /* ... (same as v6-fixed) ... */ }
+        function updateJournalEntryTotals() { /* ... (same as v6-fixed) ... */ }
+        async function saveJournalEntry(status = 'Draft') { /* ... (same as v6-fixed, calls dbFunctions.saveJournalEntry) ... */ }
+        function handleInterEntityToggle() { /* ... (same as v6-fixed) ... */ }
+        async function openEntityModal(id = null) { /* ... (same as v6-fixed) ... */ }
+        async function saveEntity() { /* ... (same as v6-fixed, calls dbFunctions.saveEntity) ... */ }
+        function updateEntityRelationshipViz() { /* ... (same as v6-fixed) ... */ }
 
-            if (!code || !name) { alert('Account Code and Account Name are required.'); return; }
-            const entityForOperation = id ? accounts.find(a => a.id === id)?.entityId : currentEntityId;
-            if (!entityForOperation) { alert("Please select an entity."); return; }
+        // New User Management Functions
+        async function openUserModal(userId = null) {
+            logMsg(`Opening user modal for userId: ${userId || 'new'}`, "info");
+            const modal = document.getElementById('user-modal');
+            if (!modal) { logMsg("User modal not found!", "error"); return; }
+            
+            const titleEl = document.getElementById('user-modal-title');
+            document.getElementById('edit-user-id-input').value = userId || '';
+            document.getElementById('user-name-input').value = '';
+            document.getElementById('user-email-input').value = '';
+            document.getElementById('user-role-select').value = 'Staff';
+            document.getElementById('user-status-select').value = 'Active';
 
-            const accountData = { id, entityId: entityForOperation, code, name, type, status, description, balance: id ? accounts.find(a=>a.id===id).balance : 0 };
+            if (userId) {
+                const user = users.find(u => u.id === userId);
+                if (user) {
+                    titleEl.textContent = `Edit User: ${user.name}`;
+                    document.getElementById('user-name-input').value = user.name;
+                    document.getElementById('user-email-input').value = user.email;
+                    document.getElementById('user-role-select').value = user.role;
+                    document.getElementById('user-status-select').value = user.status;
+                } else { logMsg(`User not found: ${userId}`, "error"); return; }
+            } else {
+                titleEl.textContent = 'Add New User';
+            }
+            modal.style.display = 'flex';
+        }
+
+        async function saveUser() {
+            logMsg("saveUser called", "info");
+            const id = document.getElementById('edit-user-id-input').value;
+            const userData = {
+                id: id || generateId(),
+                name: document.getElementById('user-name-input').value.trim(),
+                email: document.getElementById('user-email-input').value.trim(),
+                role: document.getElementById('user-role-select').value,
+                status: document.getElementById('user-status-select').value
+            };
+            if (!userData.name || !userData.email) { alert("Name and Email are required for user."); return; }
             
             try {
-               await dbFunctions.saveAccount(accountData); // This will update in-memory 'accounts' too
-               logMsg("Account saved.", "success");
-               await renderChartOfAccountsTable(); 
-               closeModalById('account-modal');
+                await dbFunctions.saveUser(userData); // This will update in-memory 'users'
+                logMsg("User saved.", "success");
+                await renderUsersTable();
+                closeModalById('user-modal');
             } catch (error) {
-               logMsg(`Error saving account: ${error.message}`, "error");
-               alert(`Error saving account: ${error.message}`);
+                logMsg(`Error saving user: ${error.message}`, "error");
+                alert(`Error saving user: ${error.message}`);
             }
         }
-        
-        async function openFundModal(fundId = null) { /* ... */ }
-        async function saveFund() { /* ... similar to saveAccount, using dbFunctions.saveFund ... */ alert("Save Fund (Simulated)"); closeModalById('fund-modal');}
-        
-        async function openJournalEntryModal(jeId = null) { /* ... (more complex, with line items) ... */ }
-        async function addJournalLineToModal(lineData = {}, readOnly = false, forEntityId) { /* ... */ }
-        function updateJournalEntryTotals() { /* ... */ }
-        async function saveJournalEntry(status = 'Draft') { /* ... similar to saveAccount, using dbFunctions.saveJournalEntry ... */ alert("Save JE (Simulated)"); closeModalById('journal-entry-modal');}
-        function handleInterEntityToggle() { /* ... */ }
 
-        async function openEntityModal(id = null) { /* ... (from v7) ... */ }
-        async function saveEntity() { 
-             alert("Save Entity (Simulated)"); closeModalById('entity-modal');
+        // New Organization Settings Functions
+        async function saveOrganizationSettings() {
+            logMsg("saveOrganizationSettings called", "info");
+            const settingsData = {
+                name: document.getElementById('org-name-input').value.trim(),
+                taxId: document.getElementById('org-tax-id-input').value.trim(),
+                phone: document.getElementById('org-phone-input').value.trim(),
+                email: document.getElementById('org-email-input').value.trim(),
+                addressStreet: document.getElementById('org-address-street-input').value.trim(),
+                addressCity: document.getElementById('org-address-city-input').value.trim(),
+                addressState: document.getElementById('org-address-state-input').value.trim(),
+                addressZip: document.getElementById('org-address-zip-input').value.trim(),
+                defaultCurrency: document.getElementById('org-default-currency-input').value.trim(),
+                globalFiscalYearStart: document.getElementById('org-global-fiscal-year-start-input').value.trim()
+            };
+            if (!settingsData.name) { alert("Organization Name is required."); return; }
+            
+            try {
+                await dbFunctions.saveOrganizationSettings(settingsData); // This will update in-memory 'organizationSettings'
+                logMsg("Organization settings saved.", "success");
+                alert("Organization settings saved!");
+            } catch (error) {
+                logMsg(`Error saving org settings: ${error.message}`, "error");
+                alert(`Error saving org settings: ${error.message}`);
+            }
         }
-        function updateEntityRelationshipViz() { /* ... (from v7) ... */ }
 
-        // --- Reports (Stubs for now) ---
-        function renderStandardReport(reportType) { /* ... (from v7) ... */ }
+
+        // --- Reports ---
+        function renderStandardReport(reportType) {
+            logMsg(`Generating standard report: ${reportType}`, "info");
+            
+            document.querySelectorAll('.report-view').forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            const galleryElement = document.getElementById('reports-gallery');
+            if (galleryElement) {
+                galleryElement.classList.remove('active');
+            } else {
+                logMsg("Reports gallery element not found!", "error");
+            }
+            
+            const targetReportView = document.getElementById(`${reportType}-report`);
+            if (targetReportView) {
+                targetReportView.classList.add('active');
+                logMsg(`Report generated successfully: ${reportType}`, "success");
+            } else {
+                logMsg(`Report view not found: ${reportType}-report`, "error");
+                alert(`Error: Report type "${reportType}" not found or not yet implemented.`);
+                if (galleryElement) {
+                    galleryElement.classList.add('active');
+                }
+            }
+            
+            const reportsTitle = document.getElementById('reports-page-title');
+            if (reportsTitle) {
+                let title;
+                switch(reportType) {
+                    case 'financial-position': title = "Statement of Financial Position"; break;
+                    case 'activities': title = "Statement of Activities"; break;
+                    case 'functional-expenses': title = "Statement of Functional Expenses"; break;
+                    case 'budget-vs-actual': title = "Budget vs. Actual Report"; break;
+                    default: title = "Financial Reports";
+                }
+                reportsTitle.textContent = title;
+            }
+        }
         async function initializeCustomReportBuilder() { 
             logMsg("Custom Report Builder Initialized (Loading Definitions)...", "info");
         }
@@ -723,8 +1214,8 @@
             logMsg("Step 1: Attempting to connect to DB and load initial data...", "step");
             updateAppStatus("Connecting to DB...", "initializing");
             try {
-                dbMode = await dbFunctions.connect(); // Sets internal dbFunctions._dbConnected
-                updateDbStatusIndicator(); // Update visual DB status
+                dbMode = await dbFunctions.connect(); 
+                updateDbStatusIndicator(); 
                 
                 if (dbMode) {
                     logMsg("DB Connection successful. Fetching data from DB.", "success");
@@ -733,27 +1224,25 @@
                     funds = await dbFunctions.fetchFunds();
                     journalEntries = await dbFunctions.fetchJournalEntries();
                     customReportDefinitions = await dbFunctions.fetchCustomReportDefinitions();
+                    users = await dbFunctions.fetchUsers(); 
+                    organizationSettings = await dbFunctions.fetchOrganizationSettings(); 
                     logMsg("Data fetched from DB.", "success");
                 } else {
                     logMsg("DB Connection failed. Using local fallback data.", "warn");
-                    // Assign fallback data to global variables
-                    entities = [...entities_fallback_data];
-                    accounts = [...accounts_fallback_data];
-                    funds = [...funds_fallback_data];
-                    journalEntries = [...journalEntries_fallback_data];
-                    customReportDefinitions = []; // No fallback for custom reports for now
+                    entities = [...entities_fallback_data]; accounts = [...accounts_fallback_data];
+                    funds = [...funds_fallback_data]; journalEntries = [...journalEntries_fallback_data];
+                    customReportDefinitions = []; 
+                    users = [...users_fallback_data]; 
+                    organizationSettings = {...organizationSettings_fallback_data}; 
                 }
                 if (entities.length === 0 && !dbMode) logMsg("Fallback entities are empty. Check fallback data definitions.", "warn");
                 logMsg(`Step 1: Data initialized (Mode: ${dbMode ? 'DB' : 'Local'}, Entities: ${entities.length})`, "success");
             } catch (error) {
                 logMsg(`Error initializing data: ${error.message}. Falling back to local data.`, "error");
-                dbMode = false;
-                updateDbStatusIndicator();
-                entities = [...entities_fallback_data];
-                accounts = [...accounts_fallback_data];
-                funds = [...funds_fallback_data];
-                journalEntries = [...journalEntries_fallback_data];
-                customReportDefinitions = [];
+                dbMode = false; updateDbStatusIndicator();
+                entities = [...entities_fallback_data]; accounts = [...accounts_fallback_data];
+                funds = [...funds_fallback_data]; journalEntries = [...journalEntries_fallback_data];
+                customReportDefinitions = []; users = [...users_fallback_data]; organizationSettings = {...organizationSettings_fallback_data};
             }
             updateAppStatus("Data Structures Initialized", "initializing");
         }
@@ -766,11 +1255,9 @@
             updateAppStatus("Core UI Setup", "initializing");
         }
         
-        function step3_AttachCoreEventHandlers() { /* ... (same as v6-fixed, ensure all IDs match HTML) ... */ 
+        function step3_AttachCoreEventHandlers() { 
             logMsg("Step 3: Attaching core event handlers...", "step");
-             // Main navigation
             document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', function() { navigateToPage(this.dataset.page); }));
-            // Sidebar navigation
             document.querySelectorAll('.sidebar-item').forEach(item => item.addEventListener('click', function(e) {
                 e.preventDefault();
                 if (document.getElementById('dashboard-page').classList.contains('active')) {
@@ -781,29 +1268,35 @@
                     if(panel) panel.classList.add('active'); else logMsg(`Dashboard panel ${this.dataset.panel} not found`, "error");
                 }
             }));
-            // Tab controls (generic for all tab containers)
             document.querySelectorAll('.tab-item').forEach(t => t.addEventListener('click', function() {
                 const tc = this.closest('.tab-container');
                 if (!tc) { logMsg("Tab container not found for clicked tab.", "error"); return; }
                 tc.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
                 this.classList.add('active');
                 tc.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                const tabPanel = document.getElementById(this.dataset.tab);
-                if (tabPanel) tabPanel.classList.add('active'); else logMsg(`Tab panel ${this.dataset.tab} not found`, "error");
+                const panelId = this.dataset.tab;
+                const tabPanel = document.getElementById(panelId);
+                if (tabPanel) {
+                    tabPanel.classList.add('active');
+                    // If a specific tab needs data rendering, call it here
+                    if (panelId === 'settings-users') renderUsersTable();
+                    else if (panelId === 'settings-organization') populateOrganizationSettingsForm();
+                    else if (panelId === 'settings-entities') { renderEntitiesTable(); updateEntityRelationshipViz(); }
+                } else {
+                    logMsg(`Tab panel ${panelId} not found`, "error");
+                }
             }));
 
-            // Entity and View Toggles
             document.getElementById('entity-selector')?.addEventListener('change', handleEntityChange);
             document.getElementById('consolidated-view-toggle')?.addEventListener('change', handleConsolidatedViewToggle);
             document.getElementById('btnLogout')?.addEventListener('click', () => logMsg("Logout clicked (stub).", "info"));
             document.getElementById('btnPrintDashboard')?.addEventListener('click', () => logMsg("Print Dashboard clicked (stub).", "info"));
 
-            // CRUD Buttons
             document.getElementById('btnAddAccount')?.addEventListener('click', () => openAccountModal(null));
             document.getElementById('btnAddFund')?.addEventListener('click', () => openFundModal(null));
             document.getElementById('btnNewJournalEntry')?.addEventListener('click', () => openJournalEntryModal(null));
             document.getElementById('btn-add-entity')?.addEventListener('click', () => openEntityModal());
-            document.getElementById('btn-save-entity')?.addEventListener('click', saveEntity); // Entity save
+            document.getElementById('btn-save-entity')?.addEventListener('click', saveEntity); 
             document.getElementById('save-account-btn')?.addEventListener('click', saveAccount);
             document.getElementById('save-fund-btn')?.addEventListener('click', saveFund);
             document.getElementById('add-journal-line')?.addEventListener('click', () => addJournalLineToModal({}, false, currentEntityId));
@@ -811,17 +1304,20 @@
             document.getElementById('btn-save-journal-post')?.addEventListener('click', () => saveJournalEntry('Posted'));
             document.getElementById('journal-entry-is-inter-entity')?.addEventListener('change', handleInterEntityToggle);
             
-            // Delegated listeners for table action buttons
+            document.getElementById('btnAddUser')?.addEventListener('click', () => openUserModal(null));
+            document.getElementById('save-user-btn')?.addEventListener('click', saveUser);
+            document.getElementById('btnSaveOrganizationSettings')?.addEventListener('click', saveOrganizationSettings);
+            document.getElementById('users-table')?.addEventListener('click', (e) => { if (e.target.classList.contains('btn-edit-user')) openUserModal(e.target.dataset.id); });
+
+
             document.getElementById('chart-of-accounts-table')?.addEventListener('click', (e) => { if (e.target.classList.contains('btn-edit-account')) openAccountModal(e.target.dataset.id); });
             document.getElementById('funds-table')?.addEventListener('click', (e) => { if (e.target.classList.contains('btn-edit-fund')) openFundModal(e.target.dataset.id); });
             document.getElementById('journal-entries-table')?.addEventListener('click', (e) => { if (e.target.classList.contains('btn-edit-je')) openJournalEntryModal(e.target.dataset.id); });
             document.getElementById('entities-table')?.addEventListener('click', (e) => { if (e.target.classList.contains('btn-edit-entity')) openEntityModal(e.target.dataset.id); });
             
-            // Modal close buttons
             document.querySelectorAll('.modal-close-btn').forEach(btn => btn.addEventListener('click', function() { closeModalById(this.dataset.modalId); }));
             document.querySelectorAll('.modal-overlay').forEach(modalOverlay => modalOverlay.addEventListener('click', function(event) { if (event.target === this) closeModalById(this.id); }));
             
-            // Reports Page Specific Handlers
             document.querySelectorAll('#reports-gallery .action-button[data-report]').forEach(b => b.addEventListener('click', function() { renderStandardReport(this.dataset.report); }));
             const reportsPageElement = document.getElementById('reports-page');
             if (reportsPageElement) {
@@ -829,17 +1325,19 @@
                     if (event.target && event.target.matches('button[data-action="back-to-gallery"]')) {
                         event.target.closest('.report-view').classList.remove('active');
                         document.getElementById('reports-gallery').classList.add('active');
+                         // Reset reports page title when going back to gallery
+                        const reportsTitle = document.getElementById('reports-page-title');
+                        if (reportsTitle) reportsTitle.textContent = "Financial Reports";
                     }
                 });
             }
             document.getElementById('create-custom-report-definition')?.addEventListener('click', () => openReportBuilderModal());
-            // Placeholder for full report builder event handlers if re-added
 
             logMsg("Step 3: Core event handlers attached.", "success");
             updateAppStatus("Event Handlers Attached", "initializing");
         }
 
-        async function step4_RenderInitialView() { /* ... (same as v7, but make sure it's async if refreshAllDataViews is async) ... */ 
+        async function step4_RenderInitialView() { 
             logMsg("Step 4: Rendering initial view...", "step");
             await refreshAllDataViews(); 
             navigateToPage('dashboard'); 
@@ -852,12 +1350,12 @@
             updateAppStatus("Initialization Started...", "initializing");
             try {
                 await step0_VerifyBaseDOM();
-                await step1_InitializeDataStructures(); // Now async
-                await step2_SetupCoreUIElements();    // Now async
-                await step3_AttachCoreEventHandlers(); // Make async if it has async dependencies
-                await step4_RenderInitialView();      // Now async
+                await step1_InitializeDataStructures(); 
+                await step2_SetupCoreUIElements();    
+                step3_AttachCoreEventHandlers(); 
+                await step4_RenderInitialView();      
                 
-                await initializeCustomReportBuilder(); // Now async
+                await initializeCustomReportBuilder(); 
 
                 updateAppStatus("All Initialization Steps Succeeded!", "success");
                 logMsg("APP INITIALIZATION COMPLETE: SUCCESS", "success");
@@ -876,34 +1374,6 @@
             initApp();
         }
         
-        function closeModalById(modalId) {
-            logMsg(`Closing modal: ${modalId}`, "info");
-            console.log(`[DEBUG] Attempting to close modal with ID: ${modalId}`);
-            
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                console.log(`[DEBUG] Modal found, setting display to none`);
-                modal.style.display = 'none';
-            } else {
-                console.error(`[DEBUG] Modal element with ID ${modalId} not found via getElementById`);
-            }
-            
-            const modalAlt = document.querySelector(`#${modalId}`);
-            if (modalAlt) {
-                console.log(`[DEBUG] Modal found via querySelector, setting display to none`);
-                modalAlt.style.display = 'none';
-            }
-            
-            document.querySelectorAll('.modal-overlay').forEach(m => {
-                if (m.id === modalId) {
-                    console.log(`[DEBUG] Modal found via querySelectorAll by class, setting display to none`);
-                    m.style.display = 'none';
-                }
-            });
-            
-            return true; 
-        }
-
         logMsg("End of initial script block.", "info");
     </script>
 </body>
