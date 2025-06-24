@@ -1,604 +1,344 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Non-Profit Fund Accounting System</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-        }
-        .header {
-            background-color: #1976d2;
-            color: white;
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            box-sizing: border-box;
-            z-index: 1000;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: white;
-            position: fixed;
-            height: calc(100vh - 60px);
-            top: 60px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-        .main {
-            margin-left: 250px;
-            padding: 20px;
-            margin-top: 60px;
-        }
-        .menu-item {
-            padding: 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-        .menu-item:hover {
-            background-color: #f0f0f0;
-        }
-        .menu-item.active {
-            background-color: #e3f2fd;
-            border-left: 4px solid #1976d2;
-        }
-        .section {
-            display: none;
-        }
-        .section.active {
-            display: block;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-        th, td {
-            text-align: left;
-            padding: 8px;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .card {
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .search {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .button {
-            background-color: #1976d2;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .button:hover {
-            background-color: #1565c0;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background-color: white;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 5px;
-            width: 50%;
-        }
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-    </style>
+    <title>Non-Profit Fund Accounting System - Modular Version</title>
+    <!-- Extract CSS to external file -->
+    <link rel="stylesheet" href="src/css/styles.css">
 </head>
 <body>
     <div class="header">
-        <h1>Non-Profit Fund Accounting</h1>
-        <div>John Doe</div>
+        <div class="header-container">
+            <h1>Fund Accounting System (Modular Version)</h1>
+            <div class="header-right-controls">
+                <div class="db-status-container">
+                    <span id="db-status-indicator" class="offline">DB Offline</span>
+                </div>
+                <div class="consolidated-view-container">
+                    <label for="consolidated-view-toggle">Consolidated View:</label>
+                    <input type="checkbox" id="consolidated-view-toggle">
+                </div>
+                <div class="entity-selector-container">
+                    <label for="entity-selector" style="font-weight: 500; color: white;">Entity:</label>
+                    <select id="entity-selector">
+                        <option value="">Loading Entities...</option>
+                    </select>
+                </div>
+                <div class="user-info"><span>User</span><button class="logout-button" id="btnLogout">Logout</button></div>
+            </div>
+        </div>
     </div>
-    
-    <div class="sidebar">
-        <div class="menu-item" data-section="dashboard">Dashboard</div>
-        <div class="menu-item active" data-section="accounts">Chart of Accounts</div>
-        <div class="menu-item" data-section="funds">Funds</div>
-        <div class="menu-item" data-section="journal">Journal Entries</div>
-        <div class="menu-item" data-section="reports">Reports</div>
+
+    <div class="main-nav" id="mainNavContainer"> 
+        <div class="nav-container">
+            <div class="nav-item active" data-page="dashboard">Dashboard</div>
+            <div class="nav-item" data-page="chart-of-accounts">Chart of Accounts</div>
+            <div class="nav-item" data-page="funds">Funds</div>
+            <div class="nav-item" data-page="journal-entries">Journal Entries</div>
+            <div class="nav-item" data-page="reports">Reports</div>
+            <div class="nav-item" data-page="settings">Settings</div>
+        </div>
     </div>
-    
-    <div class="main">
-        <!-- Chart of Accounts -->
-        <div id="accounts" class="section active">
-            <h2>Chart of Accounts</h2>
-            <button class="button" id="add-account-btn">Add Account</button>
-            <input type="text" class="search" id="account-search" placeholder="Search accounts...">
-            
-            <table id="accounts-table">
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Balance</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1000</td>
-                        <td>Cash</td>
-                        <td>Asset</td>
-                        <td>$125,000.00</td>
-                        <td><button class="button">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td>1100</td>
-                        <td>Accounts Receivable</td>
-                        <td>Asset</td>
-                        <td>$45,000.00</td>
-                        <td><button class="button">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td>2000</td>
-                        <td>Accounts Payable</td>
-                        <td>Liability</td>
-                        <td>$35,000.00</td>
-                        <td><button class="button">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td>3000</td>
-                        <td>Equity</td>
-                        <td>Equity</td>
-                        <td>$135,000.00</td>
-                        <td><button class="button">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td>4000</td>
-                        <td>Revenue</td>
-                        <td>Revenue</td>
-                        <td>$250,000.00</td>
-                        <td><button class="button">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td>5000</td>
-                        <td>Expenses</td>
-                        <td>Expense</td>
-                        <td>$212,000.00</td>
-                        <td><button class="button">Edit</button></td>
-                    </tr>
-                </tbody>
-            </table>
+
+    <div class="main-content">
+        <div id="dashboard-page" class="page active">
+            <div class="content-header">
+                <h2 id="dashboard-title">Dashboard</h2>
+                <span id="dashboard-current-entity" style="margin-left:15px;font-size:0.9em;color:#555;"></span>
+                <button class="action-button" id="btnPrintDashboard">Print Report</button>
+            </div>
+            <div id="financial-overview-panel" class="dashboard-panel active">
+                <div class="card-grid" id="dashboard-summary-cards"><p class="preview-placeholder">Dashboard cards loading...</p></div>
+                <h3 class="mt-20">Fund Balances</h3>
+                <table class="data-table" id="dashboard-fund-balances-table">
+                    <thead><tr><th>Fund Name</th><th>Type</th><th>Balance</th><th>% of Total</th></tr></thead>
+                    <tbody><tr><td colspan="4" class="preview-placeholder">Fund balances loading...</td></tr></tbody>
+                </table>
+            </div>
+            <div id="recent-transactions-panel" class="dashboard-panel">
+                <h3>Recent Transactions</h3>
+                <table class="data-table" id="dashboard-recent-transactions-table">
+                     <thead><tr><th>Date</th><th>Reference</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
+                     <tbody><tr><td colspan="5" class="preview-placeholder">Recent transactions loading...</td></tr></tbody>
+                </table>
+            </div>
+             <div id="unposted-entries-panel" class="dashboard-panel">
+                <h3 class="mt-20">Unposted Journal Entries</h3>
+                <table class="data-table" id="dashboard-unposted-entries-table">
+                    <thead><tr><th>Date</th><th>Reference</th><th>Description</th><th>Amount</th><th>Created By</th><th>Actions</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="preview-placeholder">Unposted entries loading...</td></tr></tbody>
+                </table>
+            </div>
+            <div id="budget-analysis-panel" class="dashboard-panel"><h3 class="mt-20">Budget Analysis</h3><table class="data-table" id="dashboard-budget-analysis-table"><thead><tr><th>Category</th><th>Budget</th><th>Actual</th><th>Variance</th><th>% Used</th></tr></thead><tbody></tbody></table></div>
+            <div id="fund-balances-panel" class="dashboard-panel"><h3 class="mt-20">Fund Balances (Detailed)</h3><table class="data-table" id="dashboard-fund-balances-detailed-table"><thead><tr><th>Fund ID</th><th>Fund Name</th><th>Type</th><th>Beginning Balance</th><th>Revenue</th><th>Expenses</th><th>Current Balance</th></tr></thead><tbody></tbody></table></div>
         </div>
         
-        <!-- Funds -->
-        <div id="funds" class="section">
-            <h2>Funds</h2>
-            <button class="button" id="add-fund-btn">Add Fund</button>
-            <input type="text" class="search" id="fund-search" placeholder="Search funds...">
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Balance</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>01</td>
-                        <td>General Fund</td>
-                        <td>Unrestricted</td>
-                        <td>$87,500.00</td>
-                        <td><button class="button">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td>02</td>
-                        <td>Building Fund</td>
-                        <td>Restricted</td>
-                        <td>$22,200.00</td>
-                        <td><button class="button">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td>03</td>
-                        <td>Program Fund</td>
-                        <td>Restricted</td>
-                        <td>$35,000.00</td>
-                        <td><button class="button">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td>04</td>
-                        <td>Endowment</td>
-                        <td>Endowment</td>
-                        <td>$25,300.00</td>
-                        <td><button class="button">Edit</button></td>
-                    </tr>
-                </tbody>
+        <div id="chart-of-accounts-page" class="page">
+            <div class="content-header">
+                <h2>Chart of Accounts</h2>
+                <button class="action-button" id="btnAddAccount">Add Account</button>
+            </div>
+            <table class="data-table" id="chart-of-accounts-table">
+                <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
             </table>
         </div>
-        
-        <!-- Journal Entries -->
-        <div id="journal" class="section">
-            <h2>Journal Entries</h2>
-            <button class="button" id="add-entry-btn">Add Entry</button>
-            <input type="text" class="search" id="journal-search" placeholder="Search entries...">
-            
-            <table>
+
+        <div id="funds-page" class="page">
+            <div class="content-header">
+                <h2>Funds Management</h2>
+                <button class="action-button" id="btnAddFund">Add Fund</button>
+            </div>
+            <table class="data-table" id="funds-table">
+                <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="journal-entries-page" class="page">
+            <div class="content-header">
+                <h2>Journal Entries</h2>
+                <button class="action-button" id="btnNewJournalEntry">New Journal Entry</button>
+            </div>
+            <table class="data-table" id="journal-entries-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Date</th>
+                        <th>Reference</th>
                         <th>Description</th>
-                        <th>Amount</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Created By</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>JE-001</td>
-                        <td>2025-06-01</td>
-                        <td>Monthly Rent Payment</td>
-                        <td>$5,000.00</td>
-                        <td><button class="button">View</button></td>
-                    </tr>
-                    <tr>
-                        <td>JE-002</td>
-                        <td>2025-06-05</td>
-                        <td>Donor Contribution</td>
-                        <td>$25,000.00</td>
-                        <td><button class="button">View</button></td>
-                    </tr>
-                    <tr>
-                        <td>JE-003</td>
-                        <td>2025-06-10</td>
-                        <td>Staff Payroll</td>
-                        <td>$12,500.00</td>
-                        <td><button class="button">View</button></td>
-                    </tr>
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
         
-        <!-- Reports -->
-        <div id="reports" class="section">
-            <h2>Financial Reports</h2>
-            
-            <div class="card">
-                <h3>Balance Sheet</h3>
-                <h4>As of June 17, 2025</h4>
-                
-                <table>
-                    <thead>
-                        <tr>
-                            <th colspan="2">Assets</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Cash</td>
-                            <td>$125,000.00</td>
-                        </tr>
-                        <tr>
-                            <td>Accounts Receivable</td>
-                            <td>$45,000.00</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Total Assets</strong></td>
-                            <td><strong>$170,000.00</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <table style="margin-top: 20px;">
-                    <thead>
-                        <tr>
-                            <th colspan="2">Liabilities</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Accounts Payable</td>
-                            <td>$35,000.00</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Total Liabilities</strong></td>
-                            <td><strong>$35,000.00</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <table style="margin-top: 20px;">
-                    <thead>
-                        <tr>
-                            <th colspan="2">Net Assets</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Unrestricted</td>
-                            <td>$87,500.00</td>
-                        </tr>
-                        <tr>
-                            <td>Temporarily Restricted</td>
-                            <td>$22,200.00</td>
-                        </tr>
-                        <tr>
-                            <td>Permanently Restricted</td>
-                            <td>$25,300.00</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Total Net Assets</strong></td>
-                            <td><strong>$135,000.00</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <table style="margin-top: 20px;">
-                    <tbody>
-                        <tr>
-                            <td><strong>Total Liabilities and Net Assets</strong></td>
-                            <td><strong>$170,000.00</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div id="reports-page" class="page">
+            <div class="content-header"><h2 id="reports-page-title">Financial Reports</h2></div>
+            <div id="reports-gallery" class="reports-gallery active">
+                <h3>Standard Reports</h3>
+                <div class="card-grid">
+                    <div class="card"><div class="card-title">Statement of Financial Position</div><p>Balance sheet.</p><button class="action-button mt-20" data-report="financial-position">Generate</button></div>
+                    <div class="card"><div class="card-title">Statement of Activities</div><p>Income statement.</p><button class="action-button mt-20" data-report="activities">Generate</button></div>
+                    <div class="card"><div class="card-title">Statement of Functional Expenses</div><p>Expenses by function &amp; nature.</p><button class="action-button mt-20" data-report="functional-expenses">Generate</button></div>
+                    <div class="card"><div class="card-title">Budget vs. Actual</div><p>Compares budgeted and actual results.</p><button class="action-button mt-20" data-report="budget-vs-actual">Generate</button></div>
+                </div>
+                <h3 class="mt-20">Custom Reports</h3>
+                <button class="action-button mt-20" id="create-custom-report-definition">Create New Custom Report</button>
+                <div id="custom-reports-container" class="card-grid"><div class="preview-placeholder" id="no-custom-reports-placeholder">No custom reports.</div></div>
             </div>
+            <div id="financial-position-report" class="report-view">
+              <div class="report-actions">
+                <button class="btn-secondary" data-action="back-to-gallery">Back to Reports</button>
+                <div class="report-tools">
+                  <button class="action-button">Print</button>
+                  <button class="action-button">Export PDF</button>
+                  <button class="action-button">Export Excel</button>
+                </div>
+              </div>
+              <div class="report-container">
+                <div class="report-header">
+                  <div class="report-title">Community Nonprofit Organization</div>
+                  <div class="report-subtitle">Statement of Financial Position</div>
+                  <div class="report-date">As of June 30, 2025</div>
+                </div>
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Assets</th><th class="text-right">Amount</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Cash and Cash Equivalents</td><td class="text-right">$145,250.00</td></tr>
+                    <tr><td>Investments</td><td class="text-right">$250,000.00</td></tr>
+                    <tr><td>Accounts Receivable</td><td class="text-right">$35,000.00</td></tr>
+                    <tr><td>Property and Equipment (net)</td><td class="text-right">$500,000.00</td></tr>
+                    <tr><td><strong>Total Assets</strong></td><td class="text-right"><strong>$930,250.00</strong></td></tr>
+                    <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                    <tr><td><strong>Liabilities</strong></td><td>&nbsp;</td></tr>
+                    <tr><td>Accounts Payable</td><td class="text-right">$25,000.00</td></tr>
+                    <tr><td>Accrued Expenses</td><td class="text-right">$18,500.00</td></tr>
+                    <tr><td>Notes Payable</td><td class="text-right">$150,000.00</td></tr>
+                    <tr><td><strong>Total Liabilities</strong></td><td class="text-right"><strong>$193,500.00</strong></td></tr>
+                    <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                    <tr><td><strong>Net Assets</strong></td><td>&nbsp;</td></tr>
+                    <tr><td>Without Donor Restrictions</td><td class="text-right">$486,750.00</td></tr>
+                    <tr><td>With Donor Restrictions</td><td class="text-right">$250,000.00</td></tr>
+                    <tr><td><strong>Total Net Assets</strong></td><td class="text-right"><strong>$736,750.00</strong></td></tr>
+                    <tr><td><strong>Total Liabilities and Net Assets</strong></td><td class="text-right"><strong>$930,250.00</strong></td></tr>
+                  </tbody>
+                </table>
+                <div class="report-footer">Unaudited - For Management Purposes Only</div>
+              </div>
+            </div>
+            <!-- Additional reports from v7 removed for brevity -->
         </div>
-        
-        <!-- Dashboard -->
-        <div id="dashboard" class="section">
-            <h2>Dashboard</h2>
-            
-            <div class="card">
-                <h3>Financial Summary</h3>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td>Total Assets</td>
-                            <td>$170,000.00</td>
-                        </tr>
-                        <tr>
-                            <td>Total Liabilities</td>
-                            <td>$35,000.00</td>
-                        </tr>
-                        <tr>
-                            <td>Total Net Assets</td>
-                            <td>$135,000.00</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="card">
-                <h3>Fund Balances</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Fund</th>
-                            <th>Balance</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>General Fund</td>
-                            <td>$87,500.00</td>
-                        </tr>
-                        <tr>
-                            <td>Building Fund</td>
-                            <td>$22,200.00</td>
-                        </tr>
-                        <tr>
-                            <td>Program Fund</td>
-                            <td>$35,000.00</td>
-                        </tr>
-                        <tr>
-                            <td>Endowment</td>
-                            <td>$25,300.00</td>
-                        </tr>
-                    </tbody>
-                </table>
+
+        <div id="settings-page" class="page">
+            <div class="content-header"><h2>System Settings</h2></div>
+            <div class="tab-container">
+                <div class="tab-menu">
+                    <div class="tab-item active" data-tab="settings-users">Users</div>
+                    <div class="tab-item" data-tab="settings-organization">Organization</div>
+                    <div class="tab-item" data-tab="settings-entities">Entities</div>
+                </div>
+                <div class="tab-content">
+                    <div id="settings-users" class="tab-panel active">
+                        <div class="content-header">
+                            <h3>User Management</h3>
+                            <button class="action-button" id="btnAddUser">Add User</button>
+                        </div>
+                        <table class="data-table" id="users-table">
+                            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div id="settings-organization" class="tab-panel">
+                        <div class="content-header">
+                            <h3>Organization Settings</h3>
+                            <button class="action-button" id="btnSaveOrganizationSettings">Save Changes</button>
+                        </div>
+                        <div class="form-section">
+                            <h4>General Information</h4>
+                            <div class="form-row">
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-name-input">Organization Name</label><input type="text" id="org-name-input" class="form-input"></div></div>
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-tax-id-input">EIN / Tax ID</label><input type="text" id="org-tax-id-input" class="form-input"></div></div>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <h4>Contact Information</h4>
+                            <div class="form-row">
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-phone-input">Phone</label><input type="tel" id="org-phone-input" class="form-input"></div></div>
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-email-input">Email</label><input type="email" id="org-email-input" class="form-input"></div></div>
+                            </div>
+                        </div>
+                        <div class="form-section">
+                            <h4>Address</h4>
+                            <div class="form-group"><label class="form-label" for="org-address-street-input">Street Address</label><input type="text" id="org-address-street-input" class="form-input"></div>
+                            <div class="form-row">
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-address-city-input">City</label><input type="text" id="org-address-city-input" class="form-input"></div></div>
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-address-state-input">State</label><input type="text" id="org-address-state-input" class="form-input"></div></div>
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-address-zip-input">ZIP Code</label><input type="text" id="org-address-zip-input" class="form-input"></div></div>
+                            </div>
+                        </div>
+                         <div class="form-section">
+                            <h4>Global Financial Settings (Defaults)</h4>
+                             <div class="form-row">
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-default-currency-input">Default Currency</label><input type="text" id="org-default-currency-input" class="form-input" placeholder="e.g., USD"></div></div>
+                                <div class="form-column"><div class="form-group"><label class="form-label" for="org-global-fiscal-year-start-input">Global Fiscal Year Start (MM-DD)</label><input type="text" id="org-global-fiscal-year-start-input" class="form-input" placeholder="e.g., 01-01"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                     <div id="settings-entities" class="tab-panel">
+                        <div class="content-header"><h3>Entity Management</h3><button class="action-button" id="btn-add-entity">Add Entity</button></div>
+                        <table class="data-table" id="entities-table">
+                            <thead><tr><th>Code</th><th>Name</th><th>Parent</th><th>Status</th><th>Currency</th><th>Fiscal Start</th><th>Consolidated?</th><th>Actions</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                        <h4 class="mt-20">Entity Relationship Visualization</h4>
+                        <div id="entity-relationship-viz"><p class="preview-placeholder">Entity hierarchy.</p></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     
-    <!-- Add Account Modal -->
-    <div id="account-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Add Account</h2>
-            <form>
+    <div id="init-status-indicator" class="initializing">Status: Initializing System...</div>
+    <div id="log-output-container"><div id="log-output"></div></div>
+
+    <!-- Modals -->
+    <div id="account-modal" class="modal-overlay"><div class="modal-dialog"><div class="modal-header"><h3 class="modal-title" id="account-modal-title">Account</h3><button class="modal-close-btn" data-modal-id="account-modal">&times;</button></div><div class="modal-body"><input type="hidden" id="edit-account-id-input"><div class="form-group"><label class="form-label" for="account-code-input">Account Code</label><input type="text" id="account-code-input" class="form-input"></div><div class="form-group"><label class="form-label" for="account-name-input">Account Name</label><input type="text" id="account-name-input" class="form-input"></div><div class="form-row"><div class="form-column"><div class="form-group"><label class="form-label" for="account-type-select">Account Type</label><select id="account-type-select" class="form-input"><option value="Asset">Asset</option><option value="Liability">Liability</option><option value="Equity">Equity</option><option value="Revenue">Revenue</option><option value="Expense">Expense</option></select></div></div><div class="form-column"><div class="form-group"><label class="form-label" for="account-status-select">Status</label><select id="account-status-select" class="form-input"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div></div></div><div class="form-group"><label class="form-label" for="account-description-textarea">Description</label><textarea id="account-description-textarea" class="form-input" rows="3"></textarea></div></div><div class="modal-footer"><button class="btn-secondary modal-close-btn" data-modal-id="account-modal">Cancel</button><button class="action-button" id="save-account-btn">Save Account</button></div></div></div>
+    <div id="fund-modal" class="modal-overlay"><div class="modal-dialog"><div class="modal-header"><h3 class="modal-title" id="fund-modal-title">Fund</h3><button class="modal-close-btn" data-modal-id="fund-modal">&times;</button></div><div class="modal-body"><input type="hidden" id="edit-fund-id-input"><div class="form-group"><label class="form-label" for="fund-code-input">Fund Code</label><input type="text" id="fund-code-input" class="form-input"></div><div class="form-group"><label class="form-label" for="fund-name-input">Fund Name</label><input type="text" id="fund-name-input" class="form-input"></div><div class="form-row"><div class="form-column"><div class="form-group"><label class="form-label" for="fund-type-select">Fund Type</label><select id="fund-type-select" class="form-input"><option value="Unrestricted">Unrestricted</option><option value="Temporarily Restricted">Temporarily Restricted</option><option value="Permanently Restricted">Permanently Restricted</option></select></div></div><div class="form-column"><div class="form-group"><label class="form-label" for="fund-status-select">Status</label><select id="fund-status-select" class="form-input"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div></div></div><div class="form-group"><label class="form-label" for="fund-description-textarea">Description</label><textarea id="fund-description-textarea" class="form-input" rows="3"></textarea></div></div><div class="modal-footer"><button class="btn-secondary modal-close-btn" data-modal-id="fund-modal">Cancel</button><button class="action-button" id="save-fund-btn">Save Fund</button></div></div></div>
+    <div id="journal-entry-modal" class="modal-overlay"><div class="modal-dialog modal-dialog-lg"><div class="modal-header"><h3 class="modal-title" id="journal-entry-modal-title">New Journal Entry</h3><button class="modal-close-btn" data-modal-id="journal-entry-modal">&times;</button></div><div class="modal-body"><input type="hidden" id="edit-je-id-input"><div class="form-row"><div class="form-column"><div class="form-group"><label class="form-label" for="journal-entry-date">Date</label><input type="date" id="journal-entry-date" class="form-input"></div></div><div class="form-column"><div class="form-group"><label class="form-label" for="journal-entry-reference">Reference</label><input type="text" id="journal-entry-reference" class="form-input" readonly></div></div></div><div class="form-group"><label class="form-label" for="journal-entry-description">Description</label><input type="text" id="journal-entry-description" class="form-input" placeholder="Enter transaction description..."></div><div class="form-group"><label class="form-label"><input type="checkbox" id="journal-entry-is-inter-entity" class="form-input"> Is Inter-Entity Transfer?</label></div><div id="inter-entity-fields-container" class="inter-entity-fields"><div class="form-row"><div class="form-column"><div class="form-group"><label class="form-label" for="journal-entry-target-entity">Target Entity</label><select id="journal-entry-target-entity" class="form-input"><option value="">Select Target Entity...</option></select></div></div><div class="form-column"><div class="form-group"><label class="form-label" for="journal-entry-matching-tx-id">Matching Transaction ID (Optional)</label><input type="text" id="journal-entry-matching-tx-id" class="form-input" placeholder="Auto-generated if blank"></div></div></div></div><h4 style="margin: 20px 0 10px 0;">Journal Entry Lines</h4><table class="data-table" id="journal-lines-table"><thead><tr><th style="width: 25%;">Account</th><th style="width: 20%;">Fund</th><th style="width: 12%;">Debit</th><th style="width: 12%;">Credit</th><th style="width: 23%;">Description</th><th style="width: 8%;">Action</th></tr></thead><tbody id="journal-lines"></tbody></table><button id="add-journal-line" class="btn-secondary" style="margin-top: 10px;">Add Line</button><div class="totals-summary"><div class="form-group"><label class="form-label">Total Debits</label><input type="text" id="journal-total-debits" class="form-input" value="$0.00" readonly></div><div class="form-group"><label class="form-label">Total Credits</label><input type="text" id="journal-total-credits" class="form-input" value="$0.00" readonly></div><div class="form-group"><label class="form-label">Difference</label><input type="text" id="journal-difference" class="form-input" value="$0.00" readonly></div></div></div><div class="modal-footer"><button class="btn-secondary modal-close-btn" data-modal-id="journal-entry-modal">Cancel</button><button class="action-button" id="btn-save-journal-draft">Save as Draft</button><button class="action-button" id="btn-save-journal-post">Save & Post</button></div></div></div>
+    <div id="entity-modal" class="modal-overlay"><div class="modal-dialog modal-dialog-lg">
+        <div class="modal-header"><h3 class="modal-title" id="entity-modal-title-text">Entity</h3><button class="modal-close-btn" data-modal-id="entity-modal">&times;</button></div>
+        <div class="modal-body">
+            <input type="hidden" id="entity-id-edit">
+            <div class="form-row">
+                <div class="form-column"><div class="form-group"><label class="form-label">Entity Code</label><input type="text" id="entity-code-input" class="form-input"></div></div>
+                <div class="form-column"><div class="form-group"><label class="form-label">Entity Name</label><input type="text" id="entity-name-input" class="form-input"></div></div>
+            </div>
+            <div class="form-row">
+                <div class="form-column"><div class="form-group"><label class="form-label">Parent Entity</label><select id="entity-parent-select" class="form-input"><option value="">None (Top Level)</option></select></div></div>
+                <div class="form-column"><div class="form-group"><label class="form-label">Status</label><select id="entity-status-select" class="form-input"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div></div>
+            </div>
+             <div class="form-row">
+                <div class="form-column"><div class="form-group"><label class="form-label">Fiscal Year Start (MM-DD)</label><input type="text" id="entity-fiscal-year-start-input" class="form-input" placeholder="e.g., 01-01"></div></div>
+                <div class="form-column"><div class="form-group"><label class="form-label">Base Currency</label><input type="text" id="entity-base-currency-input" class="form-input" placeholder="e.g., USD"></div></div>
+            </div>
+            <div class="form-group"><label class="form-label"><input type="checkbox" id="entity-is-consolidated-input" class="form-input"> Is this a Consolidation Entity?</label></div>
+            <div class="form-group"><label class="form-label">Description</label><textarea id="entity-description-input" class="form-input" rows="3"></textarea></div>
+        </div>
+        <div class="modal-footer"><button class="btn-secondary modal-close-btn" data-modal-id="entity-modal">Cancel</button><button class="action-button" id="btn-save-entity">Save Entity</button></div>
+    </div></div>
+    <div id="user-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title" id="user-modal-title">User</h3>
+                <button class="modal-close-btn" data-modal-id="user-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-user-id-input">
                 <div class="form-group">
-                    <label for="account-code">Account Code:</label>
-                    <input type="text" id="account-code">
+                    <label class="form-label" for="user-name-input">Full Name</label>
+                    <input type="text" id="user-name-input" class="form-input">
                 </div>
                 <div class="form-group">
-                    <label for="account-name">Account Name:</label>
-                    <input type="text" id="account-name">
+                    <label class="form-label" for="user-email-input">Email</label>
+                    <input type="email" id="user-email-input" class="form-input">
                 </div>
-                <div class="form-group">
-                    <label for="account-type">Account Type:</label>
-                    <select id="account-type">
-                        <option>Asset</option>
-                        <option>Liability</option>
-                        <option>Equity</option>
-                        <option>Revenue</option>
-                        <option>Expense</option>
-                    </select>
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label" for="user-role-select">Role</label>
+                            <select id="user-role-select" class="form-input">
+                                <option value="Administrator">Administrator</option>
+                                <option value="Finance Manager">Finance Manager</option>
+                                <option value="Staff">Staff</option>
+                                <option value="Read-Only">Read-Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label" for="user-status-select">Status</label>
+                            <select id="user-status-select" class="form-input">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <button type="button" class="button" id="save-account">Save</button>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close-btn" data-modal-id="user-modal">Cancel</button>
+                <button class="action-button" id="save-user-btn">Save User</button>
+            </div>
         </div>
     </div>
+    <div id="report-builder-modal" class="modal-overlay"><div class="modal-dialog modal-dialog-lg">
+        <div class="modal-header"><h3 class="modal-title" id="report-builder-modal-title">Report Builder</h3><button class="modal-close-btn" data-modal-id="report-builder-modal">&times;</button></div>
+        <div class="modal-body"><p class="preview-placeholder">Full Report Builder UI will go here.</p></div>
+        <div class="modal-footer"><button class="btn-secondary modal-close-btn" data-modal-id="report-builder-modal">Cancel</button><button class="action-button">Save & Run</button></div>
+    </div></div>
+
+    <!-- Database configuration and connection -->
+    <script src="src/db/db-config.js"></script>
     
-    <!-- Add Fund Modal -->
-    <div id="fund-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Add Fund</h2>
-            <form>
-                <div class="form-group">
-                    <label for="fund-code">Fund Code:</label>
-                    <input type="text" id="fund-code">
-                </div>
-                <div class="form-group">
-                    <label for="fund-name">Fund Name:</label>
-                    <input type="text" id="fund-name">
-                </div>
-                <div class="form-group">
-                    <label for="fund-type">Fund Type:</label>
-                    <select id="fund-type">
-                        <option>Unrestricted</option>
-                        <option>Temporarily Restricted</option>
-                        <option>Permanently Restricted</option>
-                        <option>Endowment</option>
-                    </select>
-                </div>
-                <button type="button" class="button" id="save-fund">Save</button>
-            </form>
-        </div>
-    </div>
+    <!-- Load modules in correct order -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/db.js"></script>
+    <script src="src/js/ui.js"></script>
+    <script src="src/js/modals.js"></script>
+    <script src="src/js/reports.js"></script>
+    <script src="src/js/journal.js"></script>
+    <script src="src/js/core.js"></script>
+    <script src="src/js/db-connection-browser.js"></script>
+    <script src="src/js/direct-button-fix.js"></script>
+    <script src="src/js/modal-functions-fix.js"></script>
     
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Menu navigation
-            const menuItems = document.querySelectorAll('.menu-item');
-            menuItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    // Hide all sections
-                    document.querySelectorAll('.section').forEach(section => {
-                        section.classList.remove('active');
-                    });
-                    
-                    // Remove active class from all menu items
-                    menuItems.forEach(menuItem => {
-                        menuItem.classList.remove('active');
-                    });
-                    
-                    // Show selected section and mark menu item as active
-                    const sectionId = this.getAttribute('data-section');
-                    document.getElementById(sectionId).classList.add('active');
-                    this.classList.add('active');
-                });
-            });
-            
-            // Search functionality
-            document.getElementById('account-search').addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                const rows = document.querySelectorAll('#accounts-table tbody tr');
-                
-                rows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    if (text.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-            
-            // Modal functionality
-            const accountModal = document.getElementById('account-modal');
-            const fundModal = document.getElementById('fund-modal');
-            
-            document.getElementById('add-account-btn').addEventListener('click', function() {
-                accountModal.style.display = 'block';
-            });
-            
-            document.getElementById('add-fund-btn').addEventListener('click', function() {
-                fundModal.style.display = 'block';
-            });
-            
-            document.querySelectorAll('.close').forEach(closeBtn => {
-                closeBtn.addEventListener('click', function() {
-                    accountModal.style.display = 'none';
-                    fundModal.style.display = 'none';
-                });
-            });
-            
-            document.getElementById('save-account').addEventListener('click', function() {
-                const code = document.getElementById('account-code').value;
-                const name = document.getElementById('account-name').value;
-                const type = document.getElementById('account-type').value;
-                
-                if (code && name) {
-                    alert(`Account saved: ${code} - ${name} (${type})`);
-                    accountModal.style.display = 'none';
-                } else {
-                    alert('Please fill in all fields');
-                }
-            });
-            
-            document.getElementById('save-fund').addEventListener('click', function() {
-                const code = document.getElementById('fund-code').value;
-                const name = document.getElementById('fund-name').value;
-                const type = document.getElementById('fund-type').value;
-                
-                if (code && name) {
-                    alert(`Fund saved: ${code} - ${name} (${type})`);
-                    fundModal.style.display = 'none';
-                } else {
-                    alert('Please fill in all fields');
-                }
-            });
-            
-            // Close modal when clicking outside
-            window.onclick = function(event) {
-                if (event.target === accountModal) {
-                    accountModal.style.display = 'none';
-                }
-                if (event.target === fundModal) {
-                    fundModal.style.display = 'none';
-                }
-            };
-        });
-    </script>
+    <!-- Adding the CSS file here -->
 </body>
 </html>
-

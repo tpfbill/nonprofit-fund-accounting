@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "nonprofit-fund-accounting-web-demo",
   "version": "1.0.0",
   "description": "Frontend demo for Non-Profit Fund Accounting System",
@@ -7,6 +7,9 @@
     "start": "http-server . -p 8080 -c-1"
   },
   "dependencies": {
-    "http-server": "^14.1.1"
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "http-server": "^14.1.1",
+    "pg": "^8.16.2"
   }
 }

@@ -135,8 +135,9 @@
     </style>
     <!-- Database connection scripts - these are conceptual for a frontend-only app -->
     <!-- In a real app, these would be backend logic, not client-side scripts -->
-    <script src="db-config.js" defer></script> 
-    <script src="db-connection.js" defer></script>
+    <script src="src/db/db-config.js" defer></script> 
+    <script src="src/db/db-connection-browser.js" defer></script>
+    <script src="src/js/db.js" defer></script>
 </head>
 <body>
     <div class="header">
@@ -1376,5 +1377,10 @@
         
         logMsg("End of initial script block.", "info");
     </script>
+    <script src="emergency-db-fix.js" defer></script>
+    <script src="fix-buttons.js" defer></script>
+    <script src="fix-database.js" defer></script>
+    <script src="modal-functions-fix.js" defer></script>
+    <script src="direct-button-fix.js" defer></script>
 </body>
 </html>

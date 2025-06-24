@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Status Check</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #2c3e50; margin-bottom: 20px; }
+        .card { background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+        .status { padding: 8px; border-radius: 4px; display: inline-block; margin: 5px 0; }
+        .success { background-color: #d4edda; color: #155724; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        hr { margin: 30px 0; border: 0; height: 1px; background-color: #ddd; }
+        button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background-color: #45a049; }
+        button.secondary { background-color: #2196F3; }
+        button.secondary:hover { background-color: #0b7dda; }
+        pre { background-color: #f1f1f1; padding: 10px; overflow-x: auto; border-radius: 5px; max-height: 300px; overflow-y: auto; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Database Status Checker</h1>
+        
+        <div class="card">
+            <h2>Connection Status</h2>
+            <div id="connection-status" class="status warning">Checking connection...</div>
+            <button id="check-connection">Check Connection</button>
+            <button class="secondary" id="toggle-server">Server Status</button>
+        </div>
+        
+        <div class="card">
+            <h2>Script Loading</h2>
+            <div id="script-status"></div>
+            <ul>
+                <li>db-config.js: <span id="db-config-status" class="status">Checking...</span></li>
+                <li>db-connection.js: <span id="db-connection-status" class="status">Checking...</span></li>
+                <li>db.js: <span id="db-js-status" class="status">Checking...</span></li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>Data Test</h2>
+            <div>
+                <button id="test-entities">Load Entities</button>
+                <button id="test-accounts">Load Accounts</button>
+                <button id="test-funds">Load Funds</button>
+                <button id="test-journal-entries">Load Journal Entries</button>
+            </div>
+            <pre id="data-display">Select a data type to test...</pre>
+        </div>
+        
+        <div class="card">
+            <h2>API Endpoint Tests</h2>
+            <div id="api-status" class="status info">Select an endpoint to test</div>
+            <div>
+                <button data-endpoint="/api/health">Health</button>
+                <button data-endpoint="/api/entities">Entities</button>
+                <button data-endpoint="/api/accounts">Accounts</button>
+                <button data-endpoint="/api/funds">Funds</button>
+                <button data-endpoint="/api/journal-entries">Journal Entries</button>
+            </div>
+            <pre id="api-response">API response will appear here...</pre>
+        </div>
+    </div>
+
+    <script src="src/db/db-config.js"></script>
+    <script src="src/db/db-connection-browser.js"></script>
+    <script src="src/js/db.js"></script>
+    <script src="emergency-db-fix.js"></script>
+    <script src="db-status-test.js"></script>
+</body>
+</html>
