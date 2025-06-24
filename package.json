@@ -2,11 +2,15 @@
   "name": "nonprofit-fund-accounting-web-demo",
   "version": "1.0.0",
   "description": "Frontend demo for Non-Profit Fund Accounting System",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "http-server . -p 8080 -c-1"
+    "start": "node server.js",
+    "client": "http-server . -p 8081 -c-1",
+    "dev": "concurrently \"npm run start\" \"npm run client\"",
+    "test-data": "node add-test-data.js"
   },
   "dependencies": {
+    "concurrently": "^8.2.2",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "http-server": "^14.1.1",
