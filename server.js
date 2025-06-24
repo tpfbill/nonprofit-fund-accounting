@@ -32,14 +32,25 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health Check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Server running' });
-});
-
 // Helper for async handlers
 const asyncHandler = fn => (req, res, next) => 
   Promise.resolve(fn(req, res, next)).catch(next);
+
+// Health Check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'Server running', connected: true });
+});
+
+// Database status endpoint
+app.get('/api/db-status', asyncHandler(async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ connected: true, message: 'Database connected successfully' });
+  } catch (error) {
+    console.error('Database connection check error:', error);
+    res.status(500).json({ connected: false, message: 'Database connection failed', error: error.message });
+  }
+}));
 
 // Get all entities
 app.get('/api/entities', asyncHandler(async (req, res) => {
@@ -73,6 +84,16 @@ app.get('/api/journal-entries', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `SELECT * FROM journal_entries ${entityId ? 'WHERE entity_id = $1' : ''} ORDER BY entry_date DESC`,
     entityId ? [entityId] : []
+  );
+  res.json(rows);
+}));
+
+// Get journal entry lines
+app.get('/api/journal-entries/:id/lines', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await pool.query(
+    `SELECT * FROM journal_entry_lines WHERE journal_entry_id = $1`,
+    [id]
   );
   res.json(rows);
 }));

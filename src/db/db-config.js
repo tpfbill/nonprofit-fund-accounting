@@ -21,5 +21,5 @@ if (typeof window !== 'undefined') {
 
 // For Node.js environment
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = DB_CONFIG;
+    module.exports = { getDbConfig, DB_CONFIG };
 }
