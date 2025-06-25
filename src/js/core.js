@@ -64,12 +64,12 @@
     function _cacheElements() {
         _elements.logOutput = document.getElementById('log-output');
         _elements.statusIndicator = document.getElementById('init-status-indicator');
-        _elements.mainNavItems = document.querySelectorAll('.nav-item');
+        _elements.mainNavItems = document.querySelectorAll('.nav-item[data-page]');
         _elements.pages = document.querySelectorAll('.page');
         _elements.entitySelector = document.getElementById('entity-selector');
         _elements.consolidatedViewToggle = document.getElementById('consolidated-view-toggle');
 
-        // Add buttons
+        // "Add" buttons
         _elements.btnAddAccount = document.getElementById('btnAddAccount');
         _elements.btnAddFund = document.getElementById('btnAddFund');
         _elements.btnNewJournalEntry = document.getElementById('btnNewJournalEntry');
@@ -92,12 +92,22 @@
         _elements.consolidatedViewToggle.addEventListener('change', _handleConsolidatedViewToggle);
 
         // "Add" buttons - This directly solves the previous issues.
-        // These will call functions exposed by the 'modals' module (to be created).
-        _elements.btnAddAccount.addEventListener('click', () => modals.openAccount());
-        _elements.btnAddFund.addEventListener('click', () => modals.openFund());
-        _elements.btnNewJournalEntry.addEventListener('click', () => modals.openJournalEntry());
-        _elements.btnAddEntity.addEventListener('click', () => modals.openEntity());
-        _elements.btnAddUser.addEventListener('click', () => modals.openUser());
+        // These will call functions exposed by the 'modals' module.
+        if (_elements.btnAddAccount) {
+            _elements.btnAddAccount.addEventListener('click', () => modals.openAccount());
+        }
+        if (_elements.btnAddFund) {
+            _elements.btnAddFund.addEventListener('click', () => modals.openFund());
+        }
+        if (_elements.btnNewJournalEntry) {
+            _elements.btnNewJournalEntry.addEventListener('click', () => modals.openJournalEntry());
+        }
+        if (_elements.btnAddEntity) {
+            _elements.btnAddEntity.addEventListener('click', () => modals.openEntity());
+        }
+        if (_elements.btnAddUser) {
+            _elements.btnAddUser.addEventListener('click', () => modals.openUser());
+        }
 
         _log("Core event handlers registered.", "success");
     }
@@ -137,7 +147,7 @@
 
                 // Step 1: Connect to DB and determine mode
                 _state.dbMode = await db.connect();
-                ui.updateDbStatusIndicator(_state.dbMode); // UI module will handle this
+                ui.updateDbStatusIndicator(_state.dbMode);
 
                 // Step 2: Fetch all initial data
                 _updateStatus("Fetching initial data...", "initializing");
@@ -160,7 +170,7 @@
 
                 // Step 3: Initialize UI components
                 _updateStatus("Initializing UI...", "initializing");
-                ui.init(_state); // UI module populates selectors, etc.
+                ui.init(_state); 
 
                 // Step 4: Register event handlers
                 _registerEventHandlers();
@@ -220,12 +230,15 @@
 
     // --- Auto-start the application ---
     document.addEventListener('DOMContentLoaded', () => {
-        // These modules will be created in subsequent steps
         if (typeof db !== 'undefined' && typeof ui !== 'undefined' && typeof modals !== 'undefined' && typeof reports !== 'undefined') {
             app.init();
         } else {
             console.error("CORE: One or more required modules (db, ui, modals, reports) are not loaded. App cannot start.");
-            _updateStatus("Core modules failed to load. Check script tags in HTML.", "error");
+            const statusIndicator = document.getElementById('init-status-indicator');
+            if(statusIndicator) {
+                statusIndicator.textContent = 'Status: Core modules failed to load. Check script tags in HTML.';
+                statusIndicator.className = 'status-indicator error';
+            }
         }
     });
 
