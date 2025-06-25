@@ -63,6 +63,48 @@
         });
 
         console.log("TAB-FIX: Main navigation event listeners attached successfully.");
+
+        // ---------------------------------------------------------------------
+        // Settings page internal tab navigation
+        // ---------------------------------------------------------------------
+        initializeSettingsTabNavigation();
+    }
+
+    /**
+     * Handles the tab switching logic for the Settings page
+     * (Users / Organization / Entities tabs).
+     */
+    function initializeSettingsTabNavigation() {
+        const tabItems = document.querySelectorAll('#settings-page .tab-item');
+        const tabPanels = document.querySelectorAll('#settings-page .tab-panel');
+
+        if (tabItems.length === 0 || tabPanels.length === 0) {
+            console.warn('TAB-FIX: No internal settings tabs detected. Skipping settings tab initialization.');
+            return;
+        }
+
+        tabItems.forEach(tab => {
+            tab.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-tab');
+
+                // De-activate all tabs and panels
+                tabItems.forEach(t => t.classList.remove('active'));
+                tabPanels.forEach(p => p.classList.remove('active'));
+
+                // Activate the clicked tab
+                this.classList.add('active');
+
+                // Show the corresponding panel
+                const targetPanel = document.getElementById(targetId);
+                if (targetPanel) {
+                    targetPanel.classList.add('active');
+                } else {
+                    console.error(`TAB-FIX: Settings panel with ID "${targetId}" not found.`);
+                }
+            });
+        });
+
+        console.log('TAB-FIX: Settings tab navigation initialized successfully.');
     }
 
     // Ensure the script runs after the HTML document has been fully parsed.

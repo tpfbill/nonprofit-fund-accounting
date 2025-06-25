@@ -1,199 +1,160 @@
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("DB Status Tester initialized");
-    
-    // Check script loading status
-    checkScriptLoading();
-    
-    // Add event listeners
-    document.getElementById('check-connection').addEventListener('click', checkConnection);
-    document.getElementById('toggle-server').addEventListener('click', toggleServerInfo);
-    document.getElementById('test-entities').addEventListener('click', () => testData('entities'));
-    document.getElementById('test-accounts').addEventListener('click', () => testData('accounts'));
-    document.getElementById('test-funds').addEventListener('click', () => testData('funds'));
-    document.getElementById('test-journal-entries').addEventListener('click', () => testData('journalEntries'));
-    
-    // Add API endpoint test buttons
-    document.querySelectorAll('[data-endpoint]').forEach(button => {
-        button.addEventListener('click', () => testApiEndpoint(button.dataset.endpoint));
-    });
-    
-    // Initial connection check
-    setTimeout(checkConnection, 500);
-});
+/**
+ * @file db-status-test.js
+ * @description Client-side script for the db-status.html page.
+ * This script provides functionality to test the backend API and the frontend db.js module.
+ */
 
-function checkScriptLoading() {
-    const scripts = {
-        'db-config': typeof getDbConfig !== 'undefined',
-        'db-connection': typeof dbConnection !== 'undefined' || typeof logMsg !== 'undefined',
-        'db-js': typeof db !== 'undefined'
-    };
-    
-    let allLoaded = true;
-    
-    for (const [script, loaded] of Object.entries(scripts)) {
-        const statusEl = document.getElementById(`${script}-status`);
-        if (statusEl) {
-            if (loaded) {
-                statusEl.textContent = 'Loaded';
-                statusEl.className = 'status success';
-            } else {
-                statusEl.textContent = 'Not Found';
-                statusEl.className = 'status error';
-                allLoaded = false;
-            }
-        }
-    }
-    
-    const scriptStatusEl = document.getElementById('script-status');
-    if (scriptStatusEl) {
-        scriptStatusEl.className = 'status ' + (allLoaded ? 'success' : 'error');
-        scriptStatusEl.textContent = allLoaded ? 'All scripts loaded successfully' : 'Some scripts failed to load';
-    }
-    
-    return allLoaded;
-}
+document.addEventListener('DOMContentLoaded', () => {
+    const logOutput = document.getElementById('log-output');
+    const dataDisplay = document.getElementById('data-display');
+    const statusPanel = document.getElementById('status-panel');
+    const statusText = document.getElementById('status-text');
+    const apiStatusEl = document.getElementById('api-status');
+    const apiResponseEl = document.getElementById('api-response');
 
-async function checkConnection() {
-    console.log("Checking database connection...");
-    const statusEl = document.getElementById('connection-status');
-    
-    if (!checkScriptLoading()) {
-        statusEl.textContent = 'Cannot check connection - scripts not loaded';
-        statusEl.className = 'status error';
-        return;
+    /**
+     * Logs a message to the on-screen log container.
+     * @param {string} message - The message to log.
+     * @param {'info'|'success'|'warning'|'error'} [type='info'] - The log level for styling.
+     */
+    function log(message, type = 'info') {
+        const entry = document.createElement('div');
+        entry.className = `log-entry log-${type}`;
+        const timestamp = new Date().toLocaleTimeString();
+        entry.textContent = `[${timestamp}] [${type.toUpperCase()}]: ${message}`;
+        logOutput.appendChild(entry);
+        logOutput.scrollTop = logOutput.scrollHeight;
     }
-    
-    statusEl.textContent = 'Connecting...';
-    statusEl.className = 'status info';
-    
-    try {
-        let connected;
-        
-        if (typeof db !== 'undefined' && db.connect) {
-            connected = await db.connect();
-        } else if (typeof dbConnection !== 'undefined' && dbConnection.testConnection) {
-            connected = await dbConnection.testConnection();
-        } else {
-            throw new Error('No valid connection method found');
-        }
-        
-        if (connected) {
-            statusEl.textContent = 'Connected to database';
-            statusEl.className = 'status success';
-        } else {
-            statusEl.textContent = 'Not connected - using fallback data';
-            statusEl.className = 'status warning';
-        }
-    } catch (err) {
-        console.error('Connection error:', err);
-        statusEl.textContent = 'Error: ' + err.message;
-        statusEl.className = 'status error';
-    }
-}
 
-async function testData(dataType) {
-    console.log(`Testing ${dataType} data...`);
-    const displayEl = document.getElementById('data-display');
-    
-    if (!checkScriptLoading()) {
-        displayEl.textContent = 'Cannot load data - scripts not loaded';
-        return;
+    /**
+     * Updates the main status panel to reflect the current connection mode.
+     * @param {boolean} isConnected - True if connected to the live database.
+     */
+    function updateStatus(isConnected) {
+        if (!statusPanel || !statusText) return;
+        statusPanel.className = isConnected ? 'status status-live' : 'status status-fallback';
+        statusPanel.querySelector('.status-icon').innerHTML = isConnected ? '✓' : '⚠';
+        statusText.textContent = isConnected
+            ? 'CONNECTED TO LIVE DATABASE: Data changes will be saved to PostgreSQL.'
+            : 'USING LOCAL FALLBACK MODE: Changes will NOT be saved persistently!';
+        log(
+            isConnected ? 'Successfully connected to the PostgreSQL database' : 'Failed to connect to database, switched to fallback mode',
+            isConnected ? 'success' : 'warning'
+        );
     }
-    
-    displayEl.textContent = `Loading ${dataType}...`;
-    
-    try {
-        let data;
-        
-        // Call the appropriate fetch method based on dataType
-        if (dataType === 'entities' && db.fetchEntities) {
-            data = await db.fetchEntities();
-        } else if (dataType === 'accounts' && db.fetchAccounts) {
-            data = await db.fetchAccounts();
-        } else if (dataType === 'funds' && db.fetchFunds) {
-            data = await db.fetchFunds();
-        } else if (dataType === 'journalEntries' && db.fetchJournalEntries) {
-            data = await db.fetchJournalEntries();
-        } else {
-            throw new Error(`No fetch method found for ${dataType}`);
-        }
-        
-        displayEl.textContent = JSON.stringify(data, null, 2);
-    } catch (err) {
-        console.error(`Error fetching ${dataType}:`, err);
-        displayEl.textContent = `Error: ${err.message}`;
-    }
-}
 
-async function testApiEndpoint(endpoint) {
-    console.log(`Testing API endpoint: ${endpoint}`);
-    const statusEl = document.getElementById('api-status');
-    const responseEl = document.getElementById('api-response');
-    
-    statusEl.textContent = `Testing ${endpoint}...`;
-    statusEl.className = 'status info';
-    responseEl.textContent = 'Waiting for response...';
-    
-    try {
-        const API_URL = 'http://localhost:3000';
-        const res = await fetch(API_URL + endpoint);
-        const isJson = res.headers.get('content-type')?.includes('application/json');
-        
-        let data;
-        if (isJson) {
-            data = await res.json();
-        } else {
-            data = await res.text();
-        }
-        
-        if (res.ok) {
-            statusEl.textContent = `${endpoint}: Success (${res.status})`;
-            statusEl.className = 'status success';
-        } else {
-            statusEl.textContent = `${endpoint}: Failed (${res.status})`;
-            statusEl.className = 'status error';
-        }
-        
-        responseEl.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-    } catch (err) {
-        console.error(`API error for ${endpoint}:`, err);
-        statusEl.textContent = `${endpoint}: Error - ${err.message}`;
-        statusEl.className = 'status error';
-        responseEl.textContent = err.stack || err.message;
-    }
-}
-
-function toggleServerInfo() {
-    const serverInfo = document.getElementById('server-info');
-    
-    if (serverInfo) {
-        serverInfo.remove();
-    } else {
-        const serverInfoHtml = `
-            <div id="server-info" class="card">
-                <h2>Server Information</h2>
-                <table>
-                    <tr>
-                        <th>Server URL</th>
-                        <td>http://localhost:3000</td>
-                    </tr>
-                    <tr>
-                        <th>API Base Path</th>
-                        <td>/api</td>
-                    </tr>
-                    <tr>
-                        <th>Available Endpoints</th>
-                        <td>/health, /entities, /accounts, /funds, /journal-entries</td>
-                    </tr>
-                    <tr>
-                        <th>Server Status Command</th>
-                        <td><code>node server.js</code></td>
-                    </tr>
-                </table>
-                <p>Make sure the server is running with <code>node server.js</code> in a terminal window.</p>
-            </div>
+    /**
+     * Displays fetched data in a formatted way in the data preview area.
+     * @param {object|Array} data - The data to display.
+     * @param {string} source - A string describing the source of the data (e.g., "Entities").
+     */
+    function displayData(data, source) {
+        if (!dataDisplay) return;
+        const isLive = window.db && window.db._dbConnected;
+        dataDisplay.innerHTML = `
+            <h3>Data from ${source}</h3>
+            <p>Data mode: <strong>${isLive ? 'LIVE DATABASE' : 'LOCAL FALLBACK'}</strong></p>
+            <p>Item count: ${Array.isArray(data) ? data.length : 'N/A'}</p>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
         `;
-        
-        document.querySelector('.container').insertAdjacentHTML('beforeend', serverInfoHtml);
     }
-}
+
+    // --- Server API Test Listeners ---
+
+    document.getElementById('btn-health-check').addEventListener('click', async () => {
+        log('Testing API Health Check...');
+        try {
+            const response = await fetch('http://localhost:3000/api/health');
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || `HTTP Error ${response.status}`);
+            log(`Success: ${JSON.stringify(data)}`, 'success');
+        } catch (err) {
+            log(`Error: ${err.message}. Is the server running? (npm run server)`, 'error');
+        }
+    });
+
+    document.getElementById('btn-init-db').addEventListener('click', async () => {
+        if (!confirm('Are you sure you want to re-initialize the database? This will delete all existing data.')) {
+            log('Database initialization cancelled by user.', 'warn');
+            return;
+        }
+        log('Initializing database via API...');
+        try {
+            const response = await fetch('http://localhost:3000/api/init-db', { method: 'POST' });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || `HTTP Error ${response.status}`);
+            log(`Success: ${data.message}`, 'success');
+        } catch (err) {
+            log(`Error: ${err.message}. Check server logs and DB credentials.`, 'error');
+        }
+    });
+
+    document.querySelectorAll('button[data-endpoint]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const endpoint = button.dataset.endpoint;
+            log(`Testing API endpoint: ${endpoint}...`);
+            if (!apiStatusEl || !apiResponseEl) return;
+
+            apiStatusEl.textContent = `Testing ${endpoint}...`;
+            apiStatusEl.className = 'status info';
+            apiResponseEl.textContent = 'Waiting for response...';
+
+            try {
+                const response = await fetch(`http://localhost:3000${endpoint}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || `HTTP Error ${response.status}`);
+                
+                apiStatusEl.textContent = `${endpoint}: Success (${response.status})`;
+                apiStatusEl.className = 'status success';
+                apiResponseEl.textContent = JSON.stringify(data, null, 2);
+                log(`API call to ${endpoint} successful.`, 'success');
+            } catch (err) {
+                apiStatusEl.textContent = `${endpoint}: Failed`;
+                apiStatusEl.className = 'status error';
+                apiResponseEl.textContent = err.message;
+                log(`API call to ${endpoint} failed: ${err.message}`, 'error');
+            }
+        });
+    });
+
+    // --- Frontend DB Module Test Listeners ---
+
+    document.getElementById('btn-connect-db-module').addEventListener('click', async () => {
+        log('Testing db.connect(). This checks API health and sets the mode.');
+        if (typeof db === 'undefined' || typeof db.connect !== 'function') {
+            log('Error: db object or db.connect() function not found. Make sure src/js/db.js is loaded correctly.', 'error');
+            return;
+        }
+        try {
+            const isConnected = await db.connect();
+            updateStatus(isConnected);
+        } catch (err) {
+            log(`An unexpected error occurred during db.connect(): ${err.message}`, 'error');
+            updateStatus(false);
+        }
+    });
+
+    document.querySelectorAll('#data-test-buttons button').forEach(button => {
+        button.addEventListener('click', async () => {
+            const dataType = button.id.replace('btn-fetch-', '');
+            const fetchFunction = `fetch${dataType.charAt(0).toUpperCase() + dataType.slice(1)}`;
+            
+            log(`Fetching ${dataType} via db.${fetchFunction}()...`);
+            if (typeof db === 'undefined' || typeof db[fetchFunction] !== 'function') {
+                log(`Error: db.${fetchFunction}() not found.`, 'error');
+                return;
+            }
+
+            try {
+                const data = await db[fetchFunction]();
+                log(`Success: Received ${data.length} ${dataType} from the module.`, 'success');
+                displayData(data, dataType);
+            } catch (err) {
+                log(`Error during db.${fetchFunction}(): ${err.message}`, 'error');
+            }
+        });
+    });
+
+    // --- Initial Log Message ---
+    log('Page loaded. Click "Check Connection" to test database connectivity.');
+});

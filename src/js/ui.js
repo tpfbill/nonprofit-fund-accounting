@@ -511,6 +511,46 @@
             _elements.consolidatedViewToggle.checked = state.isConsolidatedViewActive;
             _updateDbStatusIndicator(state.dbMode);
             
+            /* ------------------------------------------------------------------
+             * Delegated click handlers for Edit buttons in data tables
+             * ------------------------------------------------------------------ */
+
+            // Chart of Accounts  ------------------------------------------------
+            document
+                .getElementById('chart-of-accounts-table')
+                ?.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.btn-edit-account');
+                    if (!btn) return;
+                    const id = btn.dataset.id;
+                    if (id && window.modals?.openAccount) {
+                        modals.openAccount(id);
+                    }
+                });
+
+            // Funds -------------------------------------------------------------
+            document
+                .getElementById('funds-table')
+                ?.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.btn-edit-fund');
+                    if (!btn) return;
+                    const id = btn.dataset.id;
+                    if (id && window.modals?.openFund) {
+                        modals.openFund(id);
+                    }
+                });
+
+            // Journal Entries ---------------------------------------------------
+            document
+                .getElementById('journal-entries-table')
+                ?.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.btn-edit-je');
+                    if (!btn) return;
+                    const id = btn.dataset.id;
+                    if (id && window.modals?.openJournalEntry) {
+                        modals.openJournalEntry(id);
+                    }
+                });
+
             console.log("UI: Initialized.");
         },
         
@@ -572,45 +612,6 @@
          * Updates the database status indicator
          * @param {boolean} isConnected - Whether the database is connected
          */
-        updateDbStatusIndicator(isConnected) {
-            _updateDbStatusIndicator(isConnected);
-        },
-        
-        /**
-         * Refreshes a specific table
-         * @param {string} tableId - The ID of the table to refresh
-         * @param {object} state - Application state
-         */
-        async refreshTable(tableId, state) {
-            console.log(`UI: Refreshing table ${tableId}...`);
-            
-            switch (tableId) {
-                case 'chart-of-accounts':
-                    await _renderChartOfAccountsTable(state);
-                    break;
-                case 'funds':
-                    await _renderFundsTable(state);
-                    break;
-                case 'journal-entries':
-                    await _renderJournalEntriesTable(state);
-                    break;
-                case 'users':
-                    await _renderUsersTable(state);
-                    break;
-                case 'entities':
-                    await _renderEntitiesTable(state);
-                    _updateEntityRelationshipViz(state);
-                    break;
-                default:
-                    console.warn(`UI: Unknown table ID: ${tableId}`);
-            }
-        }
-    };
-
-    // Expose the public API to the window
-    window.ui = ui;
-
-})(window);
         updateDbStatusIndicator(isConnected) {
             _updateDbStatusIndicator(isConnected);
         },

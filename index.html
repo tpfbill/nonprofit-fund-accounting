@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Non-Profit Fund Accounting System - Refactored</title>
     <link rel="stylesheet" href="src/css/styles.css">
+    <!-- Debug panel for capturing JS errors early -->
+    <script src="debug.js"></script>
 </head>
 <body>
     <div class="header">
@@ -167,5 +169,9 @@
     <script src="src/js/journal.js"></script>
     <script src="src/js/reports.js"></script>
     <script src="src/js/core.js"></script>
+    <!-- Periodic DB health-check and status indicator update -->
+    <script src="fix-db-connection.js"></script>
+    <!-- Restore tab switching for Dashboard / CoA / Funds / Journal / Settings -->
+    <script src="tab-navigation-fix.js"></script>
 </body>
 </html>
