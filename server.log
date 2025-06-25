@@ -1,0 +1,4 @@
+Server running on port 3000
+Open http://localhost:3000 in your browser
+Database connected successfully at: 2025-06-24T04:37:27.332Z
+2025-06-24T04:38:48.929Z [GET] /api/db-status

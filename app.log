@@ -1,0 +1,45 @@
+
+> nonprofit-fund-accounting-web-demo@1.0.0 dev
+> concurrently "npm run start" "npm run client"
+
+[1] 
+[1] > nonprofit-fund-accounting-web-demo@1.0.0 client
+[1] > http-server . -p 8081 -c-1
+[1] 
+[0] 
+[0] > nonprofit-fund-accounting-web-demo@1.0.0 start
+[0] > node server.js
+[0] 
+[1] Starting up http-server, serving .
+[1] 
+[1] http-server version: 14.1.1
+[1] 
+[1] http-server settings: 
+[1] CORS: disabled
+[1] Cache: -1 seconds
+[1] Connection Timeout: 120 seconds
+[1] Directory Listings: visible
+[1] AutoIndex: visible
+[1] Serve GZIP Files: false
+[1] Serve Brotli Files: false
+[1] Default File Extension: none
+[1] 
+[1] Available on:
+[1]   http://127.0.0.1:8081
+[1]   http://192.168.0.100:8081
+[1] Hit CTRL-C to stop the server
+[1] 
+[0] Server running on port 3000
+[0] Open http://localhost:3000 in your browser
+[0] Database connected successfully at: 2025-06-24T06:05:11.112Z
+[1] [2025-06-24T06:06:44.802Z]  "GET /db-test.html" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+[1] (node:55272) [DEP0066] DeprecationWarning: OutgoingMessage.prototype._headers is deprecated
+[1] (Use `node --trace-deprecation ...` to show where the warning was created)
+[1] [2025-06-24T06:06:44.853Z]  "GET /src/js/db.js" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+[1] [2025-06-24T06:07:05.434Z]  "GET /db-test.html" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+[1] [2025-06-24T06:07:05.460Z]  "GET /src/js/db.js" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+[1] [2025-06-24T06:07:28.056Z]  "GET /db-test.html" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+[1] [2025-06-24T06:07:28.084Z]  "GET /src/js/db.js" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+[1] [2025-06-24T06:08:09.653Z]  "GET /" "curl/8.7.1"
+[1] [2025-06-24T06:08:36.990Z]  "GET /db-test.html" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+[1] [2025-06-24T06:08:37.028Z]  "GET /src/js/db.js" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
