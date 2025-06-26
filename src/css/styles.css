@@ -46,6 +46,25 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height
 .mt-20 { margin-top: 20px; }
 .preview-placeholder { text-align: center; padding: 20px; color: #757575; font-style: italic; }
 #init-status-indicator { position: fixed; bottom: 0; left: 0; width: 100%; padding: 8px; text-align: center; font-weight: bold; z-index: 2000; }
+.dashboard-chart-container{
+    padding: 15px;
+    margin-top: 10px;
+    background: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Ensure any Chart.js canvas inside chart containers scales nicely */
+.dashboard-chart-container canvas,
+#fund-balance-chart,
+#income-expense-chart,
+#fund-distribution-chart{
+    width: 100% !important;   /* override inline width if any */
+    height: auto !important;  /* maintain aspect-ratio */
+    max-height: 400px;        /* reasonable upper-bound */
+    display: block;
+}
+
 #init-status-indicator.initializing { background-color: #fff8e1; color: #ff8f00; border-top: 1px solid #ffecb3; }
 #init-status-indicator.success { background-color: #e8f5e9; color: #2e7d32; border-top: 1px solid #c8e6c9; }
 #init-status-indicator.error { background-color: #ffebee; color: #c62828; border-top: 1px solid #ffcdd2; }

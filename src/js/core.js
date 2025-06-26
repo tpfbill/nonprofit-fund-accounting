@@ -23,6 +23,8 @@
     };
 
     const _elements = {}; // To be populated by _cacheElements
+    let _fundBalanceChart = null; // Holds the Chart.js instance for trends panel
+    let _chartInitAttempts = 0;   // Retry counter for Chart.js init
 
     // --- Private Helper Functions ---
 
@@ -132,6 +134,67 @@
         await ui.refreshAllViews(_state);
     }
 
+    /**
+     * Generates mock fund-balance data for the given period (in days).
+     * @param {number} periodDays
+     * @returns {{labels:string[], data:number[]}}
+     */
+    function _generateMockFundBalanceData(periodDays) {
+        const labels = [];
+        const data = [];
+        const today = new Date();
+        const totalPoints = periodDays === 'all' ? 24 : periodDays; // arbitrary cap for 'all'
+
+        for (let i = totalPoints - 1; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            labels.push(d.toISOString().split('T')[0]); // YYYY-MM-DD
+            // Random-ish mock balance; in real app calculate from journalEntries
+            data.push(100000 + Math.sin(i / 3) * 5000 + Math.random() * 2000);
+        }
+        return { labels, data };
+    }
+
+    /**
+     * Initializes the Fund Balance Trends chart and its period selector.
+     */
+    function _initFundBalanceChart() {
+        // Ensure the chartHelpers module is available
+        if (typeof chartHelpers === 'undefined' || typeof chartHelpers.initFundBalanceChart !== 'function') {
+            _log('chartHelpers module not loaded. Cannot initialise fund balance chart.', 'error');
+            return;
+        }
+
+        // Initialise via chartHelpers. This utility handles retries, data generation,
+        // and Chart.js interaction internally, so we keep this wrapper minimal.
+        chartHelpers.initFundBalanceChart('fund-balance-chart', 'fund-balance-period-select');
+
+        _log('Fund balance trends chart initialised via chartHelpers.', 'success');
+    }
+
+    /**
+     * Initializes all dashboard charts (fund balance, income/expense, distribution).
+     * Wraps individual chart-specific helpers to keep `app.init` cleaner.
+     */
+    function _initDashboardCharts() {
+        // Always attempt fund-balance chart first
+        _initFundBalanceChart();
+
+        // Guard against missing helpers
+        if (typeof chartHelpers === 'undefined') {
+            _log('chartHelpers module not loaded. Cannot initialise additional dashboard charts.', 'error');
+            return;
+        }
+
+        // Income vs. Expense bar chart
+        chartHelpers.initIncomeExpenseChart('income-expense-chart');
+
+        // Fund distribution pie chart
+        chartHelpers.initFundDistributionChart('fund-distribution-chart');
+
+        _log('Additional dashboard charts initialised.', 'success');
+    }
+
     // --- Public API ---
 
     const app = {
@@ -178,6 +241,9 @@
                 // Step 5: Navigate to the default page and render initial views
                 _updateStatus("Rendering initial view...", "initializing");
                 await this.navigate('dashboard');
+
+                // Step 6: Initialize dashboard charts (fund balance, income/expense, distribution)
+                _initDashboardCharts();
 
                 _updateStatus("Application ready.", "success");
                 _log("Application initialization complete.", "success");

@@ -7,6 +7,15 @@
     <link rel="stylesheet" href="src/css/styles.css">
     <!-- Debug panel for capturing JS errors early -->
     <script src="debug.js"></script>
+    <!-- Chart.js for graphical dashboards -->
+    <script id="chartjs-script"
+            src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+            defer
+            crossorigin="anonymous"
+            onload="console.log('[Chart.js] library loaded:', typeof Chart !== 'undefined');">
+    </script>
+    <!-- Chart.js debugging utilities -->
+    <script src="chart-debug.js"></script>
 </head>
 <body>
     <div class="header">
@@ -56,6 +65,40 @@
                     <thead><tr><th>Fund Name</th><th>Type</th><th>Balance</th><th>% of Total</th></tr></thead>
                     <tbody><tr><td colspan="4" class="preview-placeholder">Fund balances loading...</td></tr></tbody>
                 </table>
+                <!-- Fund Balance Trends over Time -->
+                <h3 class="mt-20">Fund Balance Trends</h3>
+                <div id="fund-balance-trends-panel" class="dashboard-chart-container">
+                    <div style="margin-bottom:10px;">
+                        <label for="fund-balance-period-select">Period:</label>
+                        <select id="fund-balance-period-select" class="form-input" style="width:auto;">
+                            <option value="30">Last 30 days</option>
+                            <option value="90">Last 90 days</option>
+                            <option value="365">Last 12 months</option>
+                            <option value="all">All Time</option>
+                        </select>
+                    </div>
+                    <canvas id="fund-balance-chart" height="120"
+                            style="max-width:100%;background:#fff;border:1px solid #ddd;border-radius:4px;">
+                        <!-- Fallback message -->
+                        Your browser does not support the HTML5 canvas tag.
+                    </canvas>
+                </div>
+                <!-- Income vs Expenses Chart -->
+                <h3 class="mt-20">Income vs Expenses</h3>
+                <div id="income-expense-panel" class="dashboard-chart-container">
+                    <canvas id="income-expense-chart" height="120"
+                            style="max-width:100%;background:#fff;border:1px solid #ddd;border-radius:4px;">
+                        Your browser does not support the HTML5 canvas tag.
+                    </canvas>
+                </div>
+                <!-- Fund Distribution Pie Chart -->
+                <h3 class="mt-20">Fund Distribution</h3>
+                <div id="fund-distribution-panel" class="dashboard-chart-container">
+                    <canvas id="fund-distribution-chart" height="120"
+                            style="max-width:100%;background:#fff;border:1px solid #ddd;border-radius:4px;">
+                        Your browser does not support the HTML5 canvas tag.
+                    </canvas>
+                </div>
             </div>
             <div id="recent-transactions-panel" class="dashboard-panel">
                 <h3>Recent Transactions</h3>
@@ -168,6 +211,8 @@
     <script src="src/js/modals.js"></script>
     <script src="src/js/journal.js"></script>
     <script src="src/js/reports.js"></script>
+    <!-- Chart helpers (must load before core.js) -->
+    <script src="src/js/chart-helpers.js"></script>
     <script src="src/js/core.js"></script>
     <!-- Periodic DB health-check and status indicator update -->
     <script src="fix-db-connection.js"></script>

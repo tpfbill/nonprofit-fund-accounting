@@ -3,6 +3,13 @@
  * @description A simple, on-page error display for debugging JavaScript issues.
  * This script captures unhandled errors and promise rejections and displays them
  * in a fixed panel at the bottom of the screen.
+ *
+ *  QUICK DEV SHORTCUTS
+ *  ------------------------------------------------------------------
+ *  • Alt + L – Toggle the visibility of the in-app Dev Log panel
+ *              (element id="log-output-container").
+ *  • The Dev Log panel is hidden by default so it does not distract
+ *    end-users. A brief toast reminds developers of the shortcut.
  */
 
 (function(window) {
@@ -158,5 +165,87 @@
     });
 
     console.log('DEBUG.JS: On-page error capturing script has been initialized.');
+
+    // ---------------------------------------------------------------------
+    // Developer Log panel toggle (Alt+L)  —  hide by default
+    // ---------------------------------------------------------------------
+
+    /**
+     * Shows a temporary toast advising about the Alt+L shortcut
+     */
+    function showLogShortcutToast() {
+        const toastId = 'dev-log-toast';
+        if (document.getElementById(toastId)) return;
+
+        const toast = document.createElement('div');
+        toast.id = toastId;
+        toast.textContent = 'Dev Log hidden – press Alt+L to toggle';
+        Object.assign(toast.style, {
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            background: '#323232',
+            color: '#fff',
+            padding: '10px 15px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            opacity: '0',
+            zIndex: '10000',
+            transition: 'opacity 0.4s ease'
+        });
+        document.body.appendChild(toast);
+        requestAnimationFrame(() => (toast.style.opacity = '0.9'));
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.addEventListener('transitionend', () => toast.remove());
+        }, 3000);
+    }
+
+    /**
+     * Hides the Dev Log container and registers Alt+L toggle
+     */
+    function initDevLogToggle() {
+        const devLogContainer = document.getElementById('log-output-container');
+        if (!devLogContainer) return;
+
+        // Hide by default
+        devLogContainer.style.display = 'none';
+
+        // Show toast so devs know how to reveal it
+        showLogShortcutToast();
+
+        // Toggle with Alt+L
+        document.addEventListener('keydown', function (e) {
+            if (e.altKey && (e.key === 'l' || e.key === 'L')) {
+                devLogContainer.style.display =
+                    devLogContainer.style.display === 'none' ? 'block' : 'none';
+            }
+        });
+    }
+
+    // ---------------------------------------------------------------------
+    // Optional: Monitor Chart.js availability to help diagnose late-loading
+    // ---------------------------------------------------------------------
+    (function monitorChartJs(maxWaitMs = 5000, intervalMs = 100) {
+        const start = Date.now();
+        const timerId = setInterval(() => {
+            if (typeof window.Chart !== 'undefined') {
+                console.log('[DEBUG.JS] Chart.js detected. Version:', window.Chart.version || 'unknown');
+                clearInterval(timerId);
+            } else if (Date.now() - start >= maxWaitMs) {
+                clearInterval(timerId);
+                // Use the existing displayError for visibility, but mark as info.
+                displayError('Info: Chart.js did NOT load within expected time window.');
+                console.warn('[DEBUG.JS] Chart.js not detected after waiting', maxWaitMs, 'ms');
+            }
+        }, intervalMs);
+    })();
+
+    // Initialise Dev-Log toggle after DOM content
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDevLogToggle);
+    } else {
+        initDevLogToggle();
+    }
 
 })(window);
