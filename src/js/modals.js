@@ -190,14 +190,14 @@
         
         const parentSelect = document.getElementById('entity-parent-select');
         if (parentSelect) {
-            parentSelect.value = entityData.parentEntityId || '';
+            parentSelect.value = entityData.parent_entity_id || '';
         }
         
         document.getElementById('entity-status-select').value = entityData.status || 'Active';
-        document.getElementById('entity-fiscal-year-start-input').value = entityData.fiscalYearStart || '01-01';
-        document.getElementById('entity-base-currency-input').value = entityData.baseCurrency || 'USD';
-        document.getElementById('entity-is-consolidated-input').checked = Boolean(entityData.isConsolidated);
-        document.getElementById('entity-description-input').value = entityData.description || '';
+        document.getElementById('entity-fiscal-start-input').value = entityData.fiscal_year_start || '01-01';
+        document.getElementById('entity-currency-select').value = entityData.base_currency || 'USD';
+        document.getElementById('entity-consolidated-checkbox').checked = Boolean(entityData.is_consolidated);
+        document.getElementById('entity-description-textarea').value = entityData.description || '';
     }
 
     /**

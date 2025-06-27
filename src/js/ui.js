@@ -10,6 +10,8 @@
     // --- Private Variables and Functions ---
 
     const _elements = {}; // Will be populated in init()
+    // Tracks whether toast styles have been injected
+    let _toastStylesInjected = false;
 
     /**
      * Formats a currency value with the specified currency code
@@ -322,7 +324,7 @@
         }
         
         tbody.innerHTML = entities.map(entity => {
-            const parentName = entity.parentEntityId ? _getEntityName(entity.parentEntityId, state) : 'None';
+            const parentName = entity.parent_entity_id ? _getEntityName(entity.parent_entity_id, state) : 'None';
             
             return `
                 <tr>
@@ -330,9 +332,9 @@
                     <td>${entity.name}</td>
                     <td>${parentName}</td>
                     <td><span class="status status-${entity.status.toLowerCase()}">${entity.status}</span></td>
-                    <td>${entity.baseCurrency || 'USD'}</td>
-                    <td>${entity.fiscalYearStart || '01-01'}</td>
-                    <td>${entity.isConsolidated ? 'Yes' : 'No'}</td>
+                    <td>${entity.base_currency || 'USD'}</td>
+                    <td>${entity.fiscal_year_start || '01-01'}</td>
+                    <td>${entity.is_consolidated ? 'Yes' : 'No'}</td>
                     <td>
                         <button class="action-button btn-edit-entity" data-id="${entity.id}">Edit</button>
                     </td>
@@ -349,6 +351,22 @@
      */
     function _updateEntityRelationshipViz(state) {
         console.log("UI: Updating entity relationship visualization...");
+
+        /* ------------------------------------------------------------------
+         * Prefer using the dedicated entityHierarchy module, if present.
+         * That module produces a richer, interactive tree.  We only fall
+         * back to the simple UL/LI list if the helper is missing.
+         * ------------------------------------------------------------------*/
+        if (window.entityHierarchy &&
+            typeof window.entityHierarchy.initializeHierarchyVisualization === 'function') {
+            // Ensure hierarchy data is loaded then (re)render the viz.
+            if (typeof window.entityHierarchy.loadHierarchyData === 'function') {
+                // Load without forcing re-initialisation – caller decides
+                window.entityHierarchy.loadHierarchyData(false);
+            }
+            window.entityHierarchy.initializeHierarchyVisualization(true);
+            return;
+        }
         
         const vizContainer = document.getElementById('entity-relationship-viz');
         if (!vizContainer) return;
@@ -361,11 +379,11 @@
         }
         
         // Find top-level entities (no parent)
-        const topLevelEntities = entities.filter(e => !e.parentEntityId);
+        const topLevelEntities = entities.filter(e => !e.parent_entity_id);
         
         // Recursive function to build the tree
         function buildEntityTree(parentId) {
-            const children = entities.filter(e => e.parentEntityId === parentId);
+            const children = entities.filter(e => e.parent_entity_id === parentId);
             if (children.length === 0) return '';
             
             let html = '<ul>';
@@ -452,26 +470,63 @@
         console.log("UI: Populating entity selector...");
         
         const selector = document.getElementById('entity-selector');
-        if (!selector) return;
+        if (!selector) {
+            console.error("UI: Entity selector element with ID 'entity-selector' not found!");
+            return;
+        }
         
-        selector.innerHTML = '<option value="">-- Select Entity --</option>';
+        // Temporarily show a loading message
+        selector.innerHTML = '<option value="">Populating...</option>';
         
-        const activeEntities = state.entities.filter(e => e.status === 'Active' && !e.isConsolidated);
+        if (!state.entities || state.entities.length === 0) {
+            console.warn("UI: No entities available in state to populate selector.");
+            selector.innerHTML = '<option value="">No Entities Found</option>';
+            return;
+        }
         
+        console.log(`UI: Found ${state.entities.length} total entities in state.`);
+
+        // Filter for active, non-consolidated entities to be selectable in the dropdown
+        const activeEntities = state.entities.filter(e => e.status === 'Active' && !e.is_consolidated);
+        
+        console.log(`UI: Found ${activeEntities.length} active, non-consolidated entities for selector.`);
+
+        // Clear selector before adding new options
+        selector.innerHTML = '';
+        
+        if (activeEntities.length === 0) {
+            selector.innerHTML = '<option value="">No selectable entities</option>';
+            console.warn("UI: No active, non-consolidated entities found to populate selector.");
+            return;
+        }
+
+        // Add a default "Select Entity" option
+        const defaultOption = new Option('-- Select Entity --', '');
+        selector.add(defaultOption);
+
+        // Add each selectable entity to the dropdown
         activeEntities.forEach(entity => {
             const option = new Option(entity.name, entity.id);
             selector.add(option);
+            console.log(`UI: Added entity to selector: ${entity.name} (ID: ${entity.id})`);
         });
         
-        if (state.currentEntityId) {
+        // Set the current selection based on the application state
+        if (state.currentEntityId && selector.querySelector(`option[value="${state.currentEntityId}"]`)) {
             selector.value = state.currentEntityId;
+            console.log(`UI: Set selected entity to currentEntityId: ${state.currentEntityId}`);
         } else if (activeEntities.length > 0) {
-            // Set first entity as default
+            // If no current entity is set, or the set one is invalid, default to the first one
             state.currentEntityId = activeEntities[0].id;
             selector.value = state.currentEntityId;
+            console.log(`UI: Defaulted selected entity to first active entity: ${state.currentEntityId}`);
+        } else {
+            // No entity could be selected
+            state.currentEntityId = null;
+            console.log(`UI: No entity selected.`);
         }
         
-        console.log("UI: Entity selector populated.");
+        console.log("UI: Entity selector populated successfully.");
     }
 
     /**
@@ -489,6 +544,73 @@
             indicator.textContent = "DB Offline (Local Mode)";
             indicator.className = "db-status-indicator offline";
         }
+    }
+
+    /* ------------------------------------------------------------------
+     *  Simple Toast Notifications
+     * ------------------------------------------------------------------*/
+
+    /**
+     * Injects minimal CSS required for toast notifications once per session.
+     */
+    function _ensureToastStyles() {
+        if (_toastStylesInjected) return;
+
+        const css = `
+            .ui-toast{
+                position:fixed;
+                left:50%;
+                bottom:30px;
+                transform:translateX(-50%);
+                padding:10px 16px;
+                border-radius:4px;
+                font-size:14px;
+                color:#fff;
+                background:#333;
+                box-shadow:0 2px 6px rgba(0,0,0,0.2);
+                opacity:0;
+                z-index:9999;
+                animation:uiToastFadeIn .3s forwards;
+            }
+            .ui-toast.toast-success{background:#4caf50;}
+            .ui-toast.toast-error{background:#f44336;}
+            .ui-toast.toast-info{background:#2196f3;}
+            @keyframes uiToastFadeIn{
+                from{opacity:0;transform:translate(-50%,20px)}
+                to{opacity:1;transform:translate(-50%,0)}
+            }
+            @keyframes uiToastFadeOut{
+                from{opacity:1;}
+                to{opacity:0;}
+            }
+        `;
+
+        const styleTag = document.createElement('style');
+        styleTag.id = 'ui-toast-styles';
+        styleTag.textContent = css.replace(/\s+/g, ' ').trim();
+        document.head.appendChild(styleTag);
+        _toastStylesInjected = true;
+    }
+
+    /**
+     * Displays a toast message to the user.
+     * @param {string} message  - Message to show.
+     * @param {'info'|'success'|'error'} [type='info'] - Toast style.
+     * @param {number} [duration=3000] - Milliseconds before auto-dismiss.
+     */
+    function _showToast(message, type = 'info', duration = 3000) {
+        _ensureToastStyles();
+
+        const toast = document.createElement('div');
+        toast.className = `ui-toast toast-${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        // Auto-dismiss after duration
+        setTimeout(() => {
+            toast.style.animation = 'uiToastFadeOut .3s forwards';
+            toast.addEventListener('animationend', () => toast.remove());
+        }, duration);
     }
 
     // --- Public API ---
@@ -551,6 +673,18 @@
                     }
                 });
 
+            // Entities ----------------------------------------------------------
+            document
+                .getElementById('entities-table')
+                ?.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.btn-edit-entity');
+                    if (!btn) return;
+                    const id = btn.dataset.id;
+                    if (id && window.modals?.openEntity) {
+                        modals.openEntity(id);
+                    }
+                });
+
             console.log("UI: Initialized.");
         },
         
@@ -606,6 +740,14 @@
             } catch (error) {
                 console.error("UI: Error refreshing views:", error);
             }
+        },
+
+        /**
+         * Shows a small toast notification.
+         * Accessible globally via window.ui.showToast().
+         */
+        showToast(message, type = 'info', duration = 3000) {
+            _showToast(message, type, duration);
         },
         
         /**

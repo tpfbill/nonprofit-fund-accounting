@@ -1,4 +1,7 @@
 /* Basic reset */
+/* Import hierarchy visualization styles */
+@import url('entity-hierarchy.css');
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; padding-bottom: 180px; /* Space for fixed log output */ }
 .header { background-color: #1976d2; color: white; padding: 15px 20px; border-bottom: 3px solid #0d47a1; }
@@ -137,3 +140,13 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height
 .inter-entity-fields { display: none; border-top: 1px dashed #ccc; margin-top: 20px; padding-top: 20px; }
 .inter-entity-fields.active { display: block; }
 .text-right { text-align: right; }
+
+/* ------------------------------------------------------------------
+   Entity Modal (additional tweaks)
+   ------------------------------------------------------------------*/
+/* Ensure the enhanced Entity modal uses a comfortable max-width
+   even if the generic .modal-dialog-lg class is missing on markup */
+#entity-modal .modal-dialog {
+    max-width: 800px;
+}
+

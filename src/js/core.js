@@ -70,6 +70,8 @@
         _elements.pages = document.querySelectorAll('.page');
         _elements.entitySelector = document.getElementById('entity-selector');
         _elements.consolidatedViewToggle = document.getElementById('consolidated-view-toggle');
+        _elements.settingsTabItems = document.querySelectorAll('.tab-item[data-tab]');
+        _elements.entityRelationshipViz = document.getElementById('entity-relationship-viz');
 
         // "Add" buttons
         _elements.btnAddAccount = document.getElementById('btnAddAccount');
@@ -92,6 +94,11 @@
         // Header Controls
         _elements.entitySelector.addEventListener('change', _handleEntityChange);
         _elements.consolidatedViewToggle.addEventListener('change', _handleConsolidatedViewToggle);
+
+        // Settings Tab Navigation
+        _elements.settingsTabItems.forEach(tab => {
+            tab.addEventListener('click', _handleSettingsTabChange);
+        });
 
         // "Add" buttons - This directly solves the previous issues.
         // These will call functions exposed by the 'modals' module.
@@ -132,6 +139,61 @@
         _log(`Consolidated view toggled to: ${_state.isConsolidatedViewActive}`, 'info');
         // The UI module will handle updating the view.
         await ui.refreshAllViews(_state);
+    }
+
+    /**
+     * Handles tab switching in the settings page
+     */
+    async function _handleSettingsTabChange(event) {
+        const tabId = event.currentTarget.dataset.tab;
+        _log(`Settings tab changed to: ${tabId}`, 'info');
+        
+        // Hide all tab panels
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+        
+        // Show the target tab panel
+        const targetPanel = document.getElementById(tabId);
+        if (targetPanel) {
+            targetPanel.classList.add('active');
+        }
+        
+        // Update active state in tab menu
+        document.querySelectorAll('.tab-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.tab === tabId);
+        });
+        
+        // If navigating to the entities tab, refresh the entity hierarchy
+        if (tabId === 'settings-entities') {
+            await _refreshEntityHierarchy();
+        }
+    }
+
+    /**
+     * Refreshes the entity hierarchy visualization
+     */
+    async function _refreshEntityHierarchy() {
+        _log('Refreshing entity hierarchy visualization...', 'info');
+        
+        // Reload entity data to ensure we have the latest
+        try {
+            _state.entities = await db.fetchEntities();
+            
+            // Update the entity relationship visualization
+            if (window.entityHierarchy && typeof window.entityHierarchy.loadHierarchyData === 'function') {
+                await window.entityHierarchy.loadHierarchyData();
+                _log('Entity hierarchy data reloaded', 'success');
+            }
+            
+            // Initialize visualization if needed
+            if (window.entityHierarchy && typeof window.entityHierarchy.initializeHierarchyVisualization === 'function') {
+                window.entityHierarchy.initializeHierarchyVisualization();
+                _log('Entity hierarchy visualization refreshed', 'success');
+            }
+        } catch (error) {
+            _log(`Error refreshing entity hierarchy: ${error.message}`, 'error');
+        }
     }
 
     /**
@@ -235,6 +297,12 @@
                 _updateStatus("Initializing UI...", "initializing");
                 ui.init(_state); 
 
+                // Step 3.1: Initialize Entity Hierarchy module (if available)
+                if (window.entityHierarchy && typeof window.entityHierarchy.init === 'function') {
+                    _log('Initialising entityHierarchy module...', 'info');
+                    window.entityHierarchy.init();
+                }
+
                 // Step 4: Register event handlers
                 _registerEventHandlers();
 
@@ -278,6 +346,15 @@
                 item.classList.toggle('active', item.dataset.page === pageId);
             });
 
+            // If navigating to settings page, check if entities tab is active
+            if (pageId === 'settings') {
+                const entitiesTab = document.querySelector('.tab-panel#settings-entities.active');
+                if (entitiesTab) {
+                    // Refresh entity hierarchy if we're on the entities tab
+                    await _refreshEntityHierarchy();
+                }
+            }
+
             // After navigation, refresh the views to ensure data is displayed
             await ui.refreshAllViews(_state);
         },
@@ -288,6 +365,46 @@
          */
         getState() {
             return { ..._state };
+        },
+
+        /**
+         * Reloads dashboard (and other views) with respect to consolidated flag.
+         * Called by external modules such as entityHierarchy when the user toggles
+         * consolidated view outside of Core's own toggle handler.
+         * @param {boolean} isConsolidated - Whether consolidated data should be shown.
+         */
+        async loadDashboardData(isConsolidated = false) {
+            _state.isConsolidatedViewActive = isConsolidated;
+            _log(`loadDashboardData invoked. Consolidated: ${isConsolidated}`, 'info');
+            if (typeof ui !== 'undefined' && typeof ui.refreshAllViews === 'function') {
+                await ui.refreshAllViews(_state);
+            }
+        },
+
+        /**
+         * Loads entity data and refreshes the entity hierarchy visualization.
+         * This method can be called after entity operations to ensure the visualization is up to date.
+         */
+        async loadEntityData() {
+            _log('Loading entity data...', 'info');
+            try {
+                // Fetch fresh entity data
+                _state.entities = await db.fetchEntities();
+                
+                // Refresh the entity hierarchy visualization
+                await _refreshEntityHierarchy();
+                
+                // Refresh entity-related views
+                if (typeof ui !== 'undefined' && typeof ui.refreshTable === 'function') {
+                    await ui.refreshTable('entities', _state);
+                }
+                
+                _log('Entity data loaded and visualization refreshed', 'success');
+                return true;
+            } catch (error) {
+                _log(`Error loading entity data: ${error.message}`, 'error');
+                return false;
+            }
         }
     };
 

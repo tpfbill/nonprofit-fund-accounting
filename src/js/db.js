@@ -333,6 +333,46 @@
             _fallback.entities.push(newEntity);
             return newEntity;
         },
+
+        /**
+         * Deletes an entity and all directly related fallback objects.
+         * @param {string} entityId - Entity ID to delete
+         * @returns {Promise<boolean>} Success status
+         */
+        async deleteEntity(entityId) {
+            if (!_connectionAttempted) await this.connect();
+
+            /* ---------- Live API path ---------- */
+            if (_dbConnected) {
+                try {
+                    await _apiDelete(`/api/entities/${entityId}`);
+                    return true;
+                } catch (err) {
+                    console.warn(`DB: Error deleting entity - ${err.message}`);
+                    _dbConnected = false;
+                }
+            }
+
+            /* ---------- Fallback path ---------- */
+            console.log('DB: Using fallback for deleteEntity');
+            await _simulateDelay();
+
+            const idx = _fallback.entities.findIndex(e => e.id === entityId);
+            if (idx === -1) return false;   // entity not found
+
+            // Remove the entity itself
+            _fallback.entities.splice(idx, 1);
+
+            // Cascade-delete directly related data in fallback collections
+            _fallback.accounts        = _fallback.accounts
+                                          .filter(a  => a.entityId   !== entityId);
+            _fallback.funds           = _fallback.funds
+                                          .filter(f  => f.entityId   !== entityId);
+            _fallback.journalEntries  = _fallback.journalEntries
+                                          .filter(je => je.entityId  !== entityId);
+
+            return true;
+        },
         
         /**
          * Fetches accounts from API or fallback
