@@ -47,6 +47,7 @@
             <div class="nav-item" data-page="chart-of-accounts">Chart of Accounts</div>
             <div class="nav-item" data-page="funds">Funds</div>
             <div class="nav-item" data-page="journal-entries">Journal Entries</div>
+            <div class="nav-item" data-page="fund-reports">Fund Reports</div>
             <div class="nav-item" onclick="window.location.href='reports.html'">Reports</div>
             <div class="nav-item" data-page="settings">Settings</div>
         </div>
@@ -176,6 +177,60 @@
             </table>
         </div>
         
+        <!-- ==================== Fund Reports Page ==================== -->
+        <div id="fund-reports-page" class="page">
+            <div class="content-header">
+                <h2>Fund Reports</h2>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="fund-reports-fund-select">Fund:</label>
+                    <select id="fund-reports-fund-select" class="form-input" style="width: auto;">
+                        <option value="">Select Fund...</option>
+                    </select>
+                    <label for="fund-reports-date-start">From:</label>
+                    <input type="date" id="fund-reports-date-start" class="form-input" style="width: auto;">
+                    <label for="fund-reports-date-end">To:</label>
+                    <input type="date" id="fund-reports-date-end" class="form-input" style="width: auto;">
+                    <button class="action-button" id="fund-reports-generate">Generate Report</button>
+                </div>
+            </div>
+            
+            <div class="tab-container">
+                <div class="tab-menu">
+                    <div class="tab-item active" data-tab="fund-balance-report">Fund Balance</div>
+                    <div class="tab-item" data-tab="fund-activity-report">Fund Activity</div>
+                    <div class="tab-item" data-tab="fund-statement-report">Fund Statement</div>
+                    <div class="tab-item" data-tab="funds-comparison-report">Funds Comparison</div>
+                </div>
+                <div class="tab-content">
+                    <div id="fund-balance-report" class="tab-panel active">
+                        <h3>Fund Balance Report</h3>
+                        <div id="fund-balance-content">
+                            <p>Select a fund and click Generate Report to view balance details.</p>
+                        </div>
+                    </div>
+                    <div id="fund-activity-report" class="tab-panel">
+                        <h3>Fund Activity Report</h3>
+                        <div id="fund-activity-content">
+                            <p>Select a fund and date range, then click Generate Report to view transactions.</p>
+                        </div>
+                    </div>
+                    <div id="fund-statement-report" class="tab-panel">
+                        <h3>Fund Statement Report</h3>
+                        <div id="fund-statement-content">
+                            <p>Select a fund and click Generate Report to view income statement by account type.</p>
+                        </div>
+                    </div>
+                    <div id="funds-comparison-report" class="tab-panel">
+                        <h3>Funds Comparison Report</h3>
+                        <div id="funds-comparison-content">
+                            <p>Click Generate Report to compare all funds.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ================= End Fund Reports Page =================== -->
+
         <div id="settings-page" class="page">
             <div class="content-header"><h2>System Settings</h2></div>
             <div class="tab-container">

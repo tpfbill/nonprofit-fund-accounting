@@ -1679,6 +1679,229 @@ async function deleteJournalEntry(entryId) {
     }
 }
 
+// ===================================================================
+// FUND REPORTING FUNCTIONS
+// ===================================================================
+
+function populateFundReportsDropdown() {
+    const fundSelect = document.getElementById('fund-reports-fund-select');
+    if (!fundSelect) return;
+
+    fundSelect.innerHTML = '<option value="">Select a Fund...</option>';
+    
+    // Sort funds alphabetically by name
+    const sortedFunds = [...appState.funds].sort((a,b) => a.name.localeCompare(b.name));
+    
+    sortedFunds.forEach(fund => {
+        const option = document.createElement('option');
+        option.value = fund.id;
+        option.textContent = `${fund.name} (${fund.code})`;
+        fundSelect.appendChild(option);
+    });
+}
+
+async function generateFundReport() {
+    const activeTab = document.querySelector('#fund-reports-page .tab-item.active').dataset.tab;
+    
+    switch(activeTab) {
+        case 'fund-balance-report':
+            await generateFundBalanceReport();
+            break;
+        case 'fund-activity-report':
+            await generateFundActivityReport();
+            break;
+        case 'fund-statement-report':
+            await generateFundStatementReport();
+            break;
+        case 'funds-comparison-report':
+            await generateFundsComparisonReport();
+            break;
+    }
+}
+
+async function generateFundBalanceReport() {
+    const fundId = document.getElementById('fund-reports-fund-select').value;
+    const contentDiv = document.getElementById('fund-balance-content');
+    
+    if (!fundId) {
+        contentDiv.innerHTML = '<p class="error">Please select a fund to generate the report.</p>';
+        return;
+    }
+    
+    try {
+        contentDiv.innerHTML = '<p>Loading report...</p>';
+        const data = await fetchData(`reports/fund-balance/${fundId}`);
+        
+        contentDiv.innerHTML = `
+            <h4>Balance for ${data.fund_name || 'N/A'} (${data.fund_code || 'N/A'})</h4>
+            <table class="data-table">
+                <thead>
+                    <tr><th>Metric</th><th>Amount</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Total Debits</td><td>${formatCurrency(data.total_debits)}</td></tr>
+                    <tr><td>Total Credits</td><td>${formatCurrency(data.total_credits)}</td></tr>
+                    <tr><td><strong>Net Balance</strong></td><td><strong>${formatCurrency(data.balance)}</strong></td></tr>
+                </tbody>
+            </table>
+        `;
+    } catch (error) {
+        contentDiv.innerHTML = `<p class="error">Error generating report: ${error.message}</p>`;
+    }
+}
+
+async function generateFundActivityReport() {
+    const fundId = document.getElementById('fund-reports-fund-select').value;
+    const startDate = document.getElementById('fund-reports-date-start').value;
+    const endDate = document.getElementById('fund-reports-date-end').value;
+    const contentDiv = document.getElementById('fund-activity-content');
+
+    if (!fundId) {
+        contentDiv.innerHTML = '<p class="error">Please select a fund to generate the report.</p>';
+        return;
+    }
+    
+    try {
+        contentDiv.innerHTML = '<p>Loading report...</p>';
+        let url = `reports/fund-activity/${fundId}`;
+        const params = new URLSearchParams();
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+        if (params.toString()) url += `?${params.toString()}`;
+
+        const data = await fetchData(url);
+        
+        if (data.length === 0) {
+            contentDiv.innerHTML = '<p>No transactions found for the selected fund and date range.</p>';
+            return;
+        }
+
+        let tableHTML = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Account</th>
+                        <th>Description</th>
+                        <th>Debit</th>
+                        <th>Credit</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        data.forEach(line => {
+            tableHTML += `
+                <tr>
+                    <td>${formatDate(line.entry_date)}</td>
+                    <td>${line.account_name} (${line.account_code})</td>
+                    <td>${line.description || ''}</td>
+                    <td>${formatCurrency(line.debit_amount)}</td>
+                    <td>${formatCurrency(line.credit_amount)}</td>
+                </tr>
+            `;
+        });
+        tableHTML += `</tbody></table>`;
+        contentDiv.innerHTML = tableHTML;
+
+    } catch (error) {
+        contentDiv.innerHTML = `<p class="error">Error generating report: ${error.message}</p>`;
+    }
+}
+
+async function generateFundStatementReport() {
+    const fundId = document.getElementById('fund-reports-fund-select').value;
+    const contentDiv = document.getElementById('fund-statement-content');
+
+    if (!fundId) {
+        contentDiv.innerHTML = '<p class="error">Please select a fund to generate the report.</p>';
+        return;
+    }
+
+    try {
+        contentDiv.innerHTML = '<p>Loading report...</p>';
+        const data = await fetchData(`reports/fund-statement/${fundId}`);
+        
+        let revenue = 0;
+        let expense = 0;
+        
+        let tableHTML = `
+            <table class="data-table">
+                <thead>
+                    <tr><th>Account Type</th><th>Net Amount</th></tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.forEach(item => {
+            if (item.account_type === 'Revenue') revenue += parseFloat(item.net);
+            if (item.account_type === 'Expense') expense += parseFloat(item.net);
+            
+            tableHTML += `
+                <tr>
+                    <td>${item.account_type}</td>
+                    <td>${formatCurrency(item.net)}</td>
+                </tr>
+            `;
+        });
+
+        const netIncome = revenue + expense; // Expenses are negative, so we add
+
+        tableHTML += `
+                </tbody>
+                <tfoot>
+                    <tr><td><strong>Total Revenue</strong></td><td><strong>${formatCurrency(revenue)}</strong></td></tr>
+                    <tr><td><strong>Total Expenses</strong></td><td><strong>${formatCurrency(expense)}</strong></td></tr>
+                    <tr><td><strong>Net Income/Loss</strong></td><td><strong>${formatCurrency(netIncome)}</strong></td></tr>
+                </tfoot>
+            </table>
+        `;
+        contentDiv.innerHTML = tableHTML;
+
+    } catch (error) {
+        contentDiv.innerHTML = `<p class="error">Error generating report: ${error.message}</p>`;
+    }
+}
+
+async function generateFundsComparisonReport() {
+    const contentDiv = document.getElementById('funds-comparison-content');
+    try {
+        contentDiv.innerHTML = '<p>Loading report...</p>';
+        const data = await fetchData('reports/funds-comparison');
+
+        if (data.length === 0) {
+            contentDiv.innerHTML = '<p>No funds found to compare.</p>';
+            return;
+        }
+
+        let tableHTML = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Fund Name</th>
+                        <th>Fund Code</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        data.forEach(fund => {
+            tableHTML += `
+                <tr>
+                    <td>${fund.name}</td>
+                    <td>${fund.code}</td>
+                    <td>${formatCurrency(fund.balance)}</td>
+                </tr>
+            `;
+        });
+        tableHTML += `</tbody></table>`;
+        contentDiv.innerHTML = tableHTML;
+
+    } catch (error) {
+        contentDiv.innerHTML = `<p class="error">Error generating report: ${error.message}</p>`;
+    }
+}
+
+
 // Navigation Functions
 function navigateTo(page) {
     // Hide all pages
@@ -1747,6 +1970,9 @@ function refreshPageData(page) {
             break;
         case 'journal-entries':
             loadJournalEntryData();
+            break;
+        case 'fund-reports':
+            populateFundReportsDropdown();
             break;
         case 'settings':
             refreshTabData(appState.currentTab);
@@ -1908,6 +2134,30 @@ function setupEventListeners() {
                     modal.classList.add('hidden');
                     modal.style.display = 'none';
                 }
+            }
+        });
+    });
+
+    // Fund Reports event listeners
+    const generateReportBtn = document.getElementById('fund-reports-generate');
+    if (generateReportBtn) {
+        generateReportBtn.addEventListener('click', generateFundReport);
+    }
+
+    const reportTabs = document.querySelectorAll('#fund-reports-page .tab-item');
+    reportTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            reportTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            document.querySelectorAll('#fund-reports-page .tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            const panelId = tab.dataset.tab;
+            const panel = document.getElementById(panelId);
+            if (panel) {
+                panel.classList.add('active');
             }
         });
     });
