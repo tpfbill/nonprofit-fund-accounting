@@ -1,716 +1,1981 @@
-﻿// Dashboard Content - Financial Overview
-const financialOverviewHTML = 
-    <div class="content-header">
-        <h2>Dashboard</h2>
-        <button class="action-button">Print Report</button>
-    </div>
+/**
+ * @file app.js
+ * @description Main application logic for the Non-Profit Fund Accounting System.
+ * This script handles data fetching, UI rendering, navigation, and user interactions.
+ */
+
+// Application State
+const appState = {
+    entities: [],
+    accounts: [],
+    funds: [],
+    journalEntries: [],
+    users: [],
+    organizationSettings: {},
+    customReportDefinitions: [],
+    selectedEntityId: null,
+    isConsolidatedView: false,
+    currentPage: 'dashboard',
+    currentTab: 'settings-users', // Default tab for settings page
+    dbConnected: false,
+    entityTypes: {
+        ROOT: 'root',
+        ENTITY: 'entity',
+        FUND: 'fund'
+    }
+};
+
+// Utility Functions
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2
+    }).format(amount || 0);
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    }).format(date);
+}
+
+function formatPercentage(value, total) {
+    if (!total) return '0.0%';
+    return ((value / total) * 100).toFixed(1) + '%';
+}
+
+// API Functions
+async function fetchData(endpoint) {
+    try {
+        console.log(`Fetching data from /api/${endpoint}...`);
+        const response = await fetch(`/api/${endpoint}`);
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log(`Received ${data.length} items from /api/${endpoint}`);
+        return data;
+    } catch (error) {
+        console.error(`Error fetching ${endpoint}:`, error);
+        return [];
+    }
+}
+
+async function saveData(endpoint, data, method = 'POST') {
+    try {
+        const response = await fetch(`/api/${endpoint}`, {
+            method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error saving to ${endpoint}:`, error);
+        throw error;
+    }
+}
+
+// Database Connection Check
+async function checkDatabaseConnection() {
+    try {
+        const dbStatusIndicator = document.getElementById('db-status-indicator');
+        
+        // Try to fetch entities as a connection test
+        const response = await fetch('/api/entities');
+        if (response.ok) {
+            if (dbStatusIndicator) {
+                dbStatusIndicator.textContent = 'DB Connected';
+                dbStatusIndicator.classList.remove('offline');
+                dbStatusIndicator.classList.add('online');
+            }
+            appState.dbConnected = true;
+            return true;
+        } else {
+            if (dbStatusIndicator) {
+                dbStatusIndicator.textContent = 'DB Offline';
+                dbStatusIndicator.classList.remove('online');
+                dbStatusIndicator.classList.add('offline');
+            }
+            appState.dbConnected = false;
+            return false;
+        }
+    } catch (error) {
+        console.error('Database connection check error:', error);
+        const dbStatusIndicator = document.getElementById('db-status-indicator');
+        if (dbStatusIndicator) {
+            dbStatusIndicator.textContent = 'DB Error';
+            dbStatusIndicator.classList.remove('online');
+            dbStatusIndicator.classList.add('offline');
+        }
+        appState.dbConnected = false;
+        return false;
+    }
+}
+
+// Data Loading Functions
+async function loadEntityData() {
+    try {
+        const entities = await fetchData('entities');
+        appState.entities = entities;
+        
+        // Update entity selector
+        updateEntitySelector();
+        
+        // Update entity table in settings
+        updateEntitiesTable();
+        
+        return entities;
+    } catch (error) {
+        console.error('Error loading entity data:', error);
+        return [];
+    }
+}
+
+async function loadAccountData() {
+    try {
+        const accounts = await fetchData('accounts');
+        appState.accounts = accounts;
+        
+        // Update chart of accounts table
+        updateChartOfAccountsTable();
+        
+        return accounts;
+    } catch (error) {
+        console.error('Error loading account data:', error);
+        return [];
+    }
+}
+
+async function loadFundData() {
+    try {
+        const funds = await fetchData('funds');
+        appState.funds = funds;
+        
+        // Update funds table
+        updateFundsTable();
+        
+        // Update dashboard fund balances
+        updateDashboardFundBalances();
+        
+        return funds;
+    } catch (error) {
+        console.error('Error loading fund data:', error);
+        return [];
+    }
+}
+
+async function loadJournalEntryData() {
+    try {
+        const journalEntries = await fetchData('journal-entries');
+        appState.journalEntries = journalEntries;
+        
+        // Update journal entries table
+        updateJournalEntriesTable();
+        
+        // Update dashboard recent transactions
+        updateDashboardRecentTransactions();
+        
+        // Update dashboard unposted entries
+        updateDashboardUnpostedEntries();
+        
+        return journalEntries;
+    } catch (error) {
+        console.error('Error loading journal entry data:', error);
+        return [];
+    }
+}
+
+async function loadUserData() {
+    try {
+        const users = await fetchData('users');
+        appState.users = users;
+        
+        // Update users table
+        updateUsersTable();
+        
+        return users;
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        return [];
+    }
+}
+
+async function loadDashboardData() {
+    try {
+        // Update dashboard title based on selected entity
+        updateDashboardTitle();
+        
+        // Update dashboard summary cards
+        updateDashboardSummaryCards();
+        
+        // Update fund balances table
+        updateDashboardFundBalances();
+        
+        // Update recent transactions table
+        updateDashboardRecentTransactions();
+        
+        // Update unposted entries table
+        updateDashboardUnpostedEntries();
+        
+        // Initialize charts if they exist
+        initializeDashboardCharts();
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+// UI Update Functions
+function updateEntitySelector() {
+    const entitySelector = document.getElementById('entity-selector');
+    if (!entitySelector || !appState.entities.length) return;
     
-    <!-- Summary Cards -->
-    <div class="card-grid">
+    // Clear existing options
+    entitySelector.innerHTML = '';
+    
+    // Find TPF_PARENT entity (root)
+    const rootEntity = appState.entities.find(entity => 
+        entity.parent_entity_id === null && 
+        (entity.name === 'The Principle Foundation' || entity.code === 'TPF_PARENT')
+    );
+    
+    // Add root entity option
+    if (rootEntity) {
+        const option = document.createElement('option');
+        option.value = rootEntity.id;
+        option.textContent = `${rootEntity.name} (Consolidated)`;
+        entitySelector.appendChild(option);
+    }
+    
+    // Add child entities
+    const childEntities = rootEntity 
+        ? appState.entities.filter(entity => entity.parent_entity_id === rootEntity.id)
+        : appState.entities.filter(entity => entity.parent_entity_id === null);
+    
+    childEntities.forEach(entity => {
+        const option = document.createElement('option');
+        option.value = entity.id;
+        option.textContent = entity.name;
+        entitySelector.appendChild(option);
+    });
+    
+    // Set default selected entity
+    if (!appState.selectedEntityId && rootEntity) {
+        appState.selectedEntityId = rootEntity.id;
+        entitySelector.value = rootEntity.id;
+    } else if (appState.selectedEntityId) {
+        entitySelector.value = appState.selectedEntityId;
+    }
+    
+    // Set consolidated view toggle state based on selected entity
+    const consolidatedViewToggle = document.getElementById('consolidated-view-toggle');
+    if (consolidatedViewToggle && rootEntity && appState.selectedEntityId === rootEntity.id) {
+        consolidatedViewToggle.checked = true;
+        appState.isConsolidatedView = true;
+    }
+}
+
+function updateDashboardTitle() {
+    const dashboardTitle = document.getElementById('dashboard-title');
+    const dashboardCurrentEntity = document.getElementById('dashboard-current-entity');
+    
+    if (!dashboardTitle || !appState.selectedEntityId) return;
+    
+    const selectedEntity = appState.entities.find(entity => entity.id === appState.selectedEntityId);
+    if (selectedEntity) {
+        dashboardTitle.textContent = 'Dashboard';
+        
+        if (dashboardCurrentEntity) {
+            dashboardCurrentEntity.textContent = selectedEntity.name;
+            if (appState.isConsolidatedView && selectedEntity.is_consolidated) {
+                dashboardCurrentEntity.textContent += ' (Consolidated)';
+            }
+        }
+    }
+}
+
+function updateDashboardSummaryCards() {
+    const summaryCardsContainer = document.getElementById('dashboard-summary-cards');
+    if (!summaryCardsContainer || !appState.selectedEntityId) return;
+    
+    // Get relevant funds based on selected entity and consolidated view
+    const relevantFunds = getRelevantFunds();
+    
+    // Calculate summary values
+    const totalAssets = relevantFunds.reduce((sum, fund) => sum + parseFloat(fund.balance || 0), 0);
+    const totalLiabilities = 0; // This would need to be calculated from accounts if available
+    const netAssets = totalAssets - totalLiabilities;
+    
+    // Calculate YTD revenue from journal entries
+    const currentYear = new Date().getFullYear();
+    const relevantEntityIds = getRelevantEntityIds();
+    
+    const ytdRevenue = appState.journalEntries
+        .filter(entry => 
+            new Date(entry.entry_date).getFullYear() === currentYear &&
+            relevantEntityIds.includes(entry.entity_id) &&
+            entry.type === 'Revenue'
+        )
+        .reduce((sum, entry) => sum + parseFloat(entry.total_amount || 0), 0);
+    
+    // Update the cards
+    summaryCardsContainer.innerHTML = `
         <div class="card">
             <div class="card-title">Total Assets</div>
-            <div class="card-value">,254,897.00</div>
+            <div class="card-value">${formatCurrency(totalAssets)}</div>
         </div>
         <div class="card">
             <div class="card-title">Total Liabilities</div>
-            <div class="card-value">,250.00</div>
+            <div class="card-value">${formatCurrency(totalLiabilities)}</div>
         </div>
         <div class="card">
             <div class="card-title">Net Assets</div>
-            <div class="card-value">,647.00</div>
+            <div class="card-value">${formatCurrency(netAssets)}</div>
         </div>
         <div class="card">
             <div class="card-title">YTD Revenue</div>
-            <div class="card-value">,890.00</div>
+            <div class="card-value">${formatCurrency(ytdRevenue)}</div>
         </div>
-    </div>
+    `;
+}
 
-    <!-- Fund Balances -->
-    <h3 class="mt-20">Fund Balances</h3>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Fund Name</th>
-                <th>Type</th>
-                <th>Balance</th>
-                <th>% of Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>General Operating</td>
-                <td>Unrestricted</td>
-                <td>,781.00</td>
-                <td>46.6%</td>
-            </tr>
-            <tr>
-                <td>Building Fund</td>
-                <td>Temporarily Restricted</td>
-                <td>,450.00</td>
-                <td>14.1%</td>
-            </tr>
-            <tr>
-                <td>Endowment</td>
-                <td>Permanently Restricted</td>
-                <td>,000.00</td>
-                <td>27.4%</td>
-            </tr>
-            <tr>
-                <td>Program Services</td>
-                <td>Temporarily Restricted</td>
-                <td>,416.00</td>
-                <td>11.9%</td>
-            </tr>
-        </tbody>
-    </table>
-;
-
-// Dashboard Content - Recent Transactions
-const recentTransactionsHTML = 
-    <div class="content-header">
-        <h2>Recent Transactions</h2>
-        <button class="action-button">Export</button>
-    </div>
+function updateDashboardFundBalances() {
+    const fundBalancesTable = document.getElementById('dashboard-fund-balances-table');
+    if (!fundBalancesTable || !appState.selectedEntityId) return;
     
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Reference</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>2025-06-15</td>
-                <td>JE-2025-0145</td>
-                <td>Grant Payment - Johnson Foundation</td>
-                <td>,000.00</td>
-                <td><span class="status status-active">Posted</span></td>
-            </tr>
-            <tr>
-                <td>2025-06-14</td>
-                <td>JE-2025-0144</td>
-                <td>Monthly Rent Payment</td>
-                <td>,500.00</td>
-                <td><span class="status status-active">Posted</span></td>
-            </tr>
-            <tr>
-                <td>2025-06-12</td>
-                <td>JE-2025-0143</td>
-                <td>Utility Bills - June</td>
-                <td>,250.00</td>
-                <td><span class="status status-active">Posted</span></td>
-            </tr>
-            <tr>
-                <td>2025-06-10</td>
-                <td>JE-2025-0142</td>
-                <td>Staff Payroll - First Half June</td>
-                <td>,750.00</td>
-                <td><span class="status status-active">Posted</span></td>
-            </tr>
-            <tr>
-                <td>2025-06-08</td>
-                <td>JE-2025-0141</td>
-                <td>Individual Donation - Smith Family</td>
-                <td>,000.00</td>
-                <td><span class="status status-active">Posted</span></td>
-            </tr>
-        </tbody>
-    </table>
-;
-
-// Dashboard Content - Unposted Entries
-const unpostedEntriesHTML = 
-    <div class="content-header">
-        <h2>Unposted Journal Entries</h2>
-        <button class="action-button">New Entry</button>
-    </div>
+    const fundBalancesTbody = fundBalancesTable.querySelector('tbody');
+    if (!fundBalancesTbody) return;
     
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Reference</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Created By</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>2025-06-17</td>
-                <td>JE-2025-0146</td>
-                <td>Community Event Donations</td>
-                <td>,450.00</td>
-                <td>Mary Johnson</td>
-                <td>
-                    <button class="action-button">Post</button>
-                </td>
-            </tr>
-            <tr>
-                <td>2025-06-17</td>
-                <td>JE-2025-0147</td>
-                <td>Office Supplies Purchase</td>
-                <td>.25</td>
-                <td>Robert Smith</td>
-                <td>
-                    <button class="action-button">Post</button>
-                </td>
-            </tr>
-            <tr>
-                <td>2025-06-16</td>
-                <td>JE-2025-0148</td>
-                <td>Program Expenses - Youth Workshop</td>
-                <td>,340.00</td>
-                <td>Jane Wilson</td>
-                <td>
-                    <button class="action-button">Post</button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-;
-
-// Chart of Accounts Content
-const chartOfAccountsHTML = 
-    <div class="content-header">
-        <h2>Chart of Accounts</h2>
-        <button class="action-button">Add Account</button>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tab-container">
-        <div class="tab-menu">
-            <div class="tab-item active" data-tab="accounts-list">List View</div>
-            <div class="tab-item" data-tab="accounts-tree">Tree View</div>
-        </div>
-        <div class="tab-content">
-            <div id="accounts-list" class="tab-panel active">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Code</th>
-                            <th>Name</th>
-                            <th>Type</th>
-                            <th>Balance</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1000</td>
-                            <td>Cash and Cash Equivalents</td>
-                            <td>Asset</td>
-                            <td>,250.00</td>
-                            <td><span class="status status-active">Active</span></td>
-                            <td>
-                                <button class="action-button">Edit</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>1010</td>
-                            <td>Operating Checking</td>
-                            <td>Asset</td>
-                            <td>,250.00</td>
-                            <td><span class="status status-active">Active</span></td>
-                            <td>
-                                <button class="action-button">Edit</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>1020</td>
-                            <td>Savings Account</td>
-                            <td>Asset</td>
-                            <td>,000.00</td>
-                            <td><span class="status status-active">Active</span></td>
-                            <td>
-                                <button class="action-button">Edit</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>1100</td>
-                            <td>Accounts Receivable</td>
-                            <td>Asset</td>
-                            <td>,450.00</td>
-                            <td><span class="status status-active">Active</span></td>
-                            <td>
-                                <button class="action-button">Edit</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div id="accounts-tree" class="tab-panel">
-                <p>Tree view of accounts would be displayed here with proper hierarchy.</p>
-            </div>
-        </div>
-    </div>
-;
-
-// Funds Management Content
-const fundsHTML = 
-    <div class="content-header">
-        <h2>Funds Management</h2>
-        <button class="action-button">Add Fund</button>
-    </div>
+    // Get relevant funds based on selected entity and consolidated view
+    const relevantFunds = getRelevantFunds();
     
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Fund Code</th>
-                <th>Fund Name</th>
-                <th>Type</th>
-                <th>Balance</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>GEN</td>
-                <td>General Operating Fund</td>
-                <td>Unrestricted</td>
-                <td>,781.00</td>
-                <td><span class="status status-active">Active</span></td>
-                <td>
-                    <button class="action-button">Edit</button>
-                </td>
-            </tr>
-            <tr>
-                <td>BLDG</td>
-                <td>Building Fund</td>
-                <td>Temporarily Restricted</td>
-                <td>,450.00</td>
-                <td><span class="status status-active">Active</span></td>
-                <td>
-                    <button class="action-button">Edit</button>
-                </td>
-            </tr>
-            <tr>
-                <td>ENDOW</td>
-                <td>Endowment Fund</td>
-                <td>Permanently Restricted</td>
-                <td>,000.00</td>
-                <td><span class="status status-active">Active</span></td>
-                <td>
-                    <button class="action-button">Edit</button>
-                </td>
-            </tr>
-            <tr>
-                <td>PROG</td>
-                <td>Program Services Fund</td>
-                <td>Temporarily Restricted</td>
-                <td>,416.00</td>
-                <td><span class="status status-active">Active</span></td>
-                <td>
-                    <button class="action-button">Edit</button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-;
-
-// Journal Entries Content
-const journalEntriesHTML = 
-    <div class="content-header">
-        <h2>Journal Entries</h2>
-        <button class="action-button">New Journal Entry</button>
-    </div>
+    // Sort funds by balance (descending)
+    relevantFunds.sort((a, b) => parseFloat(b.balance || 0) - parseFloat(a.balance || 0));
     
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Reference</th>
-                <th>Description</th>
-                <th>Total Amount</th>
-                <th>Status</th>
-                <th>Created By</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>2025-06-17</td>
-                <td>JE-2025-0146</td>
-                <td>Community Event Donations</td>
-                <td>,450.00</td>
-                <td><span class="status status-pending">Unposted</span></td>
-                <td>Mary Johnson</td>
-                <td>
-                    <button class="action-button">View</button>
-                </td>
-            </tr>
-            <tr>
-                <td>2025-06-15</td>
-                <td>JE-2025-0145</td>
-                <td>Grant Payment - Johnson Foundation</td>
-                <td>,000.00</td>
-                <td><span class="status status-active">Posted</span></td>
-                <td>John Doe</td>
-                <td>
-                    <button class="action-button">View</button>
-                </td>
-            </tr>
-            <tr>
-                <td>2025-06-14</td>
-                <td>JE-2025-0144</td>
-                <td>Monthly Rent Payment</td>
-                <td>,500.00</td>
-                <td><span class="status status-active">Posted</span></td>
-                <td>Jane Wilson</td>
-                <td>
-                    <button class="action-button">View</button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-;
-
-// Reports Content
-const reportsHTML = 
-    <div class="content-header">
-        <h2>Financial Reports</h2>
-    </div>
+    // Calculate total for percentage
+    const totalBalance = relevantFunds.reduce((sum, fund) => sum + parseFloat(fund.balance || 0), 0);
     
-    <div class="card-grid">
-        <div class="card">
-            <div class="card-title">Statement of Financial Position</div>
-            <p>Balance sheet showing assets, liabilities, and net assets.</p>
-            <button class="action-button mt-20">Generate</button>
-        </div>
-        <div class="card">
-            <div class="card-title">Statement of Activities</div>
-            <p>Income statement showing revenue, expenses, and changes in net assets.</p>
-            <button class="action-button mt-20">Generate</button>
-        </div>
-        <div class="card">
-            <div class="card-title">Statement of Functional Expenses</div>
-            <p>Expenses categorized by program, administrative, and fundraising.</p>
-            <button class="action-button mt-20">Generate</button>
-        </div>
-        <div class="card">
-            <div class="card-title">Budget vs. Actual</div>
-            <p>Comparison of budgeted and actual amounts with variances.</p>
-            <button class="action-button mt-20">Generate</button>
-        </div>
-    </div>
-;
-
-// Settings Content
-const settingsHTML = 
-    <div class="content-header">
-        <h2>System Settings</h2>
-    </div>
+    // Update the fund balances table
+    fundBalancesTbody.innerHTML = '';
     
-    <div class="tab-container">
-        <div class="tab-menu">
-            <div class="tab-item active" data-tab="users-tab">Users</div>
-            <div class="tab-item" data-tab="organization-tab">Organization</div>
-            <div class="tab-item" data-tab="fiscal-years-tab">Fiscal Years</div>
-        </div>
-        <div class="tab-content">
-            <div id="users-tab" class="tab-panel active">
-                <div class="content-header">
-                    <h3>User Management</h3>
-                    <button class="action-button">Add User</button>
-                </div>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Last Login</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>John Doe</td>
-                            <td>john.doe@example.org</td>
-                            <td>Administrator</td>
-                            <td><span class="status status-active">Active</span></td>
-                            <td>2025-06-17 09:45</td>
-                            <td>
-                                <button class="action-button">Edit</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Mary Johnson</td>
-                            <td>mary.johnson@example.org</td>
-                            <td>Finance Manager</td>
-                            <td><span class="status status-active">Active</span></td>
-                            <td>2025-06-17 08:30</td>
-                            <td>
-                                <button class="action-button">Edit</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div id="organization-tab" class="tab-panel">
-                <h3>Organization Settings</h3>
-                <p>Organization configuration would be displayed here.</p>
-            </div>
-            <div id="fiscal-years-tab" class="tab-panel">
-                <h3>Fiscal Year Management</h3>
-                <p>Fiscal year configuration would be displayed here.</p>
-            </div>
-        </div>
-    </div>
-;
-
-// Other dashboard panels content
-const budgetAnalysisHTML = 
-    <div class="content-header">
-        <h2>Budget Analysis</h2>
-        <button class="action-button">Export</button>
-    </div>
+    if (relevantFunds.length === 0) {
+        fundBalancesTbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center">No funds found for the selected entity</td>
+            </tr>
+        `;
+        return;
+    }
     
-    <h3>Budget vs. Actual (Current Fiscal Year)</h3>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Category</th>
-                <th>Budget</th>
-                <th>Actual</th>
-                <th>Variance</th>
-                <th>% Used</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Program Services</td>
-                <td>,000.00</td>
-                <td>,789.00</td>
-                <td>,211.00</td>
-                <td><span class="badge badge-green">60.4%</span></td>
-            </tr>
-            <tr>
-                <td>Administrative</td>
-                <td>,000.00</td>
-                <td>,450.00</td>
-                <td>,550.00</td>
-                <td><span class="badge badge-green">64.3%</span></td>
-            </tr>
-            <tr>
-                <td>Fundraising</td>
-                <td>,000.00</td>
-                <td>,125.00</td>
-                <td>,875.00</td>
-                <td><span class="badge badge-amber">91.7%</span></td>
-            </tr>
-            <tr>
-                <td>Capital Expenses</td>
-                <td>,000.00</td>
-                <td>,450.00</td>
-                <td>,550.00</td>
-                <td><span class="badge badge-blue">24.9%</span></td>
-            </tr>
-            <tr>
-                <td>Total Expenses</td>
-                <td><strong>,000.00</strong></td>
-                <td><strong>,814.00</strong></td>
-                <td><strong>,186.00</strong></td>
-                <td><strong>62.9%</strong></td>
-            </tr>
-        </tbody>
-    </table>
-;
+    relevantFunds.forEach(fund => {
+        const entityName = appState.entities.find(entity => entity.id === fund.entity_id)?.name || 'Unknown';
+        const fundBalance = parseFloat(fund.balance || 0);
+        const percentage = formatPercentage(fundBalance, totalBalance);
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${fund.name}${appState.isConsolidatedView ? ` (${entityName})` : ''}</td>
+            <td>${fund.type || 'N/A'}</td>
+            <td>${formatCurrency(fundBalance)}</td>
+            <td>${percentage}</td>
+        `;
+        fundBalancesTbody.appendChild(row);
+    });
+}
 
-const fundBalancesHTML = 
-    <div class="content-header">
-        <h2>Fund Balances</h2>
-        <button class="action-button">Export</button>
-    </div>
+function updateDashboardRecentTransactions() {
+    const recentTransactionsTable = document.getElementById('dashboard-recent-transactions-table');
+    if (!recentTransactionsTable || !appState.selectedEntityId) return;
     
-    <h3>Fund Balances - Detailed</h3>
-    <table class="data-table">
-        <thead>
+    const recentTransactionsTbody = recentTransactionsTable.querySelector('tbody');
+    if (!recentTransactionsTbody) return;
+    
+    // Get relevant journal entries based on selected entity and consolidated view
+    const relevantEntityIds = getRelevantEntityIds();
+    
+    let relevantEntries = appState.journalEntries.filter(entry => 
+        relevantEntityIds.includes(entry.entity_id) && 
+        entry.status === 'Posted'
+    );
+    
+    // Sort by date (most recent first)
+    relevantEntries.sort((a, b) => new Date(b.entry_date) - new Date(a.entry_date));
+    
+    // Take only the 5 most recent
+    relevantEntries = relevantEntries.slice(0, 5);
+    
+    // Update the recent transactions table
+    recentTransactionsTbody.innerHTML = '';
+    
+    if (relevantEntries.length === 0) {
+        recentTransactionsTbody.innerHTML = `
             <tr>
-                <th>Fund ID</th>
-                <th>Fund Name</th>
-                <th>Type</th>
-                <th>Beginning Balance</th>
-                <th>Revenue</th>
-                <th>Expenses</th>
-                <th>Current Balance</th>
+                <td colspan="5" class="text-center">No recent transactions found</td>
             </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>F001</td>
-                <td>General Operating</td>
-                <td>Unrestricted</td>
-                <td>,250.00</td>
-                <td>,531.00</td>
-                <td>,000.00</td>
-                <td>,781.00</td>
-            </tr>
-            <tr>
-                <td>F002</td>
-                <td>Building Fund</td>
-                <td>Temporarily Restricted</td>
-                <td>,000.00</td>
-                <td>,000.00</td>
-                <td>,550.00</td>
-                <td>,450.00</td>
-            </tr>
-            <tr>
-                <td>F003</td>
-                <td>Endowment</td>
-                <td>Permanently Restricted</td>
-                <td>,000.00</td>
-                <td>.00</td>
-                <td>.00</td>
-                <td>,000.00</td>
-            </tr>
-            <tr>
-                <td>F004</td>
-                <td>Program Services</td>
-                <td>Temporarily Restricted</td>
-                <td>,000.00</td>
-                <td>,000.00</td>
-                <td>,584.00</td>
-                <td>,416.00</td>
-            </tr>
-            <tr>
-                <td colspan="3" class="text-right"><strong>Totals:</strong></td>
-                <td><strong>,250.00</strong></td>
-                <td><strong>,531.00</strong></td>
-                <td><strong>,134.00</strong></td>
-                <td><strong>,647.00</strong></td>
-            </tr>
-        </tbody>
-    </table>
-;
+        `;
+        return;
+    }
+    
+    relevantEntries.forEach(entry => {
+        const entityName = appState.entities.find(entity => entity.id === entry.entity_id)?.name || 'Unknown';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${formatDate(entry.entry_date)}</td>
+            <td>${entry.reference_number || 'N/A'}</td>
+            <td>${entry.description || 'N/A'}${appState.isConsolidatedView ? ` (${entityName})` : ''}</td>
+            <td>${formatCurrency(entry.total_amount)}</td>
+            <td><span class="status status-${entry.status.toLowerCase()}">${entry.status}</span></td>
+        `;
+        recentTransactionsTbody.appendChild(row);
+    });
+}
 
-// Main content container
-const mainContent = document.getElementById('main-content');
+function updateDashboardUnpostedEntries() {
+    const unpostedEntriesTable = document.getElementById('dashboard-unposted-entries-table');
+    if (!unpostedEntriesTable || !appState.selectedEntityId) return;
+    
+    const unpostedEntriesTbody = unpostedEntriesTable.querySelector('tbody');
+    if (!unpostedEntriesTbody) return;
+    
+    // Get relevant journal entries based on selected entity and consolidated view
+    const relevantEntityIds = getRelevantEntityIds();
+    
+    let unpostedEntries = appState.journalEntries.filter(entry => 
+        relevantEntityIds.includes(entry.entity_id) && 
+        entry.status === 'Draft'
+    );
+    
+    // Sort by date (most recent first)
+    unpostedEntries.sort((a, b) => new Date(b.entry_date) - new Date(a.entry_date));
+    
+    // Update the unposted entries table
+    unpostedEntriesTbody.innerHTML = '';
+    
+    if (unpostedEntries.length === 0) {
+        unpostedEntriesTbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center">No unposted entries found</td>
+            </tr>
+        `;
+        return;
+    }
+    
+    unpostedEntries.forEach(entry => {
+        const entityName = appState.entities.find(entity => entity.id === entry.entity_id)?.name || 'Unknown';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${formatDate(entry.entry_date)}</td>
+            <td>${entry.reference_number || 'N/A'}</td>
+            <td>${entry.description || 'N/A'}${appState.isConsolidatedView ? ` (${entityName})` : ''}</td>
+            <td>${formatCurrency(entry.total_amount)}</td>
+            <td>${entry.created_by || 'System'}</td>
+            <td>
+                <button class="action-button btn-post-entry" data-id="${entry.id}">Post</button>
+                <button class="action-button btn-edit-entry" data-id="${entry.id}">Edit</button>
+            </td>
+        `;
+        unpostedEntriesTbody.appendChild(row);
+    });
+    
+    // Add event listeners for post and edit buttons
+    unpostedEntriesTbody.querySelectorAll('.btn-post-entry').forEach(button => {
+        button.addEventListener('click', () => postJournalEntry(button.dataset.id));
+    });
+    
+    unpostedEntriesTbody.querySelectorAll('.btn-edit-entry').forEach(button => {
+        button.addEventListener('click', () => openJournalEntryModal(button.dataset.id));
+    });
+}
 
-// Function to load content based on page
-function loadPage(pageId) {
-    switch (pageId) {
+function updateChartOfAccountsTable() {
+    const chartOfAccountsTable = document.getElementById('chart-of-accounts-table');
+    if (!chartOfAccountsTable) return;
+    
+    const chartOfAccountsTbody = chartOfAccountsTable.querySelector('tbody');
+    if (!chartOfAccountsTbody) return;
+    
+    // Sort accounts by code
+    const sortedAccounts = [...appState.accounts].sort((a, b) => a.code.localeCompare(b.code));
+    
+    // Update the chart of accounts table
+    chartOfAccountsTbody.innerHTML = '';
+    
+    if (sortedAccounts.length === 0) {
+        chartOfAccountsTbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center">No accounts found</td>
+            </tr>
+        `;
+        return;
+    }
+    
+    sortedAccounts.forEach(account => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${account.code}</td>
+            <td>${account.name}</td>
+            <td>${account.type}</td>
+            <td>${formatCurrency(account.balance)}</td>
+            <td><span class="status status-${account.status.toLowerCase()}">${account.status}</span></td>
+            <td>
+                <button class="action-button btn-edit-account" data-id="${account.id}">Edit</button>
+            </td>
+        `;
+        chartOfAccountsTbody.appendChild(row);
+    });
+    
+    // Add event listeners for edit buttons
+    chartOfAccountsTbody.querySelectorAll('.btn-edit-account').forEach(button => {
+        button.addEventListener('click', () => openAccountModal(button.dataset.id));
+    });
+}
+
+function updateFundsTable() {
+    const fundsTable = document.getElementById('funds-table');
+    if (!fundsTable) return;
+    
+    const fundsTbody = fundsTable.querySelector('tbody');
+    if (!fundsTbody) return;
+    
+    // Determine filtering mode (current entity vs all entities)
+    const fundsFilterSelect = document.getElementById('funds-filter-select');
+    const filterMode = fundsFilterSelect ? fundsFilterSelect.value : 'current';
+
+    // Build list of funds respecting the chosen filter
+    let displayFunds = appState.funds;
+    if (filterMode !== 'all') {
+        // Existing behaviour – filter by selected entity / consolidated view
+        if (appState.selectedEntityId) {
+            if (!appState.isConsolidatedView) {
+                displayFunds = appState.funds.filter(fund => fund.entity_id === appState.selectedEntityId);
+            } else {
+                const relevantEntityIds = getRelevantEntityIds();
+                displayFunds = appState.funds.filter(fund => relevantEntityIds.includes(fund.entity_id));
+            }
+        }
+    }
+    
+    // Sort funds by code
+    displayFunds.sort((a, b) => a.code.localeCompare(b.code));
+    
+    // Update the funds table
+    fundsTbody.innerHTML = '';
+    
+    if (displayFunds.length === 0) {
+        fundsTbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center">No funds found</td>
+            </tr>
+        `;
+        return;
+    }
+    
+    displayFunds.forEach(fund => {
+        const entityName = appState.entities.find(entity => entity.id === fund.entity_id)?.name || 'Unknown';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${fund.code}</td>
+            <td>${fund.name}</td>
+            <td>${fund.type || 'N/A'}</td>
+            <td>${entityName}</td>
+            <td>${formatCurrency(fund.balance)}</td>
+            <td><span class="status status-${fund.status.toLowerCase()}">${fund.status}</span></td>
+            <td>
+                <button class="action-button btn-edit-fund" data-id="${fund.id}">Edit</button>
+            </td>
+        `;
+        fundsTbody.appendChild(row);
+    });
+    
+    // Add event listeners for edit buttons
+    fundsTbody.querySelectorAll('.btn-edit-fund').forEach(button => {
+        button.addEventListener('click', () => openFundModal(button.dataset.id));
+    });
+}
+
+function updateJournalEntriesTable() {
+    const journalEntriesTable = document.getElementById('journal-entries-table');
+    if (!journalEntriesTable) return;
+    
+    const journalEntriesTbody = journalEntriesTable.querySelector('tbody');
+    if (!journalEntriesTbody) return;
+    
+    /* ------------------------------------------------------------------
+     * Determine filter mode – current entity vs all entities
+     * ------------------------------------------------------------------ */
+    const jeFilterSelect = document.getElementById('journal-entries-filter-select');
+    const jeFilterMode   = jeFilterSelect ? jeFilterSelect.value : 'current';
+
+    // Build list of entries respecting the chosen filter
+    let displayEntries = appState.journalEntries;
+    
+    if (jeFilterMode !== 'all') {
+        // Existing behaviour – filter by selected entity / consolidated view
+        if (appState.selectedEntityId) {
+            if (!appState.isConsolidatedView) {
+                // Show only entries for the selected entity
+                displayEntries = displayEntries.filter(entry => entry.entity_id === appState.selectedEntityId);
+            } else {
+                // Show entries for the selected entity and its children
+                const relevantEntityIds = getRelevantEntityIds();
+                displayEntries = displayEntries.filter(entry => relevantEntityIds.includes(entry.entity_id));
+            }
+        }
+    }
+    
+    // Sort entries by date (most recent first)
+    displayEntries.sort((a, b) => new Date(b.entry_date) - new Date(a.entry_date));
+    
+    // Update the journal entries table
+    journalEntriesTbody.innerHTML = '';
+    
+    if (displayEntries.length === 0) {
+        journalEntriesTbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center">No journal entries found</td>
+            </tr>
+        `;
+        return;
+    }
+    
+    displayEntries.forEach(entry => {
+        const entityName = appState.entities.find(entity => entity.id === entry.entity_id)?.name || 'Unknown';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${formatDate(entry.entry_date)}</td>
+            <td>${entry.reference_number || 'N/A'}</td>
+            <td>${entry.description || 'N/A'}${appState.isConsolidatedView ? ` (${entityName})` : ''}</td>
+            <td>N/A</td>
+            <td>${entityName}</td>
+            <td>${formatCurrency(entry.total_amount)}</td>
+            <td><span class="status status-${entry.status.toLowerCase()}">${entry.status}</span></td>
+            <td>${entry.created_by || 'System'}</td>
+            <td>
+                <button class="action-button btn-view-entry" data-id="${entry.id}">View</button>
+                ${entry.status === 'Draft' ? `<button class="action-button btn-edit-entry" data-id="${entry.id}">Edit</button>` : ''}
+                <button class="action-button btn-delete-entry" data-id="${entry.id}">Delete</button>
+            </td>
+        `;
+        journalEntriesTbody.appendChild(row);
+    });
+    
+    // Add event listeners for view and edit buttons
+    journalEntriesTbody.querySelectorAll('.btn-view-entry').forEach(button => {
+        button.addEventListener('click', () => openJournalEntryModal(button.dataset.id, true));
+    });
+    
+    journalEntriesTbody.querySelectorAll('.btn-edit-entry').forEach(button => {
+        button.addEventListener('click', () => openJournalEntryModal(button.dataset.id));
+    });
+
+    // delete buttons
+    journalEntriesTbody.querySelectorAll('.btn-delete-entry').forEach(button => {
+        button.addEventListener('click', () => deleteJournalEntry(button.dataset.id));
+    });
+}
+
+function updateEntitiesTable() {
+    const entitiesTable = document.getElementById('entities-table');
+    if (!entitiesTable) return;
+    
+    const entitiesTbody = entitiesTable.querySelector('tbody');
+    if (!entitiesTbody) return;
+    
+    // Sort entities by name
+    const sortedEntities = [...appState.entities].sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Update the entities table
+    entitiesTbody.innerHTML = '';
+    
+    if (sortedEntities.length === 0) {
+        entitiesTbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center">No entities found</td>
+            </tr>
+        `;
+        return;
+    }
+    
+    sortedEntities.forEach(entity => {
+        const parentEntity = appState.entities.find(e => e.id === entity.parent_entity_id);
+        const parentName = parentEntity ? parentEntity.name : 'None (Top Level)';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${entity.code}</td>
+            <td>${entity.name}</td>
+            <td>${parentName}</td>
+            <td><span class="status status-${entity.status.toLowerCase()}">${entity.status}</span></td>
+            <td>${entity.base_currency || 'USD'}</td>
+            <td>${entity.fiscal_year_start || '01-01'}</td>
+            <td>${entity.is_consolidated ? 'Yes' : 'No'}</td>
+            <td>
+                <button class="action-button btn-edit-entity" data-id="${entity.id}">Edit</button>
+                <button class="action-button btn-delete-entity" data-id="${entity.id}">Delete</button>
+            </td>
+        `;
+        entitiesTbody.appendChild(row);
+    });
+    
+    // Add event listeners for edit and delete buttons
+    entitiesTbody.querySelectorAll('.btn-edit-entity').forEach(button => {
+        button.addEventListener('click', () => openEntityModal(button.dataset.id));
+    });
+    
+    entitiesTbody.querySelectorAll('.btn-delete-entity').forEach(button => {
+        button.addEventListener('click', () => deleteEntity(button.dataset.id));
+    });
+    
+    // Update entity hierarchy visualization
+    updateEntityHierarchyVisualization();
+}
+
+function updateEntityHierarchyVisualization() {
+    const entityRelationshipViz = document.getElementById('entity-relationship-viz');
+    if (!entityRelationshipViz) return;
+    
+    // Clear existing content
+    entityRelationshipViz.innerHTML = '';
+    
+    // Build hierarchy data
+    const hierarchyData = buildEntityHierarchyData();
+    
+    if (!hierarchyData.root) {
+        entityRelationshipViz.innerHTML = '<p class="text-center">No entity hierarchy found</p>';
+        return;
+    }
+    
+    // Create visualization container
+    const vizContainer = document.createElement('div');
+    vizContainer.className = 'hierarchy-visualization';
+    
+    // Create root node
+    const rootNode = createEntityHierarchyNode(hierarchyData.root);
+    vizContainer.appendChild(rootNode);
+    
+    // Add to container
+    entityRelationshipViz.appendChild(vizContainer);
+}
+
+function buildEntityHierarchyData() {
+    // Create entity map for quick lookup
+    const entityMap = {};
+    appState.entities.forEach(entity => {
+        entityMap[entity.id] = {
+            ...entity,
+            type: appState.entityTypes.ENTITY,
+            children: []
+        };
+    });
+    
+    // Find root entity (TPF_PARENT)
+    const rootEntity = appState.entities.find(entity => 
+        entity.parent_entity_id === null && 
+        (entity.name === 'The Principle Foundation' || entity.code === 'TPF_PARENT')
+    );
+    
+    // If no specific root, use any entity without a parent
+    const fallbackRoot = rootEntity || appState.entities.find(entity => entity.parent_entity_id === null);
+    
+    // Build the hierarchy
+    const hierarchy = {
+        root: fallbackRoot ? entityMap[fallbackRoot.id] : null,
+        entities: entityMap
+    };
+    
+    // Add child entities to their parents
+    appState.entities.forEach(entity => {
+        if (entity.parent_entity_id && entityMap[entity.parent_entity_id]) {
+            entityMap[entity.parent_entity_id].children.push(entityMap[entity.id]);
+        }
+    });
+    
+    // Add funds to their respective entities
+    appState.funds.forEach(fund => {
+        const fundObj = {
+            ...fund,
+            type: appState.entityTypes.FUND,
+            children: []
+        };
+        
+        if (entityMap[fund.entity_id]) {
+            entityMap[fund.entity_id].children.push(fundObj);
+        }
+    });
+    
+    return hierarchy;
+}
+
+function createEntityHierarchyNode(node) {
+    if (!node) return null;
+    
+    const nodeContainer = document.createElement('div');
+    nodeContainer.className = `hierarchy-node ${node.type === appState.entityTypes.FUND ? 'fund-node' : 'entity-node'}`;
+    nodeContainer.dataset.id = node.id;
+    nodeContainer.dataset.type = node.type;
+    
+    // Create node header
+    const nodeHeader = document.createElement('div');
+    nodeHeader.className = 'node-header';
+    
+    // Create node title
+    const nodeTitle = document.createElement('div');
+    nodeTitle.className = 'node-title';
+    nodeTitle.textContent = `${node.name} (${node.code})`;
+    
+    // Create consolidated indicator if applicable
+    if (node.type !== appState.entityTypes.FUND && node.is_consolidated) {
+        const consolidatedIndicator = document.createElement('span');
+        consolidatedIndicator.className = 'consolidated-indicator';
+        consolidatedIndicator.title = 'This entity consolidates its children';
+        consolidatedIndicator.textContent = ' [Consolidated]';
+        nodeTitle.appendChild(consolidatedIndicator);
+    }
+    
+    // Create node actions
+    const nodeActions = document.createElement('div');
+    nodeActions.className = 'node-actions';
+    
+    // Add edit button for entities
+    if (node.type === appState.entityTypes.ENTITY) {
+        const editButton = document.createElement('button');
+        editButton.className = 'btn-icon edit-entity';
+        editButton.innerHTML = '✏️';
+        editButton.title = 'Edit Entity';
+        editButton.addEventListener('click', () => openEntityModal(node.id));
+        nodeActions.appendChild(editButton);
+    }
+    
+    // Add children if any
+    if (node.children && node.children.length > 0) {
+        // Create toggle button for expanding/collapsing
+        const toggleButton = document.createElement('button');
+        toggleButton.className = 'toggle-children';
+        toggleButton.textContent = '▼';
+        
+        // Create children container
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = 'node-children';
+        
+        toggleButton.addEventListener('click', () => {
+            childrenContainer.classList.toggle('collapsed');
+            toggleButton.textContent = childrenContainer.classList.contains('collapsed') ? '►' : '▼';
+        });
+        
+        // Sort children: entities first, then funds
+        const entityChildren = node.children.filter(child => child.type === appState.entityTypes.ENTITY);
+        const fundChildren = node.children.filter(child => child.type === appState.entityTypes.FUND);
+        
+        // Add entity children
+        entityChildren.forEach(child => {
+            const childNode = createEntityHierarchyNode(child);
+            if (childNode) {
+                childrenContainer.appendChild(childNode);
+            }
+        });
+        
+        // Add fund children
+        fundChildren.forEach(child => {
+            const childNode = createEntityHierarchyNode(child);
+            if (childNode) {
+                childrenContainer.appendChild(childNode);
+            }
+        });
+        
+        // Only add toggle and children container if there are actually children
+        if (childrenContainer.children.length > 0) {
+            nodeHeader.insertBefore(toggleButton, nodeHeader.firstChild);
+            nodeContainer.appendChild(childrenContainer);
+        }
+    }
+    
+    // Assemble the node
+    nodeHeader.appendChild(nodeTitle);
+    nodeHeader.appendChild(nodeActions);
+    nodeContainer.insertBefore(nodeHeader, nodeContainer.firstChild);
+    
+    return nodeContainer;
+}
+
+function updateUsersTable() {
+    const usersTable = document.getElementById('users-table');
+    if (!usersTable) return;
+    
+    const usersTbody = usersTable.querySelector('tbody');
+    if (!usersTbody) return;
+    
+    // Sort users by name
+    const sortedUsers = [...appState.users].sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Update the users table
+    usersTbody.innerHTML = '';
+    
+    if (sortedUsers.length === 0) {
+        usersTbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center">No users found</td>
+            </tr>
+        `;
+        return;
+    }
+    
+    sortedUsers.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${user.name}</td>
+            <td>${user.email}</td>
+            <td>${user.role}</td>
+            <td><span class="status status-${user.status.toLowerCase()}">${user.status}</span></td>
+            <td>
+                <button class="action-button btn-edit-user" data-id="${user.id}">Edit</button>
+            </td>
+        `;
+        usersTbody.appendChild(row);
+    });
+    
+    // Add event listeners for edit buttons
+    usersTbody.querySelectorAll('.btn-edit-user').forEach(button => {
+        button.addEventListener('click', () => openUserModal(button.dataset.id));
+    });
+}
+
+// Chart Initialization
+function initializeDashboardCharts() {
+    initializeFundBalanceChart();
+    initializeIncomeExpenseChart();
+    initializeFundDistributionChart();
+}
+
+function initializeFundBalanceChart() {
+    const canvas = document.getElementById('fund-balance-chart');
+    if (!canvas || !window.Chart) return;
+    
+    // Get relevant funds
+    const relevantFunds = getRelevantFunds();
+    
+    // Prepare data
+    const fundNames = relevantFunds.slice(0, 5).map(fund => fund.name);
+    const fundBalances = relevantFunds.slice(0, 5).map(fund => parseFloat(fund.balance || 0));
+    
+    // Create chart
+    new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: fundNames,
+            datasets: [{
+                label: 'Fund Balance',
+                data: fundBalances,
+                backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                borderColor: 'rgba(33, 150, 243, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: value => formatCurrency(value)
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: context => formatCurrency(context.raw)
+                    }
+                }
+            }
+        }
+    });
+}
+
+function initializeIncomeExpenseChart() {
+    const canvas = document.getElementById('income-expense-chart');
+    if (!canvas || !window.Chart) return;
+    
+    // Get relevant journal entries
+    const relevantEntityIds = getRelevantEntityIds();
+    const currentYear = new Date().getFullYear();
+    
+    // Get monthly data for the current year
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+    
+    const incomeData = months.map(month => {
+        const startDate = new Date(currentYear, month - 1, 1);
+        const endDate = new Date(currentYear, month, 0);
+        
+        return appState.journalEntries
+            .filter(entry => 
+                relevantEntityIds.includes(entry.entity_id) &&
+                entry.type === 'Revenue' &&
+                entry.status === 'Posted' &&
+                new Date(entry.entry_date) >= startDate &&
+                new Date(entry.entry_date) <= endDate
+            )
+            .reduce((sum, entry) => sum + parseFloat(entry.total_amount || 0), 0);
+    });
+    
+    const expenseData = months.map(month => {
+        const startDate = new Date(currentYear, month - 1, 1);
+        const endDate = new Date(currentYear, month, 0);
+        
+        return appState.journalEntries
+            .filter(entry => 
+                relevantEntityIds.includes(entry.entity_id) &&
+                entry.type === 'Expense' &&
+                entry.status === 'Posted' &&
+                new Date(entry.entry_date) >= startDate &&
+                new Date(entry.entry_date) <= endDate
+            )
+            .reduce((sum, entry) => sum + parseFloat(entry.total_amount || 0), 0);
+    });
+    
+    // Create chart
+    new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [
+                {
+                    label: 'Income',
+                    data: incomeData,
+                    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                    borderColor: 'rgba(76, 175, 80, 1)',
+                    borderWidth: 2,
+                    tension: 0.3
+                },
+                {
+                    label: 'Expenses',
+                    data: expenseData,
+                    backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                    borderColor: 'rgba(244, 67, 54, 1)',
+                    borderWidth: 2,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: value => formatCurrency(value)
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: context => formatCurrency(context.raw)
+                    }
+                }
+            }
+        }
+    });
+}
+
+function initializeFundDistributionChart() {
+    const canvas = document.getElementById('fund-distribution-chart');
+    if (!canvas || !window.Chart) return;
+    
+    // Get relevant funds
+    const relevantFunds = getRelevantFunds();
+    
+    // Group funds by type
+    const fundTypes = {};
+    relevantFunds.forEach(fund => {
+        const type = fund.type || 'Other';
+        if (!fundTypes[type]) {
+            fundTypes[type] = 0;
+        }
+        fundTypes[type] += parseFloat(fund.balance || 0);
+    });
+    
+    // Prepare data
+    const types = Object.keys(fundTypes);
+    const balances = Object.values(fundTypes);
+    
+    // Create chart
+    new Chart(canvas, {
+        type: 'pie',
+        data: {
+            labels: types,
+            datasets: [{
+                data: balances,
+                backgroundColor: [
+                    'rgba(33, 150, 243, 0.7)',
+                    'rgba(76, 175, 80, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(156, 39, 176, 0.7)',
+                    'rgba(0, 188, 212, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(33, 150, 243, 1)',
+                    'rgba(76, 175, 80, 1)',
+                    'rgba(255, 193, 7, 1)',
+                    'rgba(156, 39, 176, 1)',
+                    'rgba(0, 188, 212, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: context => {
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Helper Functions
+function getRelevantEntityIds() {
+    if (!appState.selectedEntityId) return [];
+    
+    if (!appState.isConsolidatedView) {
+        // Just the selected entity
+        return [appState.selectedEntityId];
+    } else {
+        // Selected entity and its children
+        const selectedEntity = appState.entities.find(entity => entity.id === appState.selectedEntityId);
+        
+        if (selectedEntity && selectedEntity.is_consolidated) {
+            const childEntityIds = appState.entities
+                .filter(entity => entity.parent_entity_id === selectedEntity.id)
+                .map(entity => entity.id);
+            
+            return [selectedEntity.id, ...childEntityIds];
+        } else {
+            return [appState.selectedEntityId];
+        }
+    }
+}
+
+function getRelevantFunds() {
+    const relevantEntityIds = getRelevantEntityIds();
+    
+    return appState.funds.filter(fund => 
+        relevantEntityIds.includes(fund.entity_id)
+    );
+}
+
+// Modal Functions
+function openEntityModal(entityId = null) {
+    const entityModal = document.getElementById('entity-modal');
+    if (!entityModal) return;
+    
+    // Reset form
+    document.getElementById('entity-id-edit').value = '';
+    document.getElementById('entity-name-input').value = '';
+    document.getElementById('entity-code-input').value = '';
+    document.getElementById('entity-parent-select').value = '';
+    document.getElementById('entity-consolidated-checkbox').checked = false;
+    document.getElementById('entity-currency-select').value = 'USD';
+    document.getElementById('entity-fiscal-start-input').value = '01-01';
+    document.getElementById('entity-status-select').value = 'Active';
+    document.getElementById('entity-description-textarea').value = '';
+    
+    // Update modal title
+    document.getElementById('entity-modal-title-text').textContent = entityId ? 'Edit Entity' : 'Add Entity';
+    
+    // Populate parent entity dropdown
+    populateParentEntityDropdown(entityId);
+    
+    if (entityId) {
+        // Edit mode - populate form with entity data
+        const entity = appState.entities.find(e => e.id === entityId);
+        if (entity) {
+            document.getElementById('entity-id-edit').value = entity.id;
+            document.getElementById('entity-name-input').value = entity.name;
+            document.getElementById('entity-code-input').value = entity.code;
+            document.getElementById('entity-parent-select').value = entity.parent_entity_id || '';
+            document.getElementById('entity-consolidated-checkbox').checked = entity.is_consolidated || false;
+            document.getElementById('entity-currency-select').value = entity.base_currency || 'USD';
+            document.getElementById('entity-fiscal-start-input').value = entity.fiscal_year_start || '01-01';
+            document.getElementById('entity-status-select').value = entity.status || 'Active';
+            document.getElementById('entity-description-textarea').value = entity.description || '';
+        }
+    }
+    
+    // Show modal
+    entityModal.classList.remove('hidden');
+    entityModal.style.display = 'block';
+}
+
+function populateParentEntityDropdown(currentEntityId = null) {
+    const parentSelect = document.getElementById('entity-parent-select');
+    if (!parentSelect) return;
+    
+    // Clear existing options
+    parentSelect.innerHTML = '<option value="">-- No Parent (Top Level) --</option>';
+    
+    // Add all entities except the current one being edited
+    appState.entities.forEach(entity => {
+        if (entity.id !== currentEntityId) {
+            const option = document.createElement('option');
+            option.value = entity.id;
+            option.textContent = entity.name;
+            parentSelect.appendChild(option);
+        }
+    });
+}
+
+function openFundModal(fundId = null) {
+    const fundModal = document.getElementById('fund-modal');
+    if (!fundModal) return;
+    
+    // Reset form
+    document.getElementById('edit-fund-id-input').value = '';
+    document.getElementById('fund-code-input').value = '';
+    document.getElementById('fund-name-input').value = '';
+    document.getElementById('fund-type-select').value = 'Unrestricted';
+    document.getElementById('fund-status-select').value = 'Active';
+    document.getElementById('fund-description-textarea').value = '';
+    
+    // Update modal title
+    document.getElementById('fund-modal-title').textContent = fundId ? 'Edit Fund' : 'Add Fund';
+    
+    if (fundId) {
+        // Edit mode - populate form with fund data
+        const fund = appState.funds.find(f => f.id === fundId);
+        if (fund) {
+            document.getElementById('edit-fund-id-input').value = fund.id;
+            document.getElementById('fund-code-input').value = fund.code;
+            document.getElementById('fund-name-input').value = fund.name;
+            document.getElementById('fund-type-select').value = fund.type || 'Unrestricted';
+            document.getElementById('fund-status-select').value = fund.status || 'Active';
+            document.getElementById('fund-description-textarea').value = fund.description || '';
+        }
+        // Show delete button in edit mode
+        const delBtn = document.getElementById('delete-fund-btn');
+        if (delBtn) delBtn.style.display = 'inline-block';
+    }
+    else {
+        // Hide delete button in create mode
+        const delBtn = document.getElementById('delete-fund-btn');
+        if (delBtn) delBtn.style.display = 'none';
+    }
+    
+    // Show modal
+    fundModal.classList.remove('hidden');
+    fundModal.style.display = 'block';
+}
+
+// Delete Fund
+async function deleteFund(fundId) {
+    if (!fundId) return;
+    if (!confirm('Are you sure you want to delete this fund? This action cannot be undone.')) return;
+    try {
+        const response = await fetch(`/api/funds/${fundId}`, { method: 'DELETE' });
+
+        /* --- Enhanced error handling ------------------------------------- */
+        if (!response.ok) {
+            // Try to parse error details from server (JSON preferred, fallback to text)
+            let serverMsg = `API Error: ${response.status}`;
+            try {
+                const data = await response.json();
+                if (data && data.message) serverMsg = data.message;
+            } catch {
+                try {
+                    const text = await response.text();
+                    if (text) serverMsg = text;
+                } catch { /* ignore */ }
+            }
+            throw new Error(serverMsg);
+        }
+        /* ----------------------------------------------------------------- */
+
+        // Close modal
+        const fundModal = document.getElementById('fund-modal');
+        if (fundModal) {
+            fundModal.classList.add('hidden');
+            fundModal.style.display = 'none';
+        }
+        // Reload funds
+        await loadFundData();
+        alert('Fund deleted successfully.');
+    } catch (err) {
+        console.error('Error deleting fund:', err);
+        alert('Error deleting fund: ' + err.message);
+    }
+}
+
+function openAccountModal(accountId = null) {
+    const accountModal = document.getElementById('account-modal');
+    if (!accountModal) return;
+    
+    // Reset form
+    document.getElementById('edit-account-id-input').value = '';
+    document.getElementById('account-code-input').value = '';
+    document.getElementById('account-name-input').value = '';
+    document.getElementById('account-type-select').value = 'Asset';
+    document.getElementById('account-status-select').value = 'Active';
+    document.getElementById('account-description-textarea').value = '';
+    
+    // Update modal title
+    document.getElementById('account-modal-title').textContent = accountId ? 'Edit Account' : 'Add Account';
+    
+    if (accountId) {
+        // Edit mode - populate form with account data
+        const account = appState.accounts.find(a => a.id === accountId);
+        if (account) {
+            document.getElementById('edit-account-id-input').value = account.id;
+            document.getElementById('account-code-input').value = account.code;
+            document.getElementById('account-name-input').value = account.name;
+            document.getElementById('account-type-select').value = account.type || 'Asset';
+            document.getElementById('account-status-select').value = account.status || 'Active';
+            document.getElementById('account-description-textarea').value = account.description || '';
+        }
+    }
+    
+    // Show modal
+    accountModal.classList.remove('hidden');
+    accountModal.style.display = 'block';
+}
+
+function openJournalEntryModal(entryId = null, readOnly = false) {
+    const journalEntryModal = document.getElementById('journal-entry-modal');
+    if (!journalEntryModal) return;
+    
+    // Reset form
+    document.getElementById('edit-je-id-input').value = '';
+    document.getElementById('journal-entry-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('journal-entry-reference').value = 'JE-' + new Date().getFullYear() + '-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    document.getElementById('journal-entry-description').value = '';
+    document.getElementById('journal-entry-is-inter-entity').checked = false;
+    
+    // Update modal title
+    document.getElementById('journal-entry-modal-title').textContent = entryId ? (readOnly ? 'View Journal Entry' : 'Edit Journal Entry') : 'New Journal Entry';
+    
+    if (entryId) {
+        // Edit/View mode - populate form with journal entry data
+        const entry = appState.journalEntries.find(je => je.id === entryId);
+        if (entry) {
+            document.getElementById('edit-je-id-input').value = entry.id;
+            document.getElementById('journal-entry-date').value = entry.entry_date ? new Date(entry.entry_date).toISOString().split('T')[0] : '';
+            document.getElementById('journal-entry-reference').value = entry.reference_number || '';
+            document.getElementById('journal-entry-description').value = entry.description || '';
+            document.getElementById('journal-entry-is-inter-entity').checked = entry.is_inter_entity || false;
+        }
+    }
+    
+    // Set read-only state if viewing
+    if (readOnly) {
+        document.getElementById('journal-entry-date').disabled = true;
+        document.getElementById('journal-entry-description').disabled = true;
+        document.getElementById('journal-entry-is-inter-entity').disabled = true;
+        document.getElementById('btn-save-journal-draft').style.display = 'none';
+        document.getElementById('btn-save-journal-post').style.display = 'none';
+    } else {
+        document.getElementById('journal-entry-date').disabled = false;
+        document.getElementById('journal-entry-description').disabled = false;
+        document.getElementById('journal-entry-is-inter-entity').disabled = false;
+        document.getElementById('btn-save-journal-draft').style.display = 'inline-block';
+        document.getElementById('btn-save-journal-post').style.display = 'inline-block';
+    }
+    
+    // Show modal
+    journalEntryModal.classList.remove('hidden');
+    journalEntryModal.style.display = 'block';
+}
+
+function openUserModal(userId = null) {
+    const userModal = document.getElementById('user-modal');
+    if (!userModal) return;
+    
+    // Reset form
+    document.getElementById('edit-user-id-input').value = '';
+    document.getElementById('user-name-input').value = '';
+    
+    // Update modal title
+    document.getElementById('user-modal-title').textContent = userId ? 'Edit User' : 'Add User';
+    
+    if (userId) {
+        // Edit mode - populate form with user data
+        const user = appState.users.find(u => u.id === userId);
+        if (user) {
+            document.getElementById('edit-user-id-input').value = user.id;
+            document.getElementById('user-name-input').value = user.name;
+        }
+    }
+    
+    // Show modal
+    userModal.classList.remove('hidden');
+    userModal.style.display = 'block';
+}
+
+// Entity CRUD Operations
+async function saveEntity() {
+    const entityId = document.getElementById('entity-id-edit').value;
+    const entityData = {
+        name: document.getElementById('entity-name-input').value,
+        code: document.getElementById('entity-code-input').value,
+        parent_entity_id: document.getElementById('entity-parent-select').value || null,
+        is_consolidated: document.getElementById('entity-consolidated-checkbox').checked,
+        base_currency: document.getElementById('entity-currency-select').value,
+        fiscal_year_start: document.getElementById('entity-fiscal-start-input').value,
+        status: document.getElementById('entity-status-select').value,
+        description: document.getElementById('entity-description-textarea').value
+    };
+    
+    try {
+        let savedEntity;
+        
+        if (entityId) {
+            // Update existing entity
+            savedEntity = await saveData(`entities/${entityId}`, entityData, 'PUT');
+        } else {
+            // Create new entity
+            savedEntity = await saveData('entities', entityData);
+        }
+        
+        // Close modal
+        const entityModal = document.getElementById('entity-modal');
+        if (entityModal) {
+            entityModal.classList.add('hidden');
+            entityModal.style.display = 'none';
+        }
+        
+        // Reload entity data
+        await loadEntityData();
+        
+        return savedEntity;
+    } catch (error) {
+        console.error('Error saving entity:', error);
+        alert('Error saving entity: ' + error.message);
+        return null;
+    }
+}
+
+async function deleteEntity(entityId) {
+    if (!confirm('Are you sure you want to delete this entity? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        // Check if entity has children
+        const hasChildren = appState.entities.some(entity => entity.parent_entity_id === entityId);
+        if (hasChildren) {
+            alert('Cannot delete entity with child entities. Please delete or reassign child entities first.');
+            return;
+        }
+        
+        // Check if entity has funds
+        const hasFunds = appState.funds.some(fund => fund.entity_id === entityId);
+        if (hasFunds) {
+            alert('Cannot delete entity with funds. Please delete or reassign funds first.');
+            return;
+        }
+        
+        // Delete entity
+        await fetch(`/api/entities/${entityId}`, { method: 'DELETE' });
+        
+        // Reload entity data
+        await loadEntityData();
+        
+        alert('Entity deleted successfully.');
+    } catch (error) {
+        console.error('Error deleting entity:', error);
+        alert('Error deleting entity: ' + error.message);
+    }
+}
+
+// Fund CRUD Operations
+async function saveFund() {
+    const fundId = document.getElementById('edit-fund-id-input').value;
+    const fundData = {
+        code: document.getElementById('fund-code-input').value,
+        name: document.getElementById('fund-name-input').value,
+        type: document.getElementById('fund-type-select').value,
+        status: document.getElementById('fund-status-select').value,
+        description: document.getElementById('fund-description-textarea').value,
+        entity_id: appState.selectedEntityId
+    };
+    
+    try {
+        let savedFund;
+        
+        if (fundId) {
+            // Update existing fund
+            savedFund = await saveData(`funds/${fundId}`, fundData, 'PUT');
+        } else {
+            // Create new fund
+            savedFund = await saveData('funds', fundData);
+        }
+        
+        // Close modal
+        const fundModal = document.getElementById('fund-modal');
+        if (fundModal) {
+            fundModal.classList.add('hidden');
+            fundModal.style.display = 'none';
+        }
+        
+        // Reload fund data
+        await loadFundData();
+        
+        return savedFund;
+    } catch (error) {
+        console.error('Error saving fund:', error);
+        alert('Error saving fund: ' + error.message);
+        return null;
+    }
+}
+
+// Account CRUD Operations
+async function saveAccount() {
+    const accountId = document.getElementById('edit-account-id-input').value;
+    const accountData = {
+        code: document.getElementById('account-code-input').value,
+        name: document.getElementById('account-name-input').value,
+        type: document.getElementById('account-type-select').value,
+        status: document.getElementById('account-status-select').value,
+        description: document.getElementById('account-description-textarea').value
+    };
+    
+    try {
+        let savedAccount;
+        
+        if (accountId) {
+            // Update existing account
+            savedAccount = await saveData(`accounts/${accountId}`, accountData, 'PUT');
+        } else {
+            // Create new account
+            savedAccount = await saveData('accounts', accountData);
+        }
+        
+        // Close modal
+        const accountModal = document.getElementById('account-modal');
+        if (accountModal) {
+            accountModal.classList.add('hidden');
+            accountModal.style.display = 'none';
+        }
+        
+        // Reload account data
+        await loadAccountData();
+        
+        return savedAccount;
+    } catch (error) {
+        console.error('Error saving account:', error);
+        alert('Error saving account: ' + error.message);
+        return null;
+    }
+}
+
+// Journal Entry Operations
+async function saveJournalEntry(status = 'Draft') {
+    const entryId = document.getElementById('edit-je-id-input').value;
+    const entryData = {
+        entry_date: document.getElementById('journal-entry-date').value,
+        reference_number: document.getElementById('journal-entry-reference').value,
+        description: document.getElementById('journal-entry-description').value,
+        is_inter_entity: document.getElementById('journal-entry-is-inter-entity').checked,
+        status: status,
+        entity_id: appState.selectedEntityId,
+        created_by: 'Current User' // This would be replaced with actual user info
+    };
+    
+    try {
+        let savedEntry;
+        
+        if (entryId) {
+            // Update existing entry
+            savedEntry = await saveData(`journal-entries/${entryId}`, entryData, 'PUT');
+        } else {
+            // Create new entry
+            savedEntry = await saveData('journal-entries', entryData);
+        }
+        
+        // Close modal
+        const journalEntryModal = document.getElementById('journal-entry-modal');
+        if (journalEntryModal) {
+            journalEntryModal.classList.add('hidden');
+            journalEntryModal.style.display = 'none';
+        }
+        
+        // Reload journal entry data
+        await loadJournalEntryData();
+        
+        return savedEntry;
+    } catch (error) {
+        console.error('Error saving journal entry:', error);
+        alert('Error saving journal entry: ' + error.message);
+        return null;
+    }
+}
+
+async function postJournalEntry(entryId) {
+    if (!confirm('Are you sure you want to post this journal entry? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const entry = appState.journalEntries.find(je => je.id === entryId);
+        if (!entry) {
+            throw new Error('Journal entry not found');
+        }
+        
+        // Update entry status to Posted
+        const updatedEntry = { ...entry, status: 'Posted' };
+        await saveData(`journal-entries/${entryId}`, updatedEntry, 'PUT');
+        
+        // Reload journal entry data
+        await loadJournalEntryData();
+        
+        alert('Journal entry posted successfully.');
+    } catch (error) {
+        console.error('Error posting journal entry:', error);
+        alert('Error posting journal entry: ' + error.message);
+    }
+}
+
+// Delete Journal Entry
+async function deleteJournalEntry(entryId) {
+    if (!entryId) return;
+    if (!confirm('Are you sure you want to delete this journal entry? This action cannot be undone.')) return;
+
+    try {
+        const response = await fetch(`/api/journal-entries/${entryId}`, { method: 'DELETE' });
+        if (!response.ok) {
+            let msg = `API Error: ${response.status}`;
+            try {
+                const data = await response.json();
+                if (data && data.message) msg = data.message;
+            } catch {/* ignore */}
+            throw new Error(msg);
+        }
+        await loadJournalEntryData();
+        alert('Journal entry deleted successfully.');
+    } catch (err) {
+        console.error('Error deleting journal entry:', err);
+        alert('Error deleting journal entry: ' + err.message);
+    }
+}
+
+// Navigation Functions
+function navigateTo(page) {
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    
+    // Show selected page
+    const selectedPage = document.getElementById(`${page}-page`);
+    if (selectedPage) {
+        selectedPage.classList.remove('hidden');
+        selectedPage.classList.add('active');
+    }
+    
+    // Update active nav item
+    document.querySelectorAll('.nav-item').forEach(item => {
+        if (item.dataset.page === page) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+    
+    // Update current page in state
+    appState.currentPage = page;
+    
+    // Refresh page data
+    refreshPageData(page);
+}
+
+function switchTab(tabId) {
+    // Hide all tab panels
+    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+    
+    // Show selected tab panel
+    const selectedPanel = document.getElementById(tabId);
+    if (selectedPanel) {
+        selectedPanel.classList.add('active');
+    }
+    
+    // Update active tab item
+    document.querySelectorAll('.tab-item').forEach(item => {
+        if (item.dataset.tab === tabId) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+    
+    // Update current tab in state
+    appState.currentTab = tabId;
+    
+    // Refresh tab data
+    refreshTabData(tabId);
+}
+
+function refreshPageData(page) {
+    switch (page) {
         case 'dashboard':
-            // Load the default dashboard panel (financial overview)
-            loadDashboardPanel('financial-overview');
+            loadDashboardData();
             break;
         case 'chart-of-accounts':
-            mainContent.innerHTML = chartOfAccountsHTML;
-            initTabs();
+            loadAccountData();
             break;
         case 'funds':
-            mainContent.innerHTML = fundsHTML;
+            loadFundData();
             break;
         case 'journal-entries':
-            mainContent.innerHTML = journalEntriesHTML;
-            break;
-        case 'reports':
-            mainContent.innerHTML = reportsHTML;
+            loadJournalEntryData();
             break;
         case 'settings':
-            mainContent.innerHTML = settingsHTML;
-            initTabs();
+            refreshTabData(appState.currentTab);
             break;
-        default:
-            loadDashboardPanel('financial-overview');
     }
 }
 
-// Function to load dashboard panels
-function loadDashboardPanel(panelId) {
-    switch (panelId) {
-        case 'financial-overview':
-            mainContent.innerHTML = financialOverviewHTML;
+function refreshTabData(tabId) {
+    switch (tabId) {
+        case 'settings-users':
+            loadUserData();
             break;
-        case 'recent-transactions':
-            mainContent.innerHTML = recentTransactionsHTML;
+        case 'settings-entities':
+            updateEntitiesTable();
             break;
-        case 'unposted-entries':
-            mainContent.innerHTML = unpostedEntriesHTML;
+        case 'settings-organization':
+            // Placeholder for organization settings
             break;
-        case 'budget-analysis':
-            mainContent.innerHTML = budgetAnalysisHTML;
-            break;
-        case 'fund-balances':
-            mainContent.innerHTML = fundBalancesHTML;
-            break;
-        default:
-            mainContent.innerHTML = financialOverviewHTML;
     }
 }
 
-// Function to initialize tab functionality
-function initTabs() {
-    document.querySelectorAll('.tab-item').forEach(tab => {
-        tab.addEventListener('click', function() {
-            const tabContainer = this.closest('.tab-container');
+// Event Listeners
+function setupEventListeners() {
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const pageId = item.dataset.page;
+            if (pageId && pageId !== 'reports') { // Handle reports page separately
+                navigateTo(pageId);
+            }
+        });
+    });
+    
+    // Tab switching
+    document.querySelectorAll('.tab-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const tabId = item.dataset.tab;
+            if (tabId) {
+                switchTab(tabId);
+            }
+        });
+    });
+    
+    // Entity selector change
+    const entitySelector = document.getElementById('entity-selector');
+    if (entitySelector) {
+        entitySelector.addEventListener('change', () => {
+            appState.selectedEntityId = entitySelector.value;
             
-            // Deactivate all tabs in this container
-            tabContainer.querySelectorAll('.tab-item').forEach(item => {
-                item.classList.remove('active');
-            });
+            // Check if selected entity is the root entity (TPF_PARENT)
+            const rootEntity = appState.entities.find(entity => 
+                entity.parent_entity_id === null && 
+                (entity.name === 'The Principle Foundation' || entity.code === 'TPF_PARENT')
+            );
             
-            // Activate clicked tab
-            this.classList.add('active');
+            // Set consolidated view based on selected entity
+            const consolidatedViewToggle = document.getElementById('consolidated-view-toggle');
+            if (consolidatedViewToggle && rootEntity && appState.selectedEntityId === rootEntity.id) {
+                consolidatedViewToggle.checked = true;
+                appState.isConsolidatedView = true;
+            }
             
-            // Hide all panels
-            tabContainer.querySelectorAll('.tab-panel').forEach(panel => {
-                panel.classList.remove('active');
-            });
-            
-            // Show selected panel
-            const panelId = this.getAttribute('data-tab');
-            const panel = document.getElementById(panelId);
-            if (panel) {
-                panel.classList.add('active');
+            refreshPageData(appState.currentPage);
+        });
+    }
+    
+    // Consolidated view toggle
+    const consolidatedViewToggle = document.getElementById('consolidated-view-toggle');
+    if (consolidatedViewToggle) {
+        consolidatedViewToggle.addEventListener('change', () => {
+            appState.isConsolidatedView = consolidatedViewToggle.checked;
+            refreshPageData(appState.currentPage);
+        });
+    }
+    
+    // Funds filter dropdown – lets user toggle between current-entity and all-entity views
+    const fundsFilterSelect = document.getElementById('funds-filter-select');
+    if (fundsFilterSelect) {
+        fundsFilterSelect.addEventListener('change', () => {
+            updateFundsTable();               // simply re-render table using new filter value
+        });
+    }
+    
+    // Entity modal buttons
+    const addEntityBtn = document.getElementById('btn-add-entity');
+    if (addEntityBtn) {
+        addEntityBtn.addEventListener('click', () => openEntityModal());
+    }
+    
+    const saveEntityBtn = document.getElementById('btn-save-entity');
+    if (saveEntityBtn) {
+        saveEntityBtn.addEventListener('click', saveEntity);
+    }
+    
+    // Fund modal buttons
+    const addFundBtn = document.getElementById('btnAddFund');
+    if (addFundBtn) {
+        addFundBtn.addEventListener('click', () => openFundModal());
+    }
+    
+    const saveFundBtn = document.getElementById('save-fund-btn');
+    if (saveFundBtn) {
+        saveFundBtn.addEventListener('click', saveFund);
+    }
+
+    /* --- NEW: Delete Fund button --- */
+    const deleteFundBtn = document.getElementById('delete-fund-btn');
+    if (deleteFundBtn) {
+        deleteFundBtn.addEventListener('click', () => {
+            const fundId = document.getElementById('edit-fund-id-input').value;
+            if (fundId) {
+                deleteFund(fundId);
+            }
+        });
+    }
+
+    /* --- NEW: Journal-entries filter dropdown --- */
+    const jeFilterSelect = document.getElementById('journal-entries-filter-select');
+    if (jeFilterSelect) {
+        jeFilterSelect.addEventListener('change', () => {
+            updateJournalEntriesTable();
+        });
+    }
+    
+    // Account modal buttons
+    const addAccountBtn = document.getElementById('btnAddAccount');
+    if (addAccountBtn) {
+        addAccountBtn.addEventListener('click', () => openAccountModal());
+    }
+    
+    const saveAccountBtn = document.getElementById('save-account-btn');
+    if (saveAccountBtn) {
+        saveAccountBtn.addEventListener('click', saveAccount);
+    }
+    
+    // Journal entry modal buttons
+    const addJournalEntryBtn = document.getElementById('btnNewJournalEntry');
+    if (addJournalEntryBtn) {
+        addJournalEntryBtn.addEventListener('click', () => openJournalEntryModal());
+    }
+    
+    const saveJournalDraftBtn = document.getElementById('btn-save-journal-draft');
+    if (saveJournalDraftBtn) {
+        saveJournalDraftBtn.addEventListener('click', () => saveJournalEntry('Draft'));
+    }
+    
+    const saveJournalPostBtn = document.getElementById('btn-save-journal-post');
+    if (saveJournalPostBtn) {
+        saveJournalPostBtn.addEventListener('click', () => saveJournalEntry('Posted'));
+    }
+    
+    // Modal close buttons
+    document.querySelectorAll('.modal-close-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const modalId = button.dataset.modalId;
+            if (modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.style.display = 'none';
+                }
             }
         });
     });
 }
 
-// Set up main navigation
-document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', function() {
-        // Deactivate all nav items
-        document.querySelectorAll('.nav-item').forEach(navItem => {
-            navItem.classList.remove('active');
-        });
+// Initialization
+async function initializeApp() {
+    // Show initialization status
+    const initStatusIndicator = document.getElementById('init-status-indicator');
+    if (initStatusIndicator) {
+        initStatusIndicator.textContent = 'Status: Checking database connection...';
+    }
+    
+    // Check database connection
+    const dbConnected = await checkDatabaseConnection();
+    if (!dbConnected) {
+        if (initStatusIndicator) {
+            initStatusIndicator.textContent = 'Status: Database connection failed. Please check server status.';
+            initStatusIndicator.classList.add('error');
+        }
+        console.error('Database connection failed. Please check server status.');
+        return;
+    }
+    
+    if (initStatusIndicator) {
+        initStatusIndicator.textContent = 'Status: Loading data...';
+    }
+    
+    // Load initial data
+    try {
+        await Promise.all([
+            loadEntityData(),
+            loadAccountData(),
+            loadFundData(),
+            loadJournalEntryData(),
+            loadUserData()
+        ]);
         
-        // Activate clicked item
-        this.classList.add('active');
+        // Set up event listeners
+        setupEventListeners();
         
-        // Load the selected page
-        const pageId = this.getAttribute('data-page');
-        loadPage(pageId);
-    });
-});
+        // Load dashboard data
+        loadDashboardData();
+        
+        if (initStatusIndicator) {
+            initStatusIndicator.textContent = 'Status: Application initialized successfully.';
+            initStatusIndicator.classList.add('success');
+            
+            // Hide status indicator after a delay
+            setTimeout(() => {
+                initStatusIndicator.style.display = 'none';
+            }, 3000);
+        }
+        
+        console.log('Application initialized successfully.');
+    } catch (error) {
+        console.error('Error initializing application:', error);
+        
+        if (initStatusIndicator) {
+            initStatusIndicator.textContent = `Status: Initialization error: ${error.message}`;
+            initStatusIndicator.classList.add('error');
+        }
+    }
+}
 
-// Set up sidebar navigation
-document.querySelectorAll('.sidebar-item').forEach(item => {
-    item.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Deactivate all sidebar items
-        document.querySelectorAll('.sidebar-item').forEach(sideItem => {
-            sideItem.classList.remove('active');
-        });
-        
-        // Activate clicked item
-        this.classList.add('active');
-        
-        // Load the selected dashboard panel
-        const panelId = this.getAttribute('data-panel');
-        loadDashboardPanel(panelId);
-    });
-});
-
-// Initial page load
-loadPage('dashboard');
+// Start the application when DOM is loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
+}

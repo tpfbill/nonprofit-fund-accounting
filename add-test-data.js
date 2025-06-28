@@ -5,15 +5,23 @@
 
 const { Client } = require('pg');
 const crypto = require('crypto');
-const config = require('./src/db/db-config');
+const { getDbConfig } = require('./src/db/db-config');
 
 // Generate a UUID
 function generateId() {
     return crypto.randomUUID();
 }
 
-// Create a PostgreSQL client
-const client = new Client(config);
+// Helper to log rich errors
+function logError(prefix, err) {
+    console.error(`${prefix}: ${err.message}`);
+    if (err.code)    console.error('  code   :', err.code);
+    if (err.detail)  console.error('  detail :', err.detail);
+    if (err.stack)   console.error('  stack  :\n', err.stack);
+}
+
+// Create a PostgreSQL client with the resolved configuration
+const client = new Client(getDbConfig());
 
 // Sample data
 const entities = [
@@ -171,13 +179,21 @@ async function insertTestData() {
         console.log('Transaction committed successfully');
 
     } catch (error) {
-        // Rollback on error
-        await client.query('ROLLBACK');
-        console.error('Error inserting test data:', error);
+        // Attempt rollback; if that fails we still want to surface original error
+        try {
+            await client.query('ROLLBACK');
+        } catch (rbErr) {
+            logError('Rollback failed', rbErr);
+        }
+        logError('Error inserting test data', error);
     } finally {
-        // Close the client
-        await client.end();
-        console.log('Database connection closed');
+        // Always close the client, even if connection failed part-way
+        try {
+            await client.end();
+            console.log('Database connection closed');
+        } catch (endErr) {
+            logError('Error closing database connection', endErr);
+        }
     }
 }
 
