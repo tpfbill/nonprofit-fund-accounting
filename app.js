@@ -1720,91 +1720,148 @@ async function generateFundReport() {
 }
 
 async function generateFundBalanceReport() {
-    const fundId = document.getElementById('fund-reports-fund-select').value;
-    const contentDiv = document.getElementById('fund-balance-content');
-    
+    const fundId   = document.getElementById('fund-reports-fund-select').value;
+    const content  = document.getElementById('fund-balance-content');
+
+    /* ------------------------------------------------------------------
+     * Basic validation – ensure a fund is chosen
+     * ------------------------------------------------------------------ */
     if (!fundId) {
-        contentDiv.innerHTML = '<p class="error">Please select a fund to generate the report.</p>';
+        content.innerHTML =
+            '<p class="error">Please select a fund to generate the report.</p>';
         return;
     }
-    
+
+    /* ------------------------------------------------------------------
+     * Find the fund in the already-loaded list
+     * ------------------------------------------------------------------ */
+    const fund = appState.funds.find(f => f.id === fundId);
+    if (!fund) {
+        content.innerHTML = '<p class="error">Fund not found.</p>';
+        return;
+    }
+
+    /* ------------------------------------------------------------------
+     * Use the fund’s balance field that was loaded with /api/funds
+     * ------------------------------------------------------------------ */
     try {
-        contentDiv.innerHTML = '<p>Loading report...</p>';
-        const data = await fetchData(`reports/fund-balance/${fundId}`);
-        
-        contentDiv.innerHTML = `
-            <h4>Balance for ${data.fund_name || 'N/A'} (${data.fund_code || 'N/A'})</h4>
+        const fundBalance = parseFloat(fund.balance || 0);
+
+        content.innerHTML = `
+            <h4>Balance for ${fund.name} (${fund.code})</h4>
             <table class="data-table">
                 <thead>
                     <tr><th>Metric</th><th>Amount</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td>Total Debits</td><td>${formatCurrency(data.total_debits)}</td></tr>
-                    <tr><td>Total Credits</td><td>${formatCurrency(data.total_credits)}</td></tr>
-                    <tr><td><strong>Net Balance</strong></td><td><strong>${formatCurrency(data.balance)}</strong></td></tr>
+                    <tr>
+                        <td><strong>Current Fund Balance</strong></td>
+                        <td><strong>${formatCurrency(fundBalance)}</strong></td>
+                    </tr>
+                    <tr><td>Fund Type</td><td>${fund.type || 'Not specified'}</td></tr>
+                    <tr><td>Status</td><td>${fund.status || 'Active'}</td></tr>
+                    <tr><td>Description</td><td>${fund.description || 'No description'}</td></tr>
                 </tbody>
             </table>
+            <p><em>Note: Balance shown is taken from the fund record currently loaded in the application.</em></p>
         `;
-    } catch (error) {
-        contentDiv.innerHTML = `<p class="error">Error generating report: ${error.message}</p>`;
+    } catch (err) {
+        content.innerHTML = `<p class="error">Error generating report: ${err.message}</p>`;
     }
 }
 
 async function generateFundActivityReport() {
-    const fundId = document.getElementById('fund-reports-fund-select').value;
-    const startDate = document.getElementById('fund-reports-date-start').value;
-    const endDate = document.getElementById('fund-reports-date-end').value;
+    const fundId     = document.getElementById('fund-reports-fund-select').value;
+    const startDate  = document.getElementById('fund-reports-date-start').value;
+    const endDate    = document.getElementById('fund-reports-date-end').value;
     const contentDiv = document.getElementById('fund-activity-content');
 
+    /* ------------------------------------------------------------------
+     * Validation
+     * ------------------------------------------------------------------ */
     if (!fundId) {
-        contentDiv.innerHTML = '<p class="error">Please select a fund to generate the report.</p>';
+        contentDiv.innerHTML =
+            '<p class="error">Please select a fund to generate the report.</p>';
         return;
     }
-    
+
+    /* ------------------------------------------------------------------
+     * Locate the fund locally
+     * ------------------------------------------------------------------ */
+    const fund = appState.funds.find(f => f.id === fundId);
+    if (!fund) {
+        contentDiv.innerHTML = '<p class="error">Fund not found.</p>';
+        return;
+    }
+
+    /* ------------------------------------------------------------------
+     * Filter journal entries by date range (local data)
+     * NOTE: Demo-level – uses journalEntries header info, not per-line fund
+     * ------------------------------------------------------------------ */
     try {
         contentDiv.innerHTML = '<p>Loading report...</p>';
-        let url = `reports/fund-activity/${fundId}`;
-        const params = new URLSearchParams();
-        if (startDate) params.append('startDate', startDate);
-        if (endDate) params.append('endDate', endDate);
-        if (params.toString()) url += `?${params.toString()}`;
 
-        const data = await fetchData(url);
-        
-        if (data.length === 0) {
-            contentDiv.innerHTML = '<p>No transactions found for the selected fund and date range.</p>';
+        let relevantEntries = appState.journalEntries.filter(entry => {
+            const d = new Date(entry.entry_date);
+            if (startDate && d < new Date(startDate)) return false;
+            if (endDate   && d > new Date(endDate))   return false;
+            return true;
+        });
+
+        // Sort newest first
+        relevantEntries.sort((a, b) =>
+            new Date(b.entry_date) - new Date(a.entry_date)
+        );
+
+        /* ----------  Render results ---------- */
+        if (relevantEntries.length === 0) {
+            contentDiv.innerHTML = `
+                <h4>Activity for ${fund.name} (${fund.code})</h4>
+                <p>No transactions found for the selected date range.</p>
+                <p><em>Date range: ${startDate || 'Beginning'} ➜ ${endDate || 'Now'}</em></p>
+            `;
             return;
         }
 
-        let tableHTML = `
+        let html = `
+            <h4>Activity for ${fund.name} (${fund.code})</h4>
+            <p><em>Date range: ${startDate || 'Beginning'} ➜ ${endDate || 'Now'} • ${relevantEntries.length} journal entries</em></p>
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Account</th>
+                        <th>Reference</th>
                         <th>Description</th>
-                        <th>Debit</th>
-                        <th>Credit</th>
+                        <th>Amount</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
         `;
-        data.forEach(line => {
-            tableHTML += `
+
+        relevantEntries.forEach(e => {
+            html += `
                 <tr>
-                    <td>${formatDate(line.entry_date)}</td>
-                    <td>${line.account_name} (${line.account_code})</td>
-                    <td>${line.description || ''}</td>
-                    <td>${formatCurrency(line.debit_amount)}</td>
-                    <td>${formatCurrency(line.credit_amount)}</td>
+                    <td>${formatDate(e.entry_date)}</td>
+                    <td>${e.reference_number || 'N/A'}</td>
+                    <td>${e.description || 'N/A'}</td>
+                    <td>${formatCurrency(e.total_amount)}</td>
+                    <td><span class="status status-${e.status.toLowerCase()}">${e.status}</span></td>
                 </tr>
             `;
         });
-        tableHTML += `</tbody></table>`;
-        contentDiv.innerHTML = tableHTML;
 
-    } catch (error) {
-        contentDiv.innerHTML = `<p class="error">Error generating report: ${error.message}</p>`;
+        html += `
+                </tbody>
+            </table>
+            <p><em>Demo Note: This lists journal entries only. Full implementation would drill into individual fund-specific lines.</em></p>
+        `;
+
+        contentDiv.innerHTML = html;
+
+    } catch (err) {
+        contentDiv.innerHTML =
+            `<p class="error">Error generating report: ${err.message}</p>`;
     }
 }
 

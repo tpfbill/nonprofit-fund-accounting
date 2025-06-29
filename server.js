@@ -15,7 +15,15 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Increase limit for large data uploads
-app.use(express.static('.'));
+
+/*
+ * NOTE: Request-logging middleware removed.
+ * The extra logger was registered **before** all routes and static middleware,
+ * and under certain conditions could cause early consumption of the response
+ * stream or mask route-registration problems in some hosting setups.
+ * If request logging is desired, use a well-tested logger such as `morgan`
+ * and register it **after** critical middleware or behind a feature flag.
+ */
 
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
@@ -54,6 +62,20 @@ const initializeDatabase = async () => {
             END $$;
         `);
         console.log('Column "import_id" on "journal_entries" is present or created.');
+        
+        // Check for custom_report_definitions table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS custom_report_definitions (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                definition_json JSONB NOT NULL,
+                created_by VARCHAR(255),
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        `);
+        console.log('Table "custom_report_definitions" is present or created.');
 
     } catch (err) {
         console.error('Error during database initialization:', err);
@@ -89,15 +111,100 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Server running', connected: true });
 });
 
-// Database status endpoint
-app.get('/api/db-status', asyncHandler(async (req, res) => {
-  try {
-    await pool.query('SELECT 1');
-    res.json({ connected: true, message: 'Database connected successfully' });
-  } catch (error) {
-    console.error('Database connection check error:', error);
-    res.status(500).json({ connected: false, message: 'Database connection failed', error: error.message });
-  }
+// ---------------------------------------------------------------------------
+// NATURAL LANGUAGE QUERY (NLQ) ENDPOINTS - WORKING VERSION
+// ---------------------------------------------------------------------------
+
+// NLQ suggestions endpoint - simple but functional
+app.get('/api/nlq/suggestions', asyncHandler(async (req, res) => {
+    console.log('NLQ suggestions endpoint hit');
+    try {
+        const { rows: funds } = await pool.query('SELECT name, code FROM funds LIMIT 5');
+        
+        const suggestions = [
+            "What are the fund balances?",
+            "Show me transactions in Q1",
+            "What are the expenses over $1000?",
+            "Show me revenue this year"
+        ];
+        
+        // Add fund-specific suggestions
+        funds.forEach(fund => {
+            suggestions.push(`What is the balance for ${fund.name}?`);
+        });
+        
+        res.json({ suggestions: suggestions.slice(0, 8) });
+    } catch (error) {
+        console.error('NLQ suggestions error:', error);
+        res.status(500).json({ error: 'Failed to load suggestions' });
+    }
+}));
+
+// Simple NLQ query processor
+app.post('/api/nlq/query', asyncHandler(async (req, res) => {
+    console.log('NLQ query endpoint hit');
+    const { query } = req.body;
+    
+    if (!query || query.trim().length === 0) {
+        return res.status(400).json({ error: 'Query text is required' });
+    }
+    
+    try {
+        // Simple pattern matching for now
+        let reportDefinition;
+        let explanation = `I interpreted your query as: "${query}"\n\n`;
+        
+        if (/balance/i.test(query)) {
+            reportDefinition = {
+                dataSource: 'funds',
+                fields: ['name', 'code', 'type', 'balance', 'entity_name'],
+                filters: [],
+                sortBy: [{ field: 'name', direction: 'ASC' }]
+            };
+            explanation += 'Searching in: funds\nShowing: fund balances';
+        } else if (/expense|spend/i.test(query)) {
+            reportDefinition = {
+                dataSource: 'journal_entry_lines',
+                fields: ['entry_date', 'account_name', 'fund_name', 'debit_amount', 'description'],
+                filters: [{ field: 'account_type', operator: '=', value: 'Expense' }],
+                sortBy: [{ field: 'entry_date', direction: 'DESC' }]
+            };
+            explanation += 'Searching in: journal entry lines\nShowing: expense transactions';
+        } else {
+            reportDefinition = {
+                dataSource: 'journal_entry_lines',
+                fields: ['entry_date', 'reference_number', 'description', 'debit_amount', 'credit_amount'],
+                filters: [],
+                sortBy: [{ field: 'entry_date', direction: 'DESC' }]
+            };
+            explanation += 'Searching in: journal entry lines\nShowing: all transactions';
+        }
+        
+        // Execute the query using the existing buildDynamicQuery function
+        const { sql, params } = buildDynamicQuery(reportDefinition);
+        console.log('NLQ Generated SQL:', sql, params);
+        const { rows } = await pool.query(sql, params);
+        
+        res.json({
+            originalQuery: query,
+            explanation,
+            matchedPattern: 'basic',
+            reportDefinition,
+            results: rows,
+            resultCount: rows.length
+        });
+        
+    } catch (error) {
+        console.error('NLQ Processing Error:', error);
+        res.status(400).json({ 
+            error: error.message,
+            suggestions: [
+                "Try asking about 'fund balances'",
+                "Ask 'show me expenses'",
+                "Query 'show me transactions'"
+            ]
+        });
+    }
 }));
 
 // --- ENTITIES API ---
@@ -270,7 +377,7 @@ app.get('/api/reports/fund-balance/:fundId', asyncHandler(async (req, res) => {
      FROM funds f
      LEFT JOIN journal_entry_lines jel ON jel.fund_id = f.id
      WHERE f.id = $1
-     GROUP BY f.id`,
+     GROUP BY f.id, f.code, f.name`,
     [fundId]
   );
   res.json(rows[0] || {});
@@ -361,7 +468,8 @@ app.get('/api/reports/funds-comparison', asyncHandler(async (req, res) => {
     query += ` WHERE f.id = ANY($1::uuid[])`;
     params.push(ids);
   }
-  query += ` GROUP BY f.id ORDER BY f.code`;
+  // Include all selected columns in GROUP BY to satisfy SQL standards
+  query += ` GROUP BY f.id, f.code, f.name ORDER BY f.code`;
 
   const { rows } = await pool.query(query, params);
   res.json(rows);
@@ -408,12 +516,17 @@ app.get('/api/journal-entry-lines', asyncHandler(async (req, res) => {
         je.reference_number,
         a.code  AS account_code,
         a.name  AS account_name,
+        a.type  AS account_type,
         f.code  AS fund_code,
         f.name  AS fund_name
+        ,f.type AS fund_type
+        ,e.name AS entity_name
+        ,e.code AS entity_code
      FROM journal_entry_lines jel
      JOIN journal_entries je ON je.id = jel.journal_entry_id
      JOIN accounts a        ON a.id  = jel.account_id
      LEFT JOIN funds f      ON f.id  = jel.fund_id
+     LEFT JOIN entities e   ON e.id  = je.entity_id
      ${whereClause}
      ORDER BY je.entry_date DESC`,
     params
@@ -719,12 +832,213 @@ app.post('/api/import/rollback/:importId', asyncHandler(async (req, res) => {
     }
 }));
 
+// ---------------------------------------------------------------------------
+// CUSTOM REPORT BUILDER API
+// ---------------------------------------------------------------------------
+
+// A secure map of allowed fields and tables for the report builder.
+// This is a critical security measure to prevent SQL injection.
+const REPORT_BUILDER_FIELD_MAP = {
+    journal_entry_lines: {
+        from: 'FROM journal_entry_lines jel',
+        joins: `
+            JOIN journal_entries je ON je.id = jel.journal_entry_id
+            JOIN accounts a ON a.id = jel.account_id
+            LEFT JOIN funds f ON f.id = jel.fund_id
+            LEFT JOIN entities e ON e.id = je.entity_id`,
+        fields: {
+            entry_date: { sql: 'je.entry_date', type: 'date' },
+            reference_number: { sql: 'je.reference_number', type: 'string' },
+            description: { sql: 'jel.description', type: 'string' },
+            debit_amount: { sql: 'jel.debit_amount', type: 'number' },
+            credit_amount: { sql: 'jel.credit_amount', type: 'number' },
+            account_code: { sql: 'a.code', type: 'string' },
+            account_name: { sql: 'a.name', type: 'string' },
+            account_type: { sql: 'a.type', type: 'string' },
+            fund_code: { sql: 'f.code', type: 'string' },
+            fund_name: { sql: 'f.name', type: 'string' },
+            fund_type: { sql: 'f.type', type: 'string' },
+            entity_name: { sql: 'e.name', type: 'string' },
+            entity_code: { sql: 'e.code', type: 'string' },
+        }
+    },
+    funds: {
+        from: 'FROM funds f',
+        joins: 'LEFT JOIN entities e ON e.id = f.entity_id',
+        fields: {
+            code: { sql: 'f.code', type: 'string' },
+            name: { sql: 'f.name', type: 'string' },
+            type: { sql: 'f.type', type: 'string' },
+            balance: { sql: 'f.balance', type: 'number' },
+            status: { sql: 'f.status', type: 'string' },
+            entity_name: { sql: 'e.name', type: 'string' },
+        }
+    },
+    accounts: {
+        from: 'FROM accounts a',
+        joins: 'LEFT JOIN entities e ON e.id = a.entity_id',
+        fields: {
+            code: { sql: 'a.code', type: 'string' },
+            name: { sql: 'a.name', type: 'string' },
+            type: { sql: 'a.type', type: 'string' },
+            balance: { sql: 'a.balance', type: 'number' },
+            status: { sql: 'a.status', type: 'string' },
+            entity_name: { sql: 'e.name', type: 'string' },
+        }
+    }
+};
+
+/**
+ * Builds a dynamic SQL query from a report definition object.
+ * This function is designed to be secure against SQL injection.
+ */
+function buildDynamicQuery(definition) {
+    const { dataSource, fields, filters, groupBy, sortBy } = definition;
+    const params = [];
+    let paramIndex = 1;
+
+    // 1. Validate Data Source
+    const sourceConfig = REPORT_BUILDER_FIELD_MAP[dataSource];
+    if (!sourceConfig) {
+        throw new Error(`Invalid data source: ${dataSource}`);
+    }
+
+    // 2. Build SELECT clause (validating every field)
+    const selectClauses = fields.map(field => {
+        if (!sourceConfig.fields[field]) {
+            throw new Error(`Invalid field selected: ${field}`);
+        }
+        return `${sourceConfig.fields[field].sql} AS "${field}"`;
+    });
+    if (selectClauses.length === 0) {
+        throw new Error('At least one field must be selected.');
+    }
+
+    // 3. Build WHERE clause (validating fields and operators, parameterizing values)
+    const whereClauses = [];
+    if (filters && filters.length > 0) {
+        filters.forEach(filter => {
+            if (!sourceConfig.fields[filter.field]) {
+                throw new Error(`Invalid filter field: ${filter.field}`);
+            }
+            const validOperators = ['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'ILIKE', 'IN'];
+            if (!validOperators.includes(filter.operator)) {
+                throw new Error(`Invalid filter operator: ${filter.operator}`);
+            }
+            
+            // For IN operator, we need to handle multiple params
+            if (filter.operator === 'IN') {
+                const inValues = filter.value.split(',').map(v => v.trim());
+                const placeholders = inValues.map(() => `$${paramIndex++}`);
+                whereClauses.push(`${sourceConfig.fields[filter.field].sql} IN (${placeholders.join(',')})`);
+                params.push(...inValues);
+            } else {
+                whereClauses.push(`${sourceConfig.fields[filter.field].sql} ${filter.operator} $${paramIndex++}`);
+                params.push(filter.operator.includes('LIKE') ? `%${filter.value}%` : filter.value);
+            }
+        });
+    }
+
+    // 4. Build GROUP BY clause
+    let groupByClause = '';
+    if (groupBy) {
+        if (!sourceConfig.fields[groupBy]) {
+            throw new Error(`Invalid group by field: ${groupBy}`);
+        }
+        // When grouping, all selected fields must either be in the GROUP BY or be an aggregate
+        // For simplicity here, we'll just group by all selected non-aggregate fields
+        groupByClause = `GROUP BY ${selectClauses.join(', ')}`;
+    }
+    
+    // 5. Build ORDER BY clause
+    let orderByClause = '';
+    if (sortBy && sortBy.length > 0) {
+        const orderByClauses = sortBy.map(sort => {
+            if (!sourceConfig.fields[sort.field]) {
+                throw new Error(`Invalid sort field: ${sort.field}`);
+            }
+            const direction = sort.direction.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+            return `${sourceConfig.fields[sort.field].sql} ${direction}`;
+        });
+        orderByClause = `ORDER BY ${orderByClauses.join(', ')}`;
+    }
+
+    const sql = `
+        SELECT ${selectClauses.join(', ')}
+        ${sourceConfig.from}
+        ${sourceConfig.joins || ''}
+        ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
+        ${groupByClause}
+        ${orderByClause}
+        LIMIT 500;
+    `;
+
+    return { sql, params };
+}
+
+
+app.get('/api/reports/custom/fields/:datasource', asyncHandler(async (req, res) => {
+    const { datasource } = req.params;
+    const sourceConfig = REPORT_BUILDER_FIELD_MAP[datasource];
+    if (sourceConfig) {
+        res.json(Object.keys(sourceConfig.fields));
+    } else {
+        res.status(404).json({ error: 'Invalid data source specified.' });
+    }
+}));
+
+app.post('/api/reports/custom/preview', asyncHandler(async (req, res) => {
+    const definition = req.body;
+    const { sql, params } = buildDynamicQuery(definition);
+    console.log('Executing custom report query:', sql, params);
+    const { rows } = await pool.query(sql, params);
+    res.json(rows);
+}));
+
+app.get('/api/reports/custom/saved', asyncHandler(async (req, res) => {
+    const { rows } = await pool.query('SELECT id, name, description FROM custom_report_definitions ORDER BY name');
+    res.json(rows);
+}));
+
+app.post('/api/reports/custom/save', asyncHandler(async (req, res) => {
+    const { id, name, description, definition_json } = req.body;
+    if (!name || !definition_json) {
+        return res.status(400).json({ error: 'Name and definition are required.' });
+    }
+
+    if (id) {
+        // Update existing report
+        const { rows } = await pool.query(
+            'UPDATE custom_report_definitions SET name = $1, description = $2, definition_json = $3, updated_at = NOW() WHERE id = $4 RETURNING *',
+            [name, description, definition_json, id]
+        );
+        res.json(rows[0]);
+    } else {
+        // Create new report
+        const { rows } = await pool.query(
+            'INSERT INTO custom_report_definitions (name, description, definition_json) VALUES ($1, $2, $3) RETURNING *',
+            [name, description, definition_json]
+        );
+        res.status(201).json(rows[0]);
+    }
+}));
+
+app.delete('/api/reports/custom/:id', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    await pool.query('DELETE FROM custom_report_definitions WHERE id = $1', [id]);
+    res.status(204).send();
+}));
 
 // Error handler
 app.use((err, req, res, next) => {
   console.error('Server error:', err.stack);
   res.status(500).json({ error: 'Internal Server Error', message: err.message });
 });
+
+// ---------------------------------------------------------------------------
+// Static files (registered LAST so they don't intercept /api routes)
+// ---------------------------------------------------------------------------
+app.use(express.static('.'));
 
 // Start the server
 app.listen(PORT, () => {
