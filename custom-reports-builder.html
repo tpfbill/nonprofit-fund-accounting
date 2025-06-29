@@ -81,6 +81,19 @@
         .button.danger:hover { background-color: #d32f2f; }
         .button:disabled { background-color: #B0BEC5; cursor: not-allowed; }
         
+        /* --- Navigation back to main screen --- */
+        .navigation {
+            margin-top: 15px;
+            text-align: center;
+        }
+        /* Harmonise secondary-button colours with NLQ screen */
+        .button.secondary {
+            background-color: #607D8B;
+        }
+        .button.secondary:hover {
+            background-color: #455A64;
+        }
+
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--text-light-color); }
         .form-group input, .form-group select {
@@ -155,6 +168,15 @@
         <header class="header">
             <h1>Custom Report Builder</h1>
             <p>Create, save, and run custom reports on your financial data.</p>
+
+            <!-- Navigation back to main dashboard -->
+            <div class="navigation">
+                <button id="btn-back-to-main"
+                        class="button secondary"
+                        onclick="window.location.href='index.html'">
+                    &larr; Back to Main Dashboard
+                </button>
+            </div>
         </header>
 
         <div class="builder-layout">

@@ -77,6 +77,18 @@
         }
         .button:hover { background-color: #1976D2; }
         .button:disabled { background-color: #B0BEC5; cursor: not-allowed; }
+
+        /* --- Navigation back to main screen --- */
+        .navigation {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .button.secondary {
+            background-color: #607D8B;
+        }
+        .button.secondary:hover {
+            background-color: #455A64;
+        }
         
         .query-input-area {
             display: flex;
@@ -171,6 +183,15 @@
         <header class="header">
             <h1>Natural Language Query</h1>
             <p>Ask questions about your financial data in plain English.</p>
+
+            <!-- Navigation back to main dashboard -->
+            <div class="navigation">
+                <button id="btn-back-to-main"
+                        class="button secondary"
+                        onclick="window.location.href='index.html'">
+                    &larr; Back to Main Dashboard
+                </button>
+            </div>
         </header>
 
         <div class="nlq-layout">
