@@ -205,8 +205,8 @@
         <div class="cover-page">
             <h1>Non-Profit Fund Accounting System</h1>
             <h2>User Guide</h2>
-            <p>Version 1.0</p>
-            <p>Date: June 18, 2025</p>
+            <p>Version 8.5</p>
+            <p>Date: June 27, 2025</p>
         </div>
 
         <div class="toc page-break-before">
@@ -259,12 +259,15 @@
                         <li><a href="#report-budget-vs-actual">7.5 Budget vs. Actual Report</a></li>
                     </ul>
                 </li>
-                <li><a href="#system-settings">8. System Settings</a>
+                <li><a href="#natural-language-query">8. Natural Language Query</a></li>
+                <li><a href="#custom-reports-builder">9. Custom Reports Builder</a></li>
+                <li><a href="#data-import-export">10. Data Import / Export</a></li>
+                <li><a href="#system-settings">11. System Settings</a>
                     <ul>
-                        <li><a href="#settings-access">8.1 Accessing Settings</a></li>
-                        <li><a href="#settings-users">8.2 User Management</a></li>
-                        <li><a href="#settings-organization">8.3 Organization Settings</a></li>
-                        <li><a href="#settings-fiscal-years">8.4 Fiscal Year Management</a></li>
+                        <li><a href="#settings-access">11.1 Accessing Settings</a></li>
+                        <li><a href="#settings-users">11.2 User Management</a></li>
+                        <li><a href="#settings-organization">11.3 Organization Settings</a></li>
+                        <li><a href="#settings-fiscal-years">11.4 Fiscal Year Management</a></li>
                     </ul>
                 </li>
             </ul>
@@ -280,6 +283,10 @@
                 <li>Comprehensive financial reporting capabilities.</li>
                 <li>User-friendly interface for managing accounts, funds, and transactions.</li>
                 <li>Centralized system for all your non-profit's financial data.</li>
+                <li>Advanced <strong>Natural Language Query</strong> engine for conversational data exploration.</li>
+                <li>Flexible <strong>Custom Reports Builder</strong> with powerful filtering and grouping options.</li>
+                <li>Robust <strong>Data Import/Export</strong> utilities including full AccuFund migration support.</li>
+                <li>Enhanced navigation and UX improvements across all modules.</li>
             </ul>
         </div>
 
@@ -531,12 +538,112 @@
             <p>This report includes filter options at the top for Fund and Period (e.g., Year to Date, Q1, Q2).</p>
         </div>
 
+        <!-- =============================================================== -->
+        <!-- 8. Natural Language Query                                      -->
+        <!-- =============================================================== -->
+        <div id="natural-language-query" class="page-break-before">
+            <h2 class="section-title">8. Natural Language Query</h2>
+
+            <h3 class="subsection-title">8.1 Overview</h3>
+            <p>The <strong>Natural Language Query (NLQ)</strong> feature lets you explore your financial data by simply typing or speaking plain-English questions. The system interprets your query, runs the appropriate report, and presents the results instantly.</p>
+
+            <h3 class="subsection-title">8.2 Accessing NLQ</h3>
+            <ul class="feature-list">
+                <li>Click <em>Reports &gt; Ask Questions</em> from the main navigation bar, <em>or</em></li>
+                <li>Use the keyboard shortcut <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Q</kbd>.</li>
+            </ul>
+
+            <h3 class="subsection-title">8.3 Key Capabilities</h3>
+            <ul class="feature-list">
+                <li><strong>Instant Suggestions&nbsp;—</strong> The sidebar shows example questions based on your data.</li>
+                <li><strong>Context-Aware Filters&nbsp;—</strong> Ask for date ranges, amounts, or specific funds in the same sentence.</li>
+                <li><strong>Smart History&nbsp;—</strong> Your 10 most-recent queries are saved locally for quick reuse.</li>
+                <li><strong>CSV Export&nbsp;—</strong> One-click “Export to CSV” for any NLQ result set.</li>
+            </ul>
+
+            <h3 class="subsection-title">8.4 Examples</h3>
+            <div class="text-screenshot">
+                <strong>Example Queries</strong>
+                <ul>
+                    <li>“Show me all expenses over $1,000 for the Education Fund in Q1.”</li>
+                    <li>“What were total donations this month?”</li>
+                    <li>“Fund balances as of 12/31/2024.”</li>
+                </ul>
+            </div>
+
+            <h3 class="subsection-title">8.5 Tips for Best Results</h3>
+            <ul class="feature-list">
+                <li>Use <em>plain language</em> — phrases like “show me” or “list” work well.</li>
+                <li>Specify <em>amount operators</em> (“over”, “under”, “between”).</li>
+                <li>Include <em>fund names or codes</em> to narrow the scope.</li>
+                <li>If results look wrong, refine the question rather than re-running the same one.</li>
+            </ul>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- 9. Custom Reports Builder                                       -->
+        <!-- =============================================================== -->
+        <div id="custom-reports-builder" class="page-break-before">
+            <h2 class="section-title">9. Custom Reports Builder</h2>
+
+            <h3 class="subsection-title">9.1 Overview</h3>
+            <p>The <strong>Custom Reports Builder</strong> allows power-users to design bespoke reports without writing SQL. You choose the data source, fields, filters, grouping, and sorting, then preview or export the results.</p>
+
+            <h3 class="subsection-title">9.2 Accessing the Builder</h3>
+            <p>Navigate to <em>Reports &gt; Build Custom Reports</em>.</p>
+
+            <h3 class="subsection-title">9.3 Workflow</h3>
+            <ol>
+                <li>Select a <strong>Data Source</strong> (e.g., Journal Entry Lines, Funds, Accounts).</li>
+                <li>Pick the <strong>Fields</strong> you want to see.</li>
+                <li>Add <strong>Filters</strong> such as date ranges or specific accounts.</li>
+                <li>Optionally set <strong>Grouping</strong> and <strong>Sorting</strong>.</li>
+                <li>Click <em>Preview Report</em> to see results, then <em>Save</em> or <em>Export</em>.</li>
+            </ol>
+
+            <h3 class="subsection-title">9.4 Saved Report Management</h3>
+            <ul class="feature-list">
+                <li>Saved reports appear in the “Load Saved Report” dropdown.</li>
+                <li>You can update, duplicate, or delete saved reports at any time.</li>
+            </ul>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- 10. Data Import / Export                                        -->
+        <!-- =============================================================== -->
+        <div id="data-import-export" class="page-break-before">
+            <h2 class="section-title">10. Data Import / Export</h2>
+
+            <h3 class="subsection-title">10.1 Overview</h3>
+            <p>Import historical transactions, chart of accounts, and fund balances from external systems (such as AccuFund) via CSV or SQL scripts. Export your data for backup or analysis with a single click.</p>
+
+            <h3 class="subsection-title">10.2 Importing Data</h3>
+            <ul class="feature-list">
+                <li><strong>AccuFund Migration&nbsp;—</strong> Use the <code>accufund-migration-guide.html</code> for step-by-step instructions.</li>
+                <li><strong>CSV Upload&nbsp;—</strong> Go to <em>Settings &gt; Data Import</em>, choose the target table, upload the file, and map columns.</li>
+                <li><strong>Validation&nbsp;—</strong> The system validates required fields, data types, and referential integrity before committing changes.</li>
+            </ul>
+
+            <h3 class="subsection-title">10.3 Exporting Data</h3>
+            <ul class="feature-list">
+                <li>Each standard report has an <em>Export to CSV</em> or <em>Export to PDF</em> button.</li>
+                <li>Administrators can export full tables from <em>Settings &gt; Data Export</em>.</li>
+            </ul>
+
+            <h3 class="subsection-title">10.4 Best Practices</h3>
+            <ul class="feature-list">
+                <li>Always back up your database before large imports.</li>
+                <li>Import data in <em>chronological order</em> (oldest to newest).</li>
+                <li>Review the validation log; correct and re-upload any rejected rows.</li>
+            </ul>
+        </div>
+
         <div id="system-settings" class="page-break-before">
-            <h2 class="section-title">8. System Settings</h2>
-            <h3 id="settings-access" class="subsection-title">8.1 Accessing Settings</h3>
+            <h2 class="section-title">11. System Settings</h2>
+            <h3 id="settings-access" class="subsection-title">11.1 Accessing Settings</h3>
             <p>To access system settings, click on "Settings" in the main navigation bar. The Settings page uses a tabbed interface for different categories of settings.</p>
 
-            <h3 id="settings-users" class="subsection-title">8.2 User Management</h3>
+            <h3 id="settings-users" class="subsection-title">11.2 User Management</h3>
             <p>Select the "Users" tab to manage user accounts.</p>
             <ul class="feature-list">
                 <li><strong>Viewing Users:</strong> A table lists existing users with their Name, Email, Role, and Status. An "Edit" button is available for each user.</li>
@@ -548,7 +655,7 @@
                 <p>A table lists users. Above the table is an "Add User" button. Columns include Name, Email, Role, Status, Actions.</p>
             </div>
 
-            <h3 id="settings-organization" class="subsection-title">8.3 Organization Settings</h3>
+            <h3 id="settings-organization" class="subsection-title">11.3 Organization Settings</h3>
             <p>Select the "Organization" tab to configure details about your non-profit.</p>
             <ul class="feature-list">
                 <li><strong>General Information:</strong> Fields for Organization Name, EIN/Tax ID, Phone Number, Email Address.</li>
@@ -562,7 +669,7 @@
                 <p>A form with sections for General Information, Address, Financial Settings, and System Settings. Input fields and dropdowns are present for each setting. "Save Changes" button is available.</p>
             </div>
 
-            <h3 id="settings-fiscal-years" class="subsection-title">8.4 Fiscal Year Management</h3>
+            <h3 id="settings-fiscal-years" class="subsection-title">11.4 Fiscal Year Management</h3>
             <p>Select the "Fiscal Years" tab to manage your organization's fiscal years and periods.</p>
             <ul class="feature-list">
                 <li><strong>Viewing Fiscal Years:</strong> A table lists existing fiscal years with their Name/Code, Start Date, End Date, and Status (e.g., Current, Closed). Action buttons allow viewing or editing.</li>
