@@ -1,477 +1,338 @@
 /**
  * @file data-import-analyzer.js
- * @description A comprehensive tool to analyze accounting data from CSV/Excel files
- *              for import into the Non-Profit Fund Accounting System.
+ * @description A comprehensive tool to analyze and compare accounting data from an
+ *              AccuFund export against the new system to verify migration accuracy.
  *
- * This script performs the following actions:
- * 1.  Parses CSV files (with a placeholder for Excel).
- * 2.  Analyzes columns and suggests mappings to the target database schema.
- * 3.  Performs extensive data quality checks:
- *     - Validates that debits equal credits for each transaction.
- *     - Detects duplicate transactions.
- *     - Identifies rows with missing required data.
- *     - Extracts unique entities, funds, and accounts for pre-import setup.
- * 4.  Estimates data volume (transactions, master records).
- * 5.  Generates a detailed analysis report and a configuration file for a future importer.
+ * This script provides a complete suite of functions to:
+ * 1. Parse AccuFund General Ledger detail reports (CSV).
+ * 2. Reconcile Account and Fund balances between the two systems.
+ * 3. Compare transaction counts, totals, and individual entries.
+ * 4. Generate detailed variance reports identifying discrepancies.
+ * 5. Find missing or duplicate entries.
+ * 6. Export the full reconciliation report to multiple CSV files.
  */
 
-const DataImportAnalyzer = {
+const DataMigrationVerifier = {
 
     /**
-     * Main analysis function.
-     * @param {File} file - The file object from a file input.
-     * @returns {Promise<Object>} A promise that resolves with the analysis results.
+     * The main entry point for running the verification process.
+     * @param {string} accuFundCsvString - The raw CSV content from the AccuFund GL export.
+     * @param {object} targetSystemData - An object containing data fetched from the new system's API.
+     *   Expected properties: { accounts: [], funds: [], journalEntries: [] }
+     * @returns {Promise<object>} A promise that resolves with the full reconciliation report.
      */
-    async analyze(file) {
-        if (!file) {
-            throw new Error("No file provided.");
-        }
+    async runVerification(accuFundCsvString, targetSystemData) {
+        console.log("Starting migration verification process...");
 
-        const results = {
-            fileInfo: {
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                detectedType: 'unknown'
+        // 1. Parse and pre-validate the source AccuFund data
+        const sourceData = this._parseAndStructureAccuFundGL(accuFundCsvString);
+        const qualityReport = this._runSourceDataQualityChecks(sourceData.transactions);
+
+        // 2. Reconcile Accounts
+        const accountReconciliation = this._reconcileBalances(
+            sourceData.accountSummary,
+            targetSystemData.accounts,
+            'accountCode',
+            'balance',
+            'accountName'
+        );
+
+        // 3. Reconcile Funds
+        const fundReconciliation = this._reconcileBalances(
+            sourceData.fundSummary,
+            targetSystemData.funds,
+            'fundCode',
+            'balance',
+            'fundName'
+        );
+
+        // 4. Reconcile Transactions
+        const transactionReconciliation = this._reconcileTransactions(
+            sourceData.transactions,
+            targetSystemData.journalEntries
+        );
+
+        // 5. Compile the final report
+        const finalReport = {
+            summary: {
+                verificationDate: new Date().toISOString(),
+                sourceFile: "AccuFund GL Export",
+                sourceTransactionCount: Object.keys(sourceData.transactions).length,
+                targetTransactionCount: targetSystemData.journalEntries.length,
             },
-            analysis: {},
-            report: {},
-            importConfig: {}
+            sourceDataQuality: qualityReport,
+            accountReconciliation,
+            fundReconciliation,
+            transactionReconciliation
         };
 
-        // 1. Detect file type and parse data
-        const fileContent = await this._readFileContent(file);
-        let data;
+        console.log("Verification process complete.", finalReport);
+        return finalReport;
+    },
 
-        if (file.name.toLowerCase().endsWith('.csv')) {
-            results.fileInfo.detectedType = 'csv';
-            data = this._parseCSV(fileContent);
-        } else if (['.xlsx', '.xls'].some(ext => file.name.toLowerCase().endsWith(ext))) {
-            results.fileInfo.detectedType = 'excel';
-            // Note: Excel parsing requires a library like 'xlsx' or 'exceljs'.
-            // This is a placeholder for that functionality.
-            data = this._parseExcel(file);
-            if (!data) {
-                const errorMsg = "Excel parsing not implemented. Please use a CSV file.";
-                results.report.error = errorMsg;
-                throw new Error(errorMsg);
-            }
-        } else {
-            throw new Error("Unsupported file type. Please use CSV or Excel.");
+    /**
+     * Parses a typical AccuFund GL Detail CSV and structures it for comparison.
+     * @param {string} csvText - The raw CSV string.
+     * @returns {object} An object containing structured transactions and summaries.
+     */
+    _parseAndStructureAccuFundGL(csvText) {
+        console.log("Parsing and structuring AccuFund GL data...");
+        const records = this._parseCSV(csvText);
+        const headers = records[0].map(h => h.trim());
+
+        // Find key column indices
+        const refIndex = headers.findIndex(h => /ref/i.test(h));
+        const dateIndex = headers.findIndex(h => /date/i.test(h));
+        const accIndex = headers.findIndex(h => /account/i.test(h));
+        const fundIndex = headers.findIndex(h => /fund/i.test(h));
+        const descIndex = headers.findIndex(h => /desc/i.test(h));
+        const debitIndex = headers.findIndex(h => /debit/i.test(h));
+        const creditIndex = headers.findIndex(h => /credit/i.test(h));
+
+        if ([refIndex, dateIndex, accIndex, debitIndex, creditIndex].includes(-1)) {
+            throw new Error("Could not find required columns in CSV: Ref, Date, Account, Debit, Credit.");
         }
 
-        results.fileInfo.rowCount = data.length - 1; // Exclude header row
+        const transactions = {};
+        const accountSummary = {};
+        const fundSummary = {};
 
-        // 2. Column Analysis
-        const headers = data[0];
-        const columnAnalysis = this._analyzeColumns(headers, data.slice(1));
-        results.analysis.columns = columnAnalysis;
-        const columnMapping = columnAnalysis.suggestedMapping;
+        // Start from row 1 to skip header
+        for (let i = 1; i < records.length; i++) {
+            const row = records[i];
+            if (row.length < headers.length) continue; // Skip malformed rows
 
-        // 3. Data Quality & Volume Analysis
-        const qualityAnalysis = this._analyzeDataQuality(data.slice(1), columnMapping);
-        results.analysis.quality = qualityAnalysis;
+            const txId = row[refIndex];
+            if (!txId) continue;
 
-        // 4. Generate Report and Config
-        results.report = this._generateReport(results.fileInfo, results.analysis);
-        results.importConfig = this._generateImportConfig(columnMapping, results.analysis.columns.dateFormat);
+            const debit = parseFloat(row[debitIndex]) || 0;
+            const credit = parseFloat(row[creditIndex]) || 0;
+            const accountCode = row[accIndex];
+            const fundCode = fundIndex > -1 ? row[fundIndex] : 'UNDEFINED';
 
-        return results;
+            // Group lines by transaction ID
+            if (!transactions[txId]) {
+                transactions[txId] = {
+                    id: txId,
+                    date: row[dateIndex],
+                    description: row[descIndex],
+                    lines: [],
+                    totalDebits: 0,
+                    totalCredits: 0,
+                };
+            }
+            transactions[txId].lines.push({ accountCode, fundCode, debit, credit });
+            transactions[txId].totalDebits += debit;
+            transactions[txId].totalCredits += credit;
+
+            // Aggregate account balances
+            if (!accountSummary[accountCode]) accountSummary[accountCode] = { balance: 0 };
+            accountSummary[accountCode].balance += (debit - credit);
+
+            // Aggregate fund balances
+            if (!fundSummary[fundCode]) fundSummary[fundCode] = { balance: 0 };
+            fundSummary[fundCode].balance += (debit - credit);
+        }
+
+        return {
+            transactions,
+            accountSummary: Object.entries(accountSummary).map(([code, data]) => ({ accountCode: code, balance: data.balance })),
+            fundSummary: Object.entries(fundSummary).map(([code, data]) => ({ fundCode: code, balance: data.balance })),
+        };
     },
 
     /**
-     * Reads the content of a file as text.
-     * @param {File} file - The file to read.
-     * @returns {Promise<string>} The file content as a string.
+     * Runs pre-validation checks on the parsed source data.
+     * @param {object} transactions - The structured transaction data from the source.
+     * @returns {object} A report on data quality.
      */
-    _readFileContent(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = event => resolve(event.target.result);
-            reader.onerror = error => reject(error);
-            reader.readAsText(file);
-        });
+    _runSourceDataQualityChecks(transactions) {
+        const unbalancedTransactions = [];
+        for (const txId in transactions) {
+            const tx = transactions[txId];
+            if (Math.abs(tx.totalDebits - tx.totalCredits) > 0.01) {
+                unbalancedTransactions.push({
+                    id: txId,
+                    debits: tx.totalDebits,
+                    credits: tx.totalCredits,
+                    difference: tx.totalDebits - tx.totalCredits
+                });
+            }
+        }
+        return {
+            unbalancedTransactionCount: unbalancedTransactions.length,
+            unbalancedTransactions,
+        };
     },
 
     /**
-     * Parses a CSV string into an array of arrays.
-     * Handles quoted fields containing commas.
+     * A generic function to reconcile balances for accounts or funds.
+     * @param {Array<object>} sourceItems - Array of items from the source system.
+     * @param {Array<object>} targetItems - Array of items from the target system.
+     * @param {string} keyField - The field to match items on (e.g., 'accountCode').
+     * @param {string} balanceField - The field containing the balance to compare.
+     * @param {string} nameField - The field containing the name/description.
+     * @returns {object} A detailed reconciliation report for the items.
+     */
+    _reconcileBalances(sourceItems, targetItems, keyField, balanceField, nameField) {
+        const sourceMap = new Map(sourceItems.map(item => [item[keyField], item]));
+        const targetMap = new Map(targetItems.map(item => [item.code, item])); // Assuming target uses 'code'
+
+        const variances = [];
+        const matched = [];
+
+        sourceMap.forEach((sourceItem, key) => {
+            const targetItem = targetMap.get(key);
+            if (targetItem) {
+                const sourceBalance = parseFloat(sourceItem[balanceField] || 0);
+                const targetBalance = parseFloat(targetItem[balanceField] || 0);
+                const difference = sourceBalance - targetBalance;
+
+                if (Math.abs(difference) > 0.01) {
+                    variances.push({
+                        key,
+                        name: targetItem.name || sourceItem[nameField],
+                        sourceBalance,
+                        targetBalance,
+                        difference
+                    });
+                }
+                matched.push(key);
+            }
+        });
+
+        const missingInTarget = sourceItems.filter(item => !targetMap.has(item[keyField]));
+        const extraInTarget = targetItems.filter(item => !sourceMap.has(item.code));
+
+        return {
+            totalSource: sourceItems.length,
+            totalTarget: targetItems.length,
+            matchedCount: matched.length,
+            varianceCount: variances.length,
+            missingInTargetCount: missingInTarget.length,
+            extraInTargetCount: extraInTarget.length,
+            variances,
+            missingInTarget,
+            extraInTarget
+        };
+    },
+
+    /**
+     * Compares transaction-level data between the source and target.
+     * @param {object} sourceTransactions - Structured transactions from the source.
+     * @param {Array<object>} targetTransactions - Journal entries from the target system API.
+     * @returns {object} A detailed transaction reconciliation report.
+     */
+    _reconcileTransactions(sourceTransactions, targetTransactions) {
+        const sourceMap = new Map(Object.entries(sourceTransactions));
+        const targetMap = new Map(targetTransactions.map(tx => [tx.reference_number, tx]));
+
+        const amountMismatches = [];
+        const matched = [];
+
+        sourceMap.forEach((sourceTx, txId) => {
+            const targetTx = targetMap.get(txId);
+            if (targetTx) {
+                const sourceAmount = sourceTx.totalDebits; // Assuming balanced entries
+                const targetAmount = parseFloat(targetTx.total_amount || 0);
+                const difference = sourceAmount - targetAmount;
+
+                if (Math.abs(difference) > 0.01) {
+                    amountMismatches.push({
+                        id: txId,
+                        sourceAmount,
+                        targetAmount,
+                        difference
+                    });
+                }
+                matched.push(txId);
+            }
+        });
+
+        const missingInTarget = Object.values(sourceTransactions).filter(tx => !targetMap.has(tx.id));
+        const extraInTarget = targetTransactions.filter(tx => !sourceMap.has(tx.reference_number));
+
+        return {
+            totalSource: sourceMap.size,
+            totalTarget: targetMap.size,
+            matchedCount: matched.length,
+            amountMismatchCount: amountMismatches.length,
+            missingInTargetCount: missingInTarget.length,
+            extraInTargetCount: extraInTarget.length,
+            amountMismatches,
+            missingInTarget,
+            extraInTarget
+        };
+    },
+
+    /**
+     * Exports the reconciliation report to a series of CSV files.
+     * @param {object} report - The final reconciliation report object.
+     * @returns {Array<object>} An array of objects, each with a filename and csvContent.
+     */
+    exportReportToCSV(report) {
+        const csvs = [];
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+        // Helper to convert array of objects to CSV string
+        const toCSV = (data, headers) => {
+            if (!data || data.length === 0) return "No data available.";
+            const headerRow = headers.join(',');
+            const rows = data.map(row => headers.map(header => JSON.stringify(row[header] || '')).join(','));
+            return [headerRow, ...rows].join('\n');
+        };
+
+        // Account Reconciliation CSVs
+        if (report.accountReconciliation.variances.length > 0) {
+            csvs.push({
+                filename: `account_variances_${timestamp}.csv`,
+                content: toCSV(report.accountReconciliation.variances, ['key', 'name', 'sourceBalance', 'targetBalance', 'difference'])
+            });
+        }
+        if (report.accountReconciliation.missingInTarget.length > 0) {
+            csvs.push({
+                filename: `accounts_missing_in_new_system_${timestamp}.csv`,
+                content: toCSV(report.accountReconciliation.missingInTarget, ['accountCode', 'balance'])
+            });
+        }
+
+        // Fund Reconciliation CSVs
+        if (report.fundReconciliation.variances.length > 0) {
+            csvs.push({
+                filename: `fund_variances_${timestamp}.csv`,
+                content: toCSV(report.fundReconciliation.variances, ['key', 'name', 'sourceBalance', 'targetBalance', 'difference'])
+            });
+        }
+        if (report.fundReconciliation.missingInTarget.length > 0) {
+            csvs.push({
+                filename: `funds_missing_in_new_system_${timestamp}.csv`,
+                content: toCSV(report.fundReconciliation.missingInTarget, ['fundCode', 'balance'])
+            });
+        }
+
+        // Transaction Reconciliation CSVs
+        if (report.transactionReconciliation.amountMismatches.length > 0) {
+            csvs.push({
+                filename: `transaction_amount_mismatches_${timestamp}.csv`,
+                content: toCSV(report.transactionReconciliation.amountMismatches, ['id', 'sourceAmount', 'targetAmount', 'difference'])
+            });
+        }
+        if (report.transactionReconciliation.missingInTarget.length > 0) {
+            csvs.push({
+                filename: `transactions_missing_in_new_system_${timestamp}.csv`,
+                content: toCSV(report.transactionReconciliation.missingInTarget, ['id', 'date', 'description', 'totalDebits'])
+            });
+        }
+
+        return csvs;
+    },
+
+    /**
+     * Simple CSV parser.
      * @param {string} csvText - The raw CSV string.
-     * @returns {Array<Array<string>>} The parsed data.
+     * @returns {Array<Array<string>>} Parsed data.
      */
     _parseCSV(csvText) {
-        const rows = [];
-        // Regex to handle quoted fields, including escaped quotes
-        const regex = /(,|\r?\n|\r|^)(?:"([^"]*(?:""[^"]*)*)"|([^",\r\n]*))/gi;
-        let row = [];
-        let match;
-        while ((match = regex.exec(csvText))) {
-            let col = match[2] !== undefined ? match[2].replace(/""/g, '"') : match[3];
-            row.push(col);
-            if (match[1].length && match[1] !== ',') {
-                rows.push(row);
-                row = [];
-            }
-        }
-        if (row.length > 0) rows.push(row); // Add last row
-        return rows;
-    },
-
-    /**
-     * Placeholder for Excel file parsing.
-     * @param {File} file - The Excel file.
-     * @returns {null} - Returns null as it's not implemented.
-     */
-    _parseExcel(file) {
-        console.warn("Excel parsing requires a third-party library like 'xlsx.js'. This feature is not implemented in this standalone script.");
-        return null;
-    },
-
-    /**
-     * Analyzes columns, detects data types, and suggests mappings.
-     * @param {Array<string>} headers - The header row.
-     * @param {Array<Array<string>>} records - The data records.
-     * @returns {Object} Analysis of columns.
-     */
-    _analyzeColumns(headers, records) {
-        const sampleSize = Math.min(records.length, 100);
-        const sampleRecords = records.slice(0, sampleSize);
-
-        const analysis = {
-            headers: headers,
-            dataTypes: {},
-            dateFormat: 'unknown',
-            suggestedMapping: {}
-        };
-
-        headers.forEach((header, index) => {
-            let numberCount = 0;
-            let dateCount = 0;
-            let emptyCount = 0;
-
-            for (const record of sampleRecords) {
-                const value = record[index];
-                if (value === null || value === undefined || value.trim() === '') {
-                    emptyCount++;
-                } else if (!isNaN(Number(value))) {
-                    numberCount++;
-                } else if (!isNaN(Date.parse(value))) {
-                    dateCount++;
-                    if (analysis.dateFormat === 'unknown') {
-                        // Simple date format detection
-                        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) analysis.dateFormat = 'YYYY-MM-DD';
-                        else if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) analysis.dateFormat = 'MM/DD/YYYY';
-                        else if (/^\d{2}-\d{2}-\d{4}$/.test(value)) analysis.dateFormat = 'MM-DD-YYYY';
-                    }
-                }
-            }
-
-            if (numberCount / sampleSize > 0.7) analysis.dataTypes[header] = 'Number';
-            else if (dateCount / sampleSize > 0.7) analysis.dataTypes[header] = 'Date';
-            else analysis.dataTypes[header] = 'String';
-        });
-
-        analysis.suggestedMapping = this._suggestColumnMappings(headers);
-        return analysis;
-    },
-
-    /**
-     * Suggests mappings from source headers to target schema fields.
-     * @param {Array<string>} headers - The source file headers.
-     * @returns {Object} A map of target fields to source headers.
-     */
-    _suggestColumnMappings(headers) {
-        const mapping = {};
-        const targetFields = {
-            transactionId: ['transaction id', 'journal id', 'reference', 'ref', 'entry no'],
-            entryDate: ['date', 'transaction date', 'entry date'],
-            debit: ['debit', 'debit amount', 'dr'],
-            credit: ['credit', 'credit amount', 'cr'],
-            accountCode: ['account code', 'account #', 'gl code', 'account'],
-            fundCode: ['fund code', 'fund', 'fund id'],
-            entityCode: ['entity code', 'entity', 'location'],
-            description: ['description', 'memo', 'note', 'details']
-        };
-
-        for (const [targetField, possibleNames] of Object.entries(targetFields)) {
-            for (const header of headers) {
-                const lowerHeader = header.toLowerCase().trim();
-                if (possibleNames.includes(lowerHeader)) {
-                    mapping[targetField] = header;
-                    break; // Move to next target field once a match is found
-                }
-            }
-        }
-        return mapping;
-    },
-
-    /**
-     * Performs all data quality checks.
-     * @param {Array<Array<string>>} records - The data records.
-     * @param {Object} mapping - The column mapping.
-     * @returns {Object} A summary of all data quality issues.
-     */
-    _analyzeDataQuality(records, mapping) {
-        const headers = Object.values(mapping);
-        const headerIndexMap = {};
-        for (const header of headers) {
-            headerIndexMap[header] = records[0] ? records[0].length : 0;
-            for(let i = 0; i < (records[0] ? records[0].length : 0); i++) {
-                if (records[0][i] === header) {
-                    headerIndexMap[header] = i;
-                    break;
-                }
-            }
-        }
-
-        const transactionIdHeader = mapping.transactionId;
-        const debitHeader = mapping.debit;
-        const creditHeader = mapping.credit;
-
-        if (!transactionIdHeader || !debitHeader || !creditHeader) {
-            return { error: "Critical columns (transactionId, debit, credit) could not be mapped. Cannot perform quality analysis." };
-        }
-
-        const transactions = this._groupTransactions(records, mapping);
-
-        return {
-            missingData: this._findMissingData(records, mapping),
-            unbalancedTransactions: this._validateBalances(transactions, debitHeader, creditHeader),
-            duplicateTransactions: this._findDuplicates(transactions),
-            masterRecordManifest: this._mapEntitiesFundsAccounts(records, mapping),
-            dateRange: this._analyzeDateRange(records, mapping)
-        };
-    },
-
-    /**
-     * Groups flat records into structured transactions.
-     * @param {Array<Array<string>>} records - The data records.
-     * @param {Object} mapping - The column mapping.
-     * @returns {Map<string, Array<Object>>} A map of transaction IDs to their line items.
-     */
-    _groupTransactions(records, mapping) {
-        const transactions = new Map();
-        const transactionIdIndex = records[0] ? records[0].findIndex(h => h === mapping.transactionId) : -1;
-
-        if (transactionIdIndex === -1) return transactions;
-
-        records.forEach((record, index) => {
-            const txId = record[transactionIdIndex];
-            if (txId) {
-                if (!transactions.has(txId)) {
-                    transactions.set(txId, []);
-                }
-                const recordObject = {};
-                Object.values(mapping).forEach(header => {
-                    const headerIndex = records[0].findIndex(h => h === header);
-                    if (headerIndex !== -1) {
-                        recordObject[header] = record[headerIndex];
-                    }
-                });
-                recordObject.originalRow = index + 2; // +2 to account for header and 0-based index
-                transactions.get(txId).push(recordObject);
-            }
-        });
-        return transactions;
-    },
-
-    /**
-     * Checks for missing data in required columns.
-     * @param {Array<Array<string>>} records - The data records.
-     * @param {Object} mapping - The column mapping.
-     * @returns {Array<Object>} A list of rows with missing data.
-     */
-    _findMissingData(records, mapping) {
-        const issues = [];
-        const requiredFields = ['transactionId', 'entryDate', 'debit', 'credit', 'accountCode'];
-        
-        records.forEach((record, index) => {
-            const missingFields = [];
-            requiredFields.forEach(field => {
-                const header = mapping[field];
-                const headerIndex = records[0] ? records[0].findIndex(h => h === header) : -1;
-                if (!header || headerIndex === -1 || !record[headerIndex] || record[headerIndex].trim() === '') {
-                    missingFields.push(field);
-                }
-            });
-            if (missingFields.length > 0) {
-                issues.push({ row: index + 2, missingFields });
-            }
-        });
-        return issues;
-    },
-
-    /**
-     * Validates that debits equal credits for each transaction.
-     * @param {Map<string, Array<Object>>} transactions - Grouped transactions.
-     * @param {string} debitHeader - The header for the debit column.
-     * @param {string} creditHeader - The header for the credit column.
-     * @returns {Array<Object>} A list of unbalanced transactions.
-     */
-    _validateBalances(transactions, debitHeader, creditHeader) {
-        const issues = [];
-        transactions.forEach((lines, txId) => {
-            const totalDebits = lines.reduce((sum, line) => sum + (Number(line[debitHeader]) || 0), 0);
-            const totalCredits = lines.reduce((sum, line) => sum + (Number(line[creditHeader]) || 0), 0);
-
-            // Use a small epsilon for float comparison
-            if (Math.abs(totalDebits - totalCredits) > 0.001) {
-                issues.push({
-                    transactionId: txId,
-                    totalDebits: totalDebits.toFixed(2),
-                    totalCredits: totalCredits.toFixed(2),
-                    difference: (totalDebits - totalCredits).toFixed(2),
-                    rows: lines.map(l => l.originalRow)
-                });
-            }
-        });
-        return issues;
-    },
-
-    /**
-     * Finds duplicate transactions.
-     * @param {Map<string, Array<Object>>} transactions - Grouped transactions.
-     * @returns {Array<Object>} A list of duplicate transactions.
-     */
-    _findDuplicates(transactions) {
-        // This is a placeholder. A more robust check would involve hashing the content
-        // of lines to see if two transactions with different IDs are identical.
-        // For now, we assume the transaction ID is the primary key.
-        return [];
-    },
-
-    /**
-     * Extracts unique entities, funds, and accounts from the data.
-     * @param {Array<Array<string>>} records - The data records.
-     * @param {Object} mapping - The column mapping.
-     * @returns {Object} An object containing sets of unique master records.
-     */
-    _mapEntitiesFundsAccounts(records, mapping) {
-        const manifest = {
-            entities: new Set(),
-            funds: new Set(),
-            accounts: new Set()
-        };
-        const entityIndex = records[0] ? records[0].findIndex(h => h === mapping.entityCode) : -1;
-        const fundIndex = records[0] ? records[0].findIndex(h => h === mapping.fundCode) : -1;
-        const accountIndex = records[0] ? records[0].findIndex(h => h === mapping.accountCode) : -1;
-
-        records.forEach(record => {
-            if (entityIndex > -1 && record[entityIndex]) manifest.entities.add(record[entityIndex]);
-            if (fundIndex > -1 && record[fundIndex]) manifest.funds.add(record[fundIndex]);
-            if (accountIndex > -1 && record[accountIndex]) manifest.accounts.add(record[accountIndex]);
-        });
-
-        return {
-            entities: Array.from(manifest.entities),
-            funds: Array.from(manifest.funds),
-            accounts: Array.from(manifest.accounts)
-        };
-    },
-
-    /**
-     * Analyzes the date range of the data.
-     * @param {Array<Array<string>>} records - The data records.
-     * @param {Object} mapping - The column mapping.
-     * @returns {Object} The start and end dates.
-     */
-    _analyzeDateRange(records, mapping) {
-        const dateIndex = records[0] ? records[0].findIndex(h => h === mapping.entryDate) : -1;
-        if (dateIndex === -1) return { startDate: null, endDate: null };
-
-        let minDate = null, maxDate = null;
-        records.forEach(record => {
-            const dateValue = record[dateIndex];
-            if (dateValue) {
-                const date = new Date(dateValue);
-                if (!isNaN(date)) {
-                    if (!minDate || date < minDate) minDate = date;
-                    if (!maxDate || date > maxDate) maxDate = date;
-                }
-            }
-        });
-
-        return {
-            startDate: minDate ? minDate.toISOString().split('T')[0] : null,
-            endDate: maxDate ? maxDate.toISOString().split('T')[0] : null
-        };
-    },
-
-    /**
-     * Generates a human-readable report from the analysis results.
-     * @param {Object} fileInfo - Information about the file.
-     * @param {Object} analysis - The detailed analysis object.
-     * @returns {Object} The final report.
-     */
-    _generateReport(fileInfo, analysis) {
-        const { quality, columns } = analysis;
-        const recommendations = [];
-
-        // Volume recommendations
-        recommendations.push(`Prepare to import ${fileInfo.rowCount} transaction lines.`);
-        if (quality.masterRecordManifest) {
-            recommendations.push(`Found ${quality.masterRecordManifest.entities.length} unique entities. Ensure these exist in the system before import.`);
-            recommendations.push(`Found ${quality.masterRecordManifest.funds.length} unique funds. Ensure these exist in the system before import.`);
-            recommendations.push(`Found ${quality.masterRecordManifest.accounts.length} unique accounts. Ensure these exist in the chart of accounts for the respective entities.`);
-        }
-
-        // Quality recommendations
-        if (quality.missingData && quality.missingData.length > 0) {
-            recommendations.push(`CRITICAL: Found ${quality.missingData.length} rows with missing required data. These rows must be fixed before import.`);
-        }
-        if (quality.unbalancedTransactions && quality.unbalancedTransactions.length > 0) {
-            recommendations.push(`CRITICAL: Found ${quality.unbalancedTransactions.length} unbalanced journal entries. Debits do not equal credits. These must be fixed.`);
-        }
-        if (Object.keys(columns.suggestedMapping).length < 5) {
-            recommendations.push("WARNING: Could not automatically map all critical columns (Date, Debit, Credit, Account, Transaction ID). Manual mapping is required.");
-        }
-
-        return {
-            summary: {
-                fileName: fileInfo.name,
-                fileSize: `${(fileInfo.size / 1024).toFixed(2)} KB`,
-                totalRows: fileInfo.rowCount,
-                dateRange: quality.dateRange,
-                detectedDateFormat: columns.dateFormat,
-            },
-            volumeEstimates: {
-                totalTransactionLines: fileInfo.rowCount,
-                uniqueTransactions: quality.unbalancedTransactions.length + (fileInfo.rowCount - quality.unbalancedTransactions.reduce((sum, t) => sum + t.rows.length, 0)),
-                uniqueEntities: quality.masterRecordManifest ? quality.masterRecordManifest.entities.length : 0,
-                uniqueFunds: quality.masterRecordManifest ? quality.masterRecordManifest.funds.length : 0,
-                uniqueAccounts: quality.masterRecordManifest ? quality.masterRecordManifest.accounts.length : 0,
-            },
-            dataQualityIssues: {
-                unbalancedTransactions: quality.unbalancedTransactions,
-                rowsWithMissingData: quality.missingData,
-                duplicateTransactions: quality.duplicateTransactions,
-            },
-            masterRecordManifest: quality.masterRecordManifest,
-            columnAnalysis: {
-                headers: columns.headers,
-                detectedDataTypes: columns.dataTypes,
-                suggestedMapping: columns.suggestedMapping
-            },
-            recommendations: recommendations
-        };
-    },
-
-    /**
-     * Generates a configuration file for the importer.
-     * @param {Object} mapping - The column mapping.
-     * @param {string} dateFormat - The detected date format.
-     * @returns {Object} The import configuration.
-     */
-    _generateImportConfig(mapping, dateFormat) {
-        return {
-            sourceFormat: 'csv', // or 'excel'
-            columnMapping: mapping,
-            dateFormat: dateFormat,
-            importSettings: {
-                skipRowsWithMissingData: false,
-                autoCreateMasterRecords: false, // e.g., create funds/accounts on the fly
-                transactionGroupingColumn: mapping.transactionId
-            }
-        };
+        return csvText.split(/\r?\n/).map(row => row.split(',').map(cell => cell.trim()));
     }
 };
