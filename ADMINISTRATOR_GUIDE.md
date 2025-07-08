@@ -1,4 +1,4 @@
-# Nonprofit Fund Accounting System - Administrator's Guide (v8.5)
+# Nonprofit Fund Accounting System - Administrator's Guide (v8.6)
 
 ## 1. Introduction and Scope
 
@@ -120,6 +120,44 @@ The organizational structure is critical for proper reporting.
     *   Child entities should correctly point to their parent.
     *   Funds are always associated with a single entity.
     *   Use the "All Entities" filter on the Funds and Journal Entries pages to manage items before deleting an entity.
+
+### 7.4 Inter-Entity Transfer Configuration
+
+The **Inter-Entity Transfer** feature (introduced in v8.6) allows you to move cash between sibling entities while automatically creating a balanced pair of journal entries and maintaining accurate **Due To / Due From** balances.
+
+#### 1. Purpose
+*  Eliminate manual dual-entry work when one legal entity advances or reimburses funds to another.  
+*  Preserve an auditable trail by linking the two journal entries with a shared **`matching_transaction_id`**.
+
+#### 2. Required Account Types
+Each entity that will participate in transfers must have:
+
+| Account Type | Typical Code Range | Example Name            |
+|--------------|-------------------|-------------------------|
+| **Asset**    | 19-xxxx           | “Due From \<Other Entity\>” |
+| **Liability**| 29-xxxx           | “Due To \<Other Entity\>”   |
+
+These accounts should be **Active** and mapped to the correct entity.
+
+#### 3. Setup Checklist
+1. Navigate to **Chart of Accounts → Add Account**.  
+2. Select the **Entity** field so the account belongs to the right legal entity.  
+3. Choose **Type = Asset** (for “Due From”) or **Liability** (for “Due To”).  
+4. Use consistent codes (e.g., `1901`, `2901`) so the dropdown filters in the wizard recognise them.  
+5. Repeat for every pair of entities that may transact.
+
+#### 4. Best Practices
+* Create one dedicated Due To / Due From account **per counter-party** instead of a single pooled account.  
+* Agree on a naming convention (e.g., “Due From – TPF” / “Due To – TPF-ES”) to make reconciliation easier.  
+* Post transfers **as-of the actual cash movement date** to keep books aligned with bank activity.  
+* Review the **Inter-Entity Transfers** list (Reports → Inter-Entity) monthly to ensure all pairs are present and balanced.
+
+#### 5. Troubleshooting
+| Issue | Likely Cause | Resolution |
+|-------|--------------|------------|
+| “No Due From accounts found” in wizard | Asset account not matching filter (name lacks “Due From” or code not `19…`) | Edit or create the correct account and retry. |
+| Transfer posts but entity balances don’t match | One of the journal entries was edited or deleted | Use the **matching_transaction_id** to locate both entries, correct or repost. |
+| Wizard hangs on submission | Database constraint failure (missing fund/account ID) | Check server logs; ensure all selected IDs exist and are active. |
 
 ---
 
