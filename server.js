@@ -8,6 +8,8 @@ const path = require('path');
 const multer = require('multer');
 const { parse } = require('csv-parse/sync');
 const crypto = require('crypto');
+// Inter-entity transfer helper
+const registerInterEntityTransferRoutes = require('./inter-entity-transfer-api');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -95,6 +97,11 @@ pool.query('SELECT NOW()', (err, res) => {
     initializeDatabase();
   }
 });
+
+// ---------------------------------------------------------------------------
+// INTER-ENTITY TRANSFER ROUTES (automatic dual-entry handling)
+// ---------------------------------------------------------------------------
+registerInterEntityTransferRoutes(app, pool);
 
 // Logging middleware
 app.use((req, res, next) => {
