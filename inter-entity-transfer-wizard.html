@@ -470,7 +470,7 @@
             
             // Add entities to dropdowns
             entities.forEach(entity => {
-                if (entity.parent_id) { // Only include child entities, not parent
+                if (entity.parent_entity_id) { // Only include child entities, not parent
                     const option = document.createElement('option');
                     option.value = entity.id;
                     option.textContent = `${entity.code} - ${entity.name}`;
@@ -594,6 +594,9 @@
                 account.type === 'Asset' && 
                 (account.name.toLowerCase().includes('due from') || account.code.startsWith('19'))
             );
+            // Debugging: inspect available and filtered accounts
+            console.log('All accounts:', accounts);
+            console.log('Filtered Due From accounts:', dueFromAccounts);
             
             dueFromAccounts.forEach(account => {
                 const option = document.createElement('option');
@@ -622,6 +625,9 @@
                 account.type === 'Liability' && 
                 (account.name.toLowerCase().includes('due to') || account.code.startsWith('29'))
             );
+            // Debugging: inspect available and filtered accounts
+            console.log('All accounts:', accounts);
+            console.log('Filtered Due To accounts:', dueToAccounts);
             
             dueToAccounts.forEach(account => {
                 const option = document.createElement('option');
