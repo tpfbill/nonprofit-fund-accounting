@@ -383,6 +383,10 @@
                 accountCode: { label: 'Account Code', required: true, hint: 'e.g., GL Account' },
                 fundCode: { label: 'Fund Code', required: false, hint: 'e.g., Fund' },
                 entityCode: { label: 'Entity Code', required: false, hint: 'e.g., Location, Department' },
+                /* === Inter-Entity Transfer Support (v8.6) === */
+                isInterEntity: { label: 'Is Inter-Entity?', required: false, hint: 'TRUE/FALSE flag, e.g., Inter Entity?' },
+                targetEntityCode: { label: 'Target Entity Code', required: false, hint: 'e.g., Target Entity' },
+                matchingTransactionId: { label: 'Matching Transaction ID', required: false, hint: 'Links paired transfers' },
                 description: { label: 'Description', required: false, hint: 'e.g., Memo, Description' },
             };
             
@@ -480,6 +484,9 @@
                     accountCode: ['account'],
                     fundCode: ['fund'],
                     entityCode: ['entity', 'location', 'department'],
+                    isInterEntity: ['inter', 'entity', 'transfer', 'inter-entity'],
+                    targetEntityCode: ['target entity', 'counterparty', 'other entity', 'destination'],
+                    matchingTransactionId: ['matching', 'pair id', 'link id'],
                     description: ['description', 'memo', 'note']
                 };
 
