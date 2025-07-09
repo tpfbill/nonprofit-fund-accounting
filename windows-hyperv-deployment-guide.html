@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Hyper-V Deployment Guide - Nonprofit Fund Accounting System v8.6</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 40px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #2980b9;
+            font-size: 22px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #16a085;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        p {
+            margin-bottom: 15px;
+        }
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .highlight {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning {
+            background-color: #fef5e7;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .error {
+            background-color: #fdedec;
+            border-left: 4px solid #e74c3c;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .success {
+            background-color: #eafaf1;
+            border-left: 4px solid #2ecc71;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        .footer {
+            margin-top: 50px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            font-size: 14px;
+            color: #7f8c8d;
+            text-align: center;
+        }
+        .checklist {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .checklist li {
+            margin-bottom: 10px;
+            padding-left: 30px;
+            position: relative;
+        }
+        .checklist li:before {
+            content: "☐";
+            position: absolute;
+            left: 0;
+            font-size: 1.2em;
+        }
+        .step {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ddd;
+        }
+        .step-number {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .step-title {
+            font-weight: bold;
+            color: #3498db;
+            font-size: 1.1em;
+        }
+        .img-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .img-container img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .note {
+            background-color: #f0f7fb;
+            border-left: 4px solid #d0e3ef;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        @media print {
+            body {
+                margin: 0;
+                background-color: #fff;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+            .code, .highlight, .warning, .error, .success {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Windows Hyper-V Deployment Guide - Nonprofit Fund Accounting System v8.6</h1>
+        
+        <div class="highlight">
+            <p><strong>Document Version:</strong> 1.0</p>
+            <p><strong>Last Updated:</strong> July 9, 2025</p>
+            <p><strong>Applicable System Versions:</strong> Nonprofit Fund Accounting System (v8.6)</p>
+        </div>
+
+        <h2>Table of Contents</h2>
+        <ol>
+            <li><a href="#prerequisites">Prerequisites and System Requirements</a></li>
+            <li><a href="#hyperv">Enabling and Configuring Hyper-V</a></li>
+            <li><a href="#ubuntu">Creating an Ubuntu 22.04 LTS Virtual Machine</a></li>
+            <li><a href="#software">Installing Required Software</a></li>
+            <li><a href="#migration">Migrating the Application Code</a></li>
+            <li><a href="#database">Setting Up the Database</a></li>
+            <li><a href="#configuration">Configuring the Application</a></li>
+            <li><a href="#networking">Setting Up Networking</a></li>
+            <li><a href="#production">Production Considerations</a></li>
+            <li><a href="#troubleshooting">Troubleshooting Common Issues</a></li>
+        </ol>
+
+        <h2 id="prerequisites">1. Prerequisites and System Requirements</h2>
+        
+        <h3>1.1 Windows System Requirements</h3>
+        <p>To run the Nonprofit Fund Accounting System v8.6 in a Hyper-V virtual machine, your Windows system should meet the following requirements:</p>
+        <table>
+            <tr>
+                <th>Component</th>
+                <th>Minimum Requirement</th>
+                <th>Recommended</th>
+            </tr>
+            <tr>
+                <td>Windows Version</td>
+                <td>Windows 10 Pro, Enterprise, or Education (64-bit)<br>Windows Server 2016 or newer</td>
+                <td>Windows 11 Pro or Windows Server 2022</td>
+            </tr>
+            <tr>
+                <td>Processor</td>
+                <td>64-bit processor with SLAT (Second Level Address Translation)</td>
+                <td>Intel Core i5/i7 or AMD Ryzen 5/7 (8th gen or newer)</td>
+            </tr>
+            <tr>
+                <td>Memory</td>
+                <td>8 GB RAM (4 GB for host, 4 GB for VM)</td>
+                <td>16 GB RAM or more (4 GB for host, 8+ GB for VM)</td>
+            </tr>
+            <tr>
+                <td>Storage</td>
+                <td>100 GB free space (SSD recommended)</td>
+                <td>250 GB SSD or more</td>
+            </tr>
+            <tr>
+                <td>Network</td>
+                <td>Ethernet adapter with internet access</td>
+                <td>Gigabit Ethernet</td>
+            </tr>
+        </table>
+        
+        <div class="note">
+            <p><strong>Note:</strong> Hyper-V is not available in Windows 10/11 Home editions. You need Pro, Enterprise, or Education editions.</p>
+        </div>
+        
+        <h3>1.2 Virtualization Requirements</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Ensure Virtualization is Enabled in BIOS/UEFI</div>
+            <p>Virtualization must be enabled in your system's BIOS/UEFI settings. This is typically labeled as:</p>
+            <ul>
+                <li>Intel Virtualization Technology (Intel VT-x)</li>
+                <li>AMD Virtualization (AMD-V)</li>
+                <li>Virtualization Extensions</li>
+            </ul>
+            <p>To check if virtualization is enabled:</p>
+            <ol>
+                <li>Open Task Manager (Ctrl+Shift+Esc)</li>
+                <li>Go to the "Performance" tab</li>
+                <li>Select "CPU"</li>
+                <li>Look for "Virtualization: Enabled" at the bottom right</li>
+            </ol>
+            <div class="img-container">
+                <img src="/api/placeholder/600/350" alt="Task Manager showing virtualization enabled">
+            </div>
+        </div>
+        
+        <h3>1.3 Required Software</h3>
+        <p>You'll need the following software:</p>
+        <ul>
+            <li>Windows 10/11 Pro, Enterprise, or Education (64-bit) with Hyper-V feature</li>
+            <li>Ubuntu 22.04 LTS ISO image (<a href="https://ubuntu.com/download/desktop" target="_blank">Download link</a>)</li>
+            <li>SSH client (Windows includes OpenSSH by default, or you can use PuTTY)</li>
+            <li>SCP client for file transfer (WinSCP recommended)</li>
+        </ul>
+        
+        <h3>1.4 Nonprofit Fund Accounting System Requirements</h3>
+        <p>The v8.6 of the Nonprofit Fund Accounting System has the following specific requirements:</p>
+        <ul>
+            <li>Node.js 18.x or newer</li>
+            <li>PostgreSQL 14.x or newer</li>
+            <li>NPM 8.x or newer</li>
+            <li>Git (for code management)</li>
+        </ul>
+        
+        <div class="highlight">
+            <p><strong>Important:</strong> Version 8.6 includes the Inter-Entity Transfer feature which requires specific database schema updates and configuration. This guide includes the necessary steps to ensure this feature works correctly.</p>
+        </div>
+
+        <h2 id="hyperv">2. Enabling and Configuring Hyper-V</h2>
+        
+        <h3>2.1 Enable Hyper-V Feature</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Enable Hyper-V Using PowerShell (Administrator)</div>
+            <p>The fastest way to enable Hyper-V is through PowerShell. Run PowerShell as Administrator and execute:</p>
+            <div class="code">
+                Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+            </div>
+            <p>Your system will need to restart after this command completes.</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Alternative: Enable Hyper-V Using Windows Features</div>
+            <ol>
+                <li>Press <strong>Windows + R</strong>, type <code>control panel</code>, and press Enter</li>
+                <li>Go to <strong>Programs > Programs and Features</strong></li>
+                <li>Click <strong>Turn Windows features on or off</strong></li>
+                <li>Check the box next to <strong>Hyper-V</strong> and click OK</li>
+                <li>Restart your computer when prompted</li>
+            </ol>
+            <div class="img-container">
+                <img src="/api/placeholder/600/400" alt="Windows Features dialog with Hyper-V selected">
+            </div>
+        </div>
+        
+        <h3>2.2 Create a Virtual Switch</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Open Hyper-V Manager</div>
+            <p>Press <strong>Windows + R</strong>, type <code>virtmgmt.msc</code>, and press Enter.</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Create a Virtual Switch</div>
+            <ol>
+                <li>In Hyper-V Manager, select your computer name in the left panel</li>
+                <li>Click <strong>Virtual Switch Manager</strong> in the right Actions panel</li>
+                <li>Select <strong>New virtual network switch</strong> in the left panel</li>
+                <li>Choose <strong>External</strong> and click <strong>Create Virtual Switch</strong></li>
+                <li>Name the switch (e.g., "External Network")</li>
+                <li>Ensure <strong>External network</strong> is selected and choose your physical network adapter</li>
+                <li>Click <strong>OK</strong></li>
+            </ol>
+            <div class="img-container">
+                <img src="/api/placeholder/600/450" alt="Hyper-V Virtual Switch Manager">
+            </div>
+        </div>
+        
+        <div class="warning">
+            <p><strong>Warning:</strong> Creating an external virtual switch may temporarily disconnect your network connection as the network adapter is reconfigured.</p>
+        </div>
+
+        <h2 id="ubuntu">3. Creating an Ubuntu 22.04 LTS Virtual Machine</h2>
+        
+        <h3>3.1 Download Ubuntu 22.04 LTS</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Download Ubuntu 22.04 LTS ISO</div>
+            <p>Download the Ubuntu 22.04 LTS Desktop ISO from the <a href="https://ubuntu.com/download/desktop" target="_blank">official Ubuntu website</a>.</p>
+        </div>
+        
+        <h3>3.2 Create a New Virtual Machine</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Open Hyper-V Manager</div>
+            <p>Press <strong>Windows + R</strong>, type <code>virtmgmt.msc</code>, and press Enter.</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Create a New Virtual Machine</div>
+            <ol>
+                <li>In Hyper-V Manager, click <strong>New > Virtual Machine</strong> in the Actions panel</li>
+                <li>In the New Virtual Machine Wizard:
+                    <ul>
+                        <li><strong>Name:</strong> Enter "Ubuntu-NFA-v86" (or your preferred name)</li>
+                        <li><strong>Generation:</strong> Choose <strong>Generation 2</strong> (for better performance)</li>
+                        <li><strong>Memory:</strong> Assign at least 4096 MB (4 GB), preferably 8192 MB (8 GB)</li>
+                        <li>Check <strong>Use Dynamic Memory</strong></li>
+                        <li><strong>Networking:</strong> Select the external virtual switch you created earlier</li>
+                        <li><strong>Hard Disk:</strong> Create a virtual hard disk with at least 60 GB</li>
+                        <li><strong>Installation Options:</strong> Select <strong>Install an operating system from a bootable image file</strong> and browse to your Ubuntu ISO</li>
+                    </ul>
+                </li>
+                <li>Click <strong>Finish</strong> to create the VM</li>
+            </ol>
+        </div>
+        
+        <h3>3.3 Configure VM Settings for Ubuntu</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Adjust VM Settings for Ubuntu Compatibility</div>
+            <ol>
+                <li>In Hyper-V Manager, right-click the new VM and select <strong>Settings</strong></li>
+                <li>Under <strong>Security</strong>, disable Secure Boot or select <strong>Microsoft UEFI Certificate Authority</strong></li>
+                <li>Under <strong>Processor</strong>, assign at least 2 virtual processors (4 recommended)</li>
+                <li>Click <strong>OK</strong> to save the settings</li>
+            </ol>
+            <div class="img-container">
+                <img src="/api/placeholder/600/450" alt="VM Settings dialog with security options">
+            </div>
+        </div>
+        
+        <h3>3.4 Install Ubuntu 22.04 LTS</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Start the VM and Install Ubuntu</div>
+            <ol>
+                <li>In Hyper-V Manager, right-click the VM and select <strong>Start</strong></li>
+                <li>Click <strong>Connect</strong> to open the VM console</li>
+                <li>Follow the Ubuntu installation prompts:
+                    <ul>
+                        <li>Select your language and click <strong>Install Ubuntu</strong></li>
+                        <li>Choose your keyboard layout</li>
+                        <li>For "Updates and other software," select <strong>Normal installation</strong> and check <strong>Download updates while installing Ubuntu</strong></li>
+                        <li>For "Installation type," choose <strong>Erase disk and install Ubuntu</strong> (this only affects the virtual disk)</li>
+                        <li>Select your time zone</li>
+                        <li>Create a user account with a strong password (remember these credentials!)</li>
+                        <li>Wait for the installation to complete and restart when prompted</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Install Hyper-V Integration Services</div>
+            <p>After Ubuntu is installed and you've logged in:</p>
+            <div class="code">
+                sudo apt update<br>
+                sudo apt install -y linux-image-virtual linux-tools-virtual linux-cloud-tools-virtual
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">3</span>Update Ubuntu</div>
+            <p>Ensure your Ubuntu system is fully updated:</p>
+            <div class="code">
+                sudo apt update<br>
+                sudo apt upgrade -y
+            </div>
+        </div>
+
+        <h2 id="software">4. Installing Required Software</h2>
+        
+        <h3>4.1 Install Basic Development Tools</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Install Essential Packages</div>
+            <div class="code">
+                sudo apt update<br>
+                sudo apt install -y build-essential curl git unzip
+            </div>
+        </div>
+        
+        <h3>4.2 Install Node.js and NPM</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Install Node.js 18.x</div>
+            <p>The Nonprofit Fund Accounting System v8.6 requires Node.js 18.x or newer:</p>
+            <div class="code">
+                curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -<br>
+                sudo apt install -y nodejs
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Verify Node.js and NPM Installation</div>
+            <div class="code">
+                node --version<br>
+                npm --version
+            </div>
+            <p>You should see output confirming Node.js v18.x and NPM v8.x or newer.</p>
+        </div>
+        
+        <h3>4.3 Install and Configure PostgreSQL</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Install PostgreSQL 14</div>
+            <div class="code">
+                sudo apt install -y postgresql-14 postgresql-contrib-14
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Verify PostgreSQL Installation</div>
+            <div class="code">
+                sudo systemctl status postgresql
+            </div>
+            <p>You should see that PostgreSQL is active and running.</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">3</span>Configure PostgreSQL for Remote Access</div>
+            <p>Edit the PostgreSQL configuration file to allow connections from your Windows host:</p>
+            <div class="code">
+                sudo nano /etc/postgresql/14/main/postgresql.conf
+            </div>
+            <p>Find the line with <code>listen_addresses</code> and change it to:</p>
+            <div class="code">
+                listen_addresses = '*'
+            </div>
+            <p>Now edit the client authentication configuration:</p>
+            <div class="code">
+                sudo nano /etc/postgresql/14/main/pg_hba.conf
+            </div>
+            <p>Add the following line at the end of the file (replace with your actual subnet if needed):</p>
+            <div class="code">
+                host    all             all             0.0.0.0/0               md5
+            </div>
+            <p>Restart PostgreSQL to apply the changes:</p>
+            <div class="code">
+                sudo systemctl restart postgresql
+            </div>
+        </div>
+        
+        <div class="warning">
+            <p><strong>Warning:</strong> The above configuration allows connections from any IP address. In a production environment, you should restrict this to specific IP addresses or subnets.</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">4</span>Create PostgreSQL User and Database</div>
+            <div class="code">
+                sudo -u postgres psql
+            </div>
+            <p>In the PostgreSQL prompt, run the following commands:</p>
+            <div class="code">
+                CREATE USER nfaadmin WITH PASSWORD 'your_secure_password';<br>
+                CREATE DATABASE fund_accounting_db OWNER nfaadmin;<br>
+                ALTER USER nfaadmin WITH SUPERUSER;<br>
+                \q
+            </div>
+            <p>Replace 'your_secure_password' with a strong password.</p>
+        </div>
+        
+        <h3>4.4 Install Additional Dependencies</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Install Additional Required Packages</div>
+            <div class="code">
+                sudo apt install -y nginx prince
+            </div>
+            <p>Prince is required for PDF generation in the application.</p>
+        </div>
+
+        <h2 id="migration">5. Migrating the Application Code</h2>
+        
+        <h3>5.1 Prepare the Application Directory</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Create Application Directory</div>
+            <div class="code">
+                sudo mkdir -p /opt/nonprofit-fund-accounting<br>
+                sudo chown $USER:$USER /opt/nonprofit-fund-accounting
+            </div>
+        </div>
+        
+        <h3>5.2 Transfer Application Files</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Option 1: Clone from Git Repository</div>
+            <p>If your code is in a Git repository:</p>
+            <div class="code">
+                cd /opt/nonprofit-fund-accounting<br>
+                git clone https://github.com/your-organization/nonprofit-fund-accounting.git .<br>
+                git checkout v8.6
+            </div>
+            <p>Replace the repository URL with your actual repository.</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Option 2: Transfer Files from Existing System</div>
+            <p>If transferring from an existing system, use SCP or SFTP. From your Windows machine with WinSCP:</p>
+            <ol>
+                <li>Install WinSCP if you haven't already</li>
+                <li>Connect to your Ubuntu VM using its IP address and your credentials</li>
+                <li>Navigate to the source directory on your local machine</li>
+                <li>Navigate to <code>/opt/nonprofit-fund-accounting</code> on the VM</li>
+                <li>Copy all files from the source to the VM</li>
+            </ol>
+            <p>Alternatively, you can use the built-in SCP command from PowerShell:</p>
+            <div class="code">
+                scp -r C:\path\to\nonprofit-fund-accounting\* username@vm-ip-address:/opt/nonprofit-fund-accounting/
+            </div>
+        </div>
+        
+        <h3>5.3 Install Application Dependencies</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Install Node.js Dependencies</div>
+            <div class="code">
+                cd /opt/nonprofit-fund-accounting<br>
+                npm install
+            </div>
+        </div>
+
+        <h2 id="database">6. Setting Up the Database</h2>
+        
+        <h3>6.1 Migrate Database Schema</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Option 1: Run Database Initialization Script</div>
+            <p>If your application includes a database initialization script:</p>
+            <div class="code">
+                cd /opt/nonprofit-fund-accounting<br>
+                node database-init.js
+            </div>
+            <p>Replace <code>database-init.js</code> with your actual initialization script.</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Option 2: Import Database from Existing System</div>
+            <p>If you have a database dump from your existing system:</p>
+            <p>First, on your existing system, create a database dump:</p>
+            <div class="code">
+                pg_dump -U postgres fund_accounting_db > fund_accounting_backup.sql
+            </div>
+            <p>Transfer the dump file to your Ubuntu VM using SCP or SFTP.</p>
+            <p>Then, on the Ubuntu VM, import the database:</p>
+            <div class="code">
+                psql -U nfaadmin -d fund_accounting_db < /path/to/fund_accounting_backup.sql
+            </div>
+        </div>
+        
+        <h3>6.2 Verify Database Schema for Inter-Entity Transfers</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Check for Required Tables and Columns</div>
+            <p>The Inter-Entity Transfer feature in v8.6 requires specific database tables and columns. Connect to the database and verify:</p>
+            <div class="code">
+                psql -U nfaadmin -d fund_accounting_db
+            </div>
+            <p>In the PostgreSQL prompt, run these queries to check for required tables and columns:</p>
+            <div class="code">
+                \dt<br>
+                -- Should include tables: entities, accounts, journal_entries, journal_entry_lines<br><br>
+                
+                \d journal_entries<br>
+                -- Should include columns: is_inter_entity, matching_transaction_id, target_entity_id<br><br>
+                
+                \d accounts<br>
+                -- Should include proper account types for Due To/Due From accounts<br><br>
+                
+                \q
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Apply Any Missing Schema Updates</div>
+            <p>If any required tables or columns are missing, you may need to apply schema updates. If your application includes migration scripts, run them:</p>
+            <div class="code">
+                cd /opt/nonprofit-fund-accounting<br>
+                node migrations/update-to-v8.6.js
+            </div>
+            <p>Replace with your actual migration script.</p>
+        </div>
+        
+        <h3>6.3 Set Up Test Data (Optional)</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Load Test Data</div>
+            <p>If you want to set up test data, run your data seeding script:</p>
+            <div class="code">
+                cd /opt/nonprofit-fund-accounting<br>
+                node add-test-data.js
+            </div>
+        </div>
+
+        <h2 id="configuration">7. Configuring the Application</h2>
+        
+        <h3>7.1 Create Environment Configuration</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Set Up Environment Variables</div>
+            <p>Create or update the .env file with the correct configuration for your VM environment:</p>
+            <div class="code">
+                cd /opt/nonprofit-fund-accounting<br>
+                nano .env
+            </div>
+            <p>Add or update the following variables:</p>
+            <div class="code">
+                # Database Configuration<br>
+                DB_HOST=localhost<br>
+                DB_PORT=5432<br>
+                DB_NAME=fund_accounting_db<br>
+                DB_USER=nfaadmin<br>
+                DB_PASSWORD=your_secure_password<br><br>
+                
+                # Application Configuration<br>
+                NODE_ENV=production<br>
+                PORT=3000<br>
+                HOST=0.0.0.0<br><br>
+                
+                # Feature Flags<br>
+                ENABLE_INTER_ENTITY_TRANSFERS=true
+            </div>
+            <p>Replace <code>your_secure_password</code> with the actual password you set for the PostgreSQL user.</p>
+        </div>
+        
+        <h3>7.2 Configure Application for Production</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Update Production Settings</div>
+            <p>If your application has specific production configuration files, update them as needed:</p>
+            <div class="code">
+                cd /opt/nonprofit-fund-accounting<br>
+                nano config/production.js
+            </div>
+            <p>Ensure the configuration matches your VM environment.</p>
+        </div>
+        
+        <h3>7.3 Set Up Inter-Entity Transfer Configuration</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Configure Inter-Entity Transfer Settings</div>
+            <p>Version 8.6 includes the Inter-Entity Transfer feature which requires specific configuration:</p>
+            <div class="code">
+                cd /opt/nonprofit-fund-accounting<br>
+                nano config/inter-entity-config.js
+            </div>
+            <p>Ensure the configuration includes:</p>
+            <ul>
+                <li>Due To/Due From account mapping</li>
+                <li>Entity relationship definitions</li>
+                <li>Approval workflow settings (if applicable)</li>
+            </ul>
+        </div>
+        
+        <h3>7.4 Test the Application</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Start the Application Manually</div>
+            <div class="code">
+                cd /opt/nonprofit-fund-accounting<br>
+                node server.js
+            </div>
+            <p>The application should start and be accessible at http://vm-ip-address:3000 (replace with your VM's actual IP address).</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Verify Application Functionality</div>
+            <p>Test key functionality to ensure everything is working correctly:</p>
+            <ul>
+                <li>User login</li>
+                <li>Chart of accounts access</li>
+                <li>Fund management</li>
+                <li>Entity management</li>
+                <li>Journal entry creation</li>
+                <li>Inter-Entity Transfer functionality</li>
+                <li>Report generation</li>
+            </ul>
+        </div>
+
+        <h2 id="networking">8. Setting Up Networking</h2>
+        
+        <h3>8.1 Configure Firewall</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Set Up UFW Firewall</div>
+            <p>Configure the Ubuntu firewall to allow necessary connections:</p>
+            <div class="code">
+                sudo apt install -y ufw<br>
+                sudo ufw allow ssh<br>
+                sudo ufw allow 3000/tcp<br>
+                sudo ufw allow 80/tcp<br>
+                sudo ufw allow 443/tcp<br>
+                sudo ufw enable
+            </div>
+            <p>Confirm the firewall is active:</p>
+            <div class="code">
+                sudo ufw status
+            </div>
+        </div>
+        
+        <h3>8.2 Set Up Nginx as a Reverse Proxy (Recommended)</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Configure Nginx</div>
+            <p>Using Nginx as a reverse proxy provides better security and performance:</p>
+            <div class="code">
+                sudo nano /etc/nginx/sites-available/nonprofit-fund-accounting
+            </div>
+            <p>Add the following configuration:</p>
+            <div class="code">
+                server {<br>
+                &nbsp;&nbsp;listen 80;<br>
+                &nbsp;&nbsp;server_name your-server-name;<br><br>
+                
+                &nbsp;&nbsp;location / {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;proxy_pass http://localhost:3000;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;proxy_http_version 1.1;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header Upgrade $http_upgrade;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header Connection 'upgrade';<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header Host $host;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;proxy_cache_bypass $http_upgrade;<br>
+                &nbsp;&nbsp;}<br>
+                }
+            </div>
+            <p>Replace <code>your-server-name</code> with your VM's hostname or IP address.</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Enable the Nginx Configuration</div>
+            <div class="code">
+                sudo ln -s /etc/nginx/sites-available/nonprofit-fund-accounting /etc/nginx/sites-enabled/<br>
+                sudo nginx -t<br>
+                sudo systemctl restart nginx
+            </div>
+        </div>
+        
+        <h3>8.3 Configure Static IP Address (Recommended)</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Set a Static IP for the VM</div>
+            <p>Configure a static IP address to ensure the VM always has the same IP:</p>
+            <div class="code">
+                sudo nano /etc/netplan/01-netcfg.yaml
+            </div>
+            <p>Add a configuration like this (adjust based on your network):</p>
+            <div class="code">
+                network:<br>
+                &nbsp;&nbsp;version: 2<br>
+                &nbsp;&nbsp;ethernets:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;eth0:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dhcp4: no<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addresses: [192.168.1.100/24]<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gateway4: 192.168.1.1<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nameservers:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addresses: [8.8.8.8, 8.8.4.4]
+            </div>
+            <p>Apply the configuration:</p>
+            <div class="code">
+                sudo netplan apply
+            </div>
+        </div>
+        
+        <h3>8.4 Set Up Host Name Resolution (Optional)</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Add Host Entry on Windows</div>
+            <p>For easier access, add an entry to your Windows hosts file:</p>
+            <ol>
+                <li>Open Notepad as Administrator</li>
+                <li>Open the file <code>C:\Windows\System32\drivers\etc\hosts</code></li>
+                <li>Add a line like: <code>192.168.1.100 nfa-system</code> (replace with your VM's IP)</li>
+                <li>Save the file</li>
+            </ol>
+            <p>Now you can access the system using <code>http://nfa-system/</code> in your browser.</p>
+        </div>
+
+        <h2 id="production">9. Production Considerations</h2>
+        
+        <h3>9.1 Set Up Automatic Startup</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Create a Systemd Service</div>
+            <p>Create a systemd service to automatically start the application on boot:</p>
+            <div class="code">
+                sudo nano /etc/systemd/system/nonprofit-fund-accounting.service
+            </div>
+            <p>Add the following configuration:</p>
+            <div class="code">
+                [Unit]<br>
+                Description=Nonprofit Fund Accounting System v8.6<br>
+                After=network.target postgresql.service<br><br>
+                
+                [Service]<br>
+                Type=simple<br>
+                User=ubuntu<br>
+                WorkingDirectory=/opt/nonprofit-fund-accounting<br>
+                ExecStart=/usr/bin/node server.js<br>
+                Restart=on-failure<br>
+                Environment=NODE_ENV=production<br><br>
+                
+                [Install]<br>
+                WantedBy=multi-user.target
+            </div>
+            <p>Replace <code>ubuntu</code> with your actual username.</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Enable and Start the Service</div>
+            <div class="code">
+                sudo systemctl enable nonprofit-fund-accounting<br>
+                sudo systemctl start nonprofit-fund-accounting<br>
+                sudo systemctl status nonprofit-fund-accounting
+            </div>
+        </div>
+        
+        <h3>9.2 Set Up Regular Backups</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Create a Backup Script</div>
+            <div class="code">
+                sudo nano /opt/backup-nonprofit-system.sh
+            </div>
+            <p>Add the following script:</p>
+            <div class="code">
+                #!/bin/bash<br>
+                TIMESTAMP=$(date +"%Y%m%d_%H%M%S")<br>
+                BACKUP_DIR="/opt/backups"<br>
+                DB_BACKUP="$BACKUP_DIR/db_backup_$TIMESTAMP.sql"<br>
+                APP_BACKUP="$BACKUP_DIR/app_backup_$TIMESTAMP.tar.gz"<br><br>
+                
+                # Create backup directory if it doesn't exist<br>
+                mkdir -p $BACKUP_DIR<br><br>
+                
+                # Backup the database<br>
+                sudo -u postgres pg_dump fund_accounting_db > $DB_BACKUP<br><br>
+                
+                # Backup the application files<br>
+                tar -czf $APP_BACKUP -C /opt nonprofit-fund-accounting<br><br>
+                
+                # Keep only the 10 most recent backups<br>
+                ls -t $BACKUP_DIR/db_backup_* | tail -n +11 | xargs -r rm<br>
+                ls -t $BACKUP_DIR/app_backup_* | tail -n +11 | xargs -r rm<br><br>
+                
+                echo "Backup completed: $(date)"
+            </div>
+            <p>Make the script executable:</p>
+            <div class="code">
+                sudo chmod +x /opt/backup-nonprofit-system.sh
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Schedule Regular Backups with Cron</div>
+            <div class="code">
+                sudo crontab -e
+            </div>
+            <p>Add the following line to run backups daily at 2 AM:</p>
+            <div class="code">
+                0 2 * * * /opt/backup-nonprofit-system.sh >> /var/log/nonprofit-backup.log 2>&1
+            </div>
+        </div>
+        
+        <h3>9.3 Security Considerations</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Secure the Application</div>
+            <ul>
+                <li><strong>Keep the system updated:</strong>
+                    <div class="code">
+                        sudo apt update<br>
+                        sudo apt upgrade
+                    </div>
+                </li>
+                <li><strong>Set up automatic security updates:</strong>
+                    <div class="code">
+                        sudo apt install -y unattended-upgrades<br>
+                        sudo dpkg-reconfigure -plow unattended-upgrades
+                    </div>
+                </li>
+                <li><strong>Restrict SSH access:</strong>
+                    <div class="code">
+                        sudo nano /etc/ssh/sshd_config
+                    </div>
+                    <p>Make these changes:</p>
+                    <div class="code">
+                        PermitRootLogin no<br>
+                        PasswordAuthentication no<br>
+                        AllowUsers your_username
+                    </div>
+                    <p>Restart SSH:</p>
+                    <div class="code">
+                        sudo systemctl restart ssh
+                    </div>
+                </li>
+                <li><strong>Set up fail2ban to prevent brute force attacks:</strong>
+                    <div class="code">
+                        sudo apt install -y fail2ban<br>
+                        sudo systemctl enable fail2ban<br>
+                        sudo systemctl start fail2ban
+                    </div>
+                </li>
+            </ul>
+        </div>
+        
+        <h3>9.4 Monitoring and Logging</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Set Up Application Logging</div>
+            <p>Ensure your application logs are properly configured:</p>
+            <div class="code">
+                sudo mkdir -p /var/log/nonprofit-fund-accounting<br>
+                sudo chown ubuntu:ubuntu /var/log/nonprofit-fund-accounting
+            </div>
+            <p>Update your application's logging configuration to use this directory.</p>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Set Up Log Rotation</div>
+            <div class="code">
+                sudo nano /etc/logrotate.d/nonprofit-fund-accounting
+            </div>
+            <p>Add the following configuration:</p>
+            <div class="code">
+                /var/log/nonprofit-fund-accounting/*.log {<br>
+                &nbsp;&nbsp;daily<br>
+                &nbsp;&nbsp;missingok<br>
+                &nbsp;&nbsp;rotate 14<br>
+                &nbsp;&nbsp;compress<br>
+                &nbsp;&nbsp;delaycompress<br>
+                &nbsp;&nbsp;notifempty<br>
+                &nbsp;&nbsp;create 0640 ubuntu ubuntu<br>
+                }
+            </div>
+        </div>
+
+        <h2 id="troubleshooting">10. Troubleshooting Common Issues</h2>
+        
+        <h3>10.1 Application Startup Issues</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Check Application Logs</div>
+            <div class="code">
+                cd /opt/nonprofit-fund-accounting<br>
+                cat app.log<br>
+                # Or if using systemd<br>
+                sudo journalctl -u nonprofit-fund-accounting
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span>Common Startup Issues and Solutions</div>
+            <table>
+                <tr>
+                    <th>Issue</th>
+                    <th>Possible Cause</th>
+                    <th>Solution</th>
+                </tr>
+                <tr>
+                    <td>EADDRINUSE error</td>
+                    <td>Port 3000 is already in use</td>
+                    <td>
+                        <div class="code">
+                            sudo lsof -i :3000<br>
+                            sudo kill -9 [PID]
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Database connection error</td>
+                    <td>PostgreSQL not running or incorrect credentials</td>
+                    <td>
+                        <div class="code">
+                            sudo systemctl status postgresql<br>
+                            sudo systemctl restart postgresql<br>
+                            # Check credentials in .env file
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Missing dependencies</td>
+                    <td>NPM packages not installed</td>
+                    <td>
+                        <div class="code">
+                            cd /opt/nonprofit-fund-accounting<br>
+                            npm install
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Permission issues</td>
+                    <td>Incorrect file permissions</td>
+                    <td>
+                        <div class="code">
+                            sudo chown -R ubuntu:ubuntu /opt/nonprofit-fund-accounting<br>
+                            chmod -R 755 /opt/nonprofit-fund-accounting
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <h3>10.2 Database Issues</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Common Database Issues and Solutions</div>
+            <table>
+                <tr>
+                    <th>Issue</th>
+                    <th>Possible Cause</th>
+                    <th>Solution</th>
+                </tr>
+                <tr>
+                    <td>PostgreSQL not accepting connections</td>
+                    <td>Configuration issues or service not running</td>
+                    <td>
+                        <div class="code">
+                            sudo systemctl restart postgresql<br>
+                            # Check pg_hba.conf and postgresql.conf
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Missing tables for Inter-Entity Transfers</td>
+                    <td>Schema not updated for v8.6</td>
+                    <td>
+                        <div class="code">
+                            # Run the v8.6 migration script<br>
+                            cd /opt/nonprofit-fund-accounting<br>
+                            node migrations/update-to-v8.6.js
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Permission denied errors</td>
+                    <td>PostgreSQL user lacks necessary permissions</td>
+                    <td>
+                        <div class="code">
+                            sudo -u postgres psql<br>
+                            ALTER USER nfaadmin WITH SUPERUSER;<br>
+                            \q
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <h3>10.3 Networking Issues</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Common Networking Issues and Solutions</div>
+            <table>
+                <tr>
+                    <th>Issue</th>
+                    <th>Possible Cause</th>
+                    <th>Solution</th>
+                </tr>
+                <tr>
+                    <td>Cannot access application from Windows host</td>
+                    <td>Firewall blocking connections</td>
+                    <td>
+                        <div class="code">
+                            sudo ufw status<br>
+                            sudo ufw allow 3000/tcp<br>
+                            # Check Windows Firewall settings
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Application only accessible on localhost</td>
+                    <td>Application not binding to all interfaces</td>
+                    <td>
+                        <div class="code">
+                            # Ensure HOST=0.0.0.0 in .env file<br>
+                            # Check server.js for binding address
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Nginx proxy not working</td>
+                    <td>Misconfiguration or service not running</td>
+                    <td>
+                        <div class="code">
+                            sudo nginx -t<br>
+                            sudo systemctl restart nginx<br>
+                            # Check error logs: sudo tail -f /var/log/nginx/error.log
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <h3>10.4 Inter-Entity Transfer Issues</h3>
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span>Common Inter-Entity Transfer Issues and Solutions</div>
+            <table>
+                <tr>
+                    <th>Issue</th>
+                    <th>Possible Cause</th>
+                    <th>Solution</th>
+                </tr>
+                <tr>
+                    <td>Inter-Entity Transfer feature not available</td>
+                    <td>Feature flag not enabled</td>
+                    <td>
+                        <div class="code">
+                            # Ensure ENABLE_INTER_ENTITY_TRANSFERS=true in .env file
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Transfers fail with database errors</td>
+                    <td>Missing database schema updates</td>
+                    <td>
+                        <div class="code">
+                            # Check for required columns:<br>
+                            psql -U nfaadmin -d fund_accounting_db -c "\d journal_entries"<br>
+                            # Run migration script if needed
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Due To/Due From accounts not working</td>
+                    <td>Incorrect account configuration</td>
+                    <td>
+                        <div class="code">
+                            # Check account setup:<br>
+                            psql -U nfaadmin -d fund_accounting_db -c "SELECT * FROM accounts WHERE name LIKE 'Due To%' OR name LIKE 'Due From%'"<br>
+                            # Update configuration in inter-entity-config.js
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>Windows Hyper-V Deployment Guide - Nonprofit Fund Accounting System v8.6 | Version 1.0 | July 2025</p>
+            <p>Generated by Droid by FACTORY for The Principle Foundation</p>
+        </div>
+    </div>
+</body>
+</html>
