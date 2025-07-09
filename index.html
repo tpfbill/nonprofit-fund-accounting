@@ -54,6 +54,8 @@
             <div class="nav-item" onclick="window.location.href='custom-reports-builder.html'">Custom Reports</div>
             <!-- Natural Language Queries navigation -->
             <div class="nav-item" onclick="window.location.href='natural-language-queries.html'">Ask Questions</div>
+            <!-- Documentation Library navigation -->
+            <div class="nav-item" data-page="documentation">Documentation</div>
             <div class="nav-item" onclick="window.location.href='reports.html'">Reports</div>
             <div class="nav-item" data-page="settings">Settings</div>
         </div>
@@ -237,6 +239,22 @@
         </div>
         <!-- ================= End Fund Reports Page =================== -->
 
+        <!-- ================= Documentation Page ====================== -->
+        <div id="documentation-page" class="page">
+            <div class="content-header">
+                <h2>Documentation Library</h2>
+                <p style="color: #666; margin-top: 10px;">
+                    Access comprehensive guides and documentation for the Non-Profit Fund Accounting System
+                </p>
+            </div>
+            <div class="documentation-container">
+                <div class="document-grid" id="document-grid">
+                    <div class="loading-message">Loading documentation...</div>
+                </div>
+            </div>
+        </div>
+        <!-- ================= End Documentation Page ================== -->
+
         <div id="settings-page" class="page">
             <div class="content-header"><h2>System Settings</h2></div>
             <div class="tab-container">
@@ -244,6 +262,7 @@
                     <div class="tab-item active" data-tab="settings-users">Users</div>
                     <div class="tab-item" data-tab="settings-organization">Organization</div>
                     <div class="tab-item" data-tab="settings-entities">Entities</div>
+                    <div class="tab-item" data-tab="settings-bank-accounts">Bank Accounts</div>
                 </div>
                 <div class="tab-content">
                     <div id="settings-users" class="tab-panel active">
@@ -265,6 +284,37 @@
                         </table>
                         <h4 class="mt-20">Entity Relationship Visualization</h4>
                         <div id="entity-relationship-viz"><p class="preview-placeholder">Entity hierarchy.</p></div>
+                    </div>
+
+                    <!-- ================= Bank Accounts Tab Panel ================= -->
+                    <div id="settings-bank-accounts" class="tab-panel">
+                        <div class="content-header">
+                            <h3>Bank Account Connections</h3>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <button class="action-button" id="btn-sync-bank-accounts" onclick="syncBankAccounts()">Sync All Accounts</button>
+                                <button class="action-button" id="btn-add-bank-account" onclick="openBankAccountModal()">Add Bank Account</button>
+                            </div>
+                        </div>
+
+                        <table class="data-table" id="bank-accounts-table">
+                            <thead>
+                                <tr>
+                                    <th>Bank Name</th>
+                                    <th>Account Name</th>
+                                    <th>Account #</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Balance</th>
+                                    <th>Last Sync</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="8" class="preview-placeholder">No bank accounts connected.</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -402,6 +452,145 @@
     <div id="user-modal" class="modal-overlay" style="display:none;"><div class="modal-dialog"><div class="modal-header"><h3 class="modal-title" id="user-modal-title">User</h3><button class="modal-close-btn" data-modal-id="user-modal">&times;</button></div><div class="modal-body"><input type="hidden" id="edit-user-id-input"><div class="form-group"><label class="form-label" for="user-name-input">Full Name</label><input type="text" id="user-name-input" class="form-input"></div></div><div class="modal-footer"><button class="btn-secondary modal-close-btn" data-modal-id="user-modal">Cancel</button><button class="action-button" id="save-user-btn">Save User</button></div></div></div>
     <div id="report-builder-modal" class="modal-overlay"><div class="modal-dialog modal-dialog-lg"><div class="modal-header"><h3 class="modal-title" id="report-builder-modal-title">Report Builder</h3><button class="modal-close-btn" data-modal-id="report-builder-modal">&times;</button></div><div class="modal-body"><p class="preview-placeholder">Full Report Builder UI will go here.</p></div><div class="modal-footer"><button class="btn-secondary modal-close-btn" data-modal-id="report-builder-modal">Cancel</button><button class="action-button">Save & Run</button></div></div></div>
 
+    <!-- ================= Bank Account Modal ================= -->
+    <div id="bank-account-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title" id="bank-account-modal-title">Bank Account</h3>
+                <button class="modal-close-btn" data-modal-id="bank-account-modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="edit-bank-account-id">
+
+                <div class="form-group">
+                    <label class="form-label" for="bank-name-select">Bank Name</label>
+                    <select id="bank-name-select" class="form-input">
+                        <option value="">Select Bank…</option>
+                        <option>Bank of America</option>
+                        <option>Chase</option>
+                        <option>Wells Fargo</option>
+                        <option>US Bank</option>
+                        <option>Capital One</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="bank-account-name-input">Account Name</label>
+                    <input type="text" id="bank-account-name-input" class="form-input">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label" for="bank-account-number-input">Account #</label>
+                            <input type="text" id="bank-account-number-input" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label" for="routing-number-input">Routing #</label>
+                            <input type="text" id="routing-number-input" class="form-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label" for="bank-account-type-select">Account Type</label>
+                            <select id="bank-account-type-select" class="form-input">
+                                <option>Checking</option>
+                                <option>Savings</option>
+                                <option>Credit Line</option>
+                                <option>Money Market</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label" for="connection-method-select">Connection Method</label>
+                            <select id="connection-method-select" class="form-input">
+                                <option>Manual</option>
+                                <option>Online Banking</option>
+                                <option>API Integration</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label" for="bank-account-status-select">Status</label>
+                            <select id="bank-account-status-select" class="form-input">
+                                <option>Active</option>
+                                <option>Inactive</option>
+                                <option>Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label" for="initial-balance-input">Initial Balance</label>
+                            <input type="number" step="0.01" id="initial-balance-input" class="form-input" placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="bank-account-description-textarea">Description</label>
+                    <textarea id="bank-account-description-textarea" class="form-input" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close-btn" data-modal-id="bank-account-modal">Cancel</button>
+                <button class="action-button" id="save-bank-account-btn" onclick="saveBankAccount()">Save Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Initialization handler -->
+    <script>
+        // Simple initialization status handler
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Application starting…');
+
+            const initStatusIndicator = document.getElementById('init-status-indicator');
+            if (initStatusIndicator) {
+                initStatusIndicator.textContent = 'Status: Application initialized successfully.';
+                initStatusIndicator.classList.remove('initializing', 'error');
+                initStatusIndicator.classList.add('success');
+
+                // Hide status indicator after 3 seconds
+                setTimeout(() => {
+                    initStatusIndicator.style.display = 'none';
+                }, 3000);
+            }
+
+            console.log('Application initialized.');
+
+            /* -----------------------------------------------------------
+             *  Ensure bank-account data is fetched whenever the Settings
+             *  nav item is clicked.
+             * --------------------------------------------------------- */
+            const settingsNav = document.querySelector('.nav-item[data-page="settings"]');
+            if (settingsNav) {
+                settingsNav.addEventListener('click', () => {
+                    if (typeof loadBankAccountData === 'function') {
+                        loadBankAccountData();
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- Documentation functionality -->
+    <script src="documentation.js"></script>
+    
     <!-- Main application script -->
     <script src="app.js"></script>
 </body>

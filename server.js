@@ -79,6 +79,26 @@ const initializeDatabase = async () => {
         `);
         console.log('Table "custom_report_definitions" is present or created.');
 
+        // Check for bank_accounts table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS bank_accounts (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                bank_name        VARCHAR(255) NOT NULL,
+                account_name     VARCHAR(255) NOT NULL,
+                account_number   VARCHAR(100),
+                routing_number   VARCHAR(20),
+                type             VARCHAR(50)  DEFAULT 'Checking',
+                status           VARCHAR(20)  DEFAULT 'Active',
+                balance          DECIMAL(15,2) DEFAULT 0.00,
+                connection_method VARCHAR(50) DEFAULT 'Manual',
+                description      TEXT,
+                last_sync        TIMESTAMPTZ,
+                created_at       TIMESTAMPTZ DEFAULT NOW(),
+                updated_at       TIMESTAMPTZ DEFAULT NOW()
+            );
+        `);
+        console.log('Table "bank_accounts" is present or created.');
+
     } catch (err) {
         console.error('Error during database initialization:', err);
     } finally {
@@ -1035,6 +1055,201 @@ app.delete('/api/reports/custom/:id', asyncHandler(async (req, res) => {
     await pool.query('DELETE FROM custom_report_definitions WHERE id = $1', [id]);
     res.status(204).send();
 }));
+
+// ---------------------------------------------------------------------------
+// DOCUMENT LIBRARY API  (moved ABOVE error-handler so it is reachable)
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Quick sanity-check route to verify that new banking routes section is
+// reachable before any further route-registration.  Remove or disable in
+// production deployments.
+app.get('/api/bank-test', (req, res) =>
+  res.json({ test: 'bank route works' })
+);
+
+// Additional simple route (no asyncHandler) to help isolate routing issues
+app.get('/api/bank-simple', (req, res) => {
+  res.json({ ok: true, message: 'simple bank route reached' });
+});
+
+// BANK ACCOUNT CONNECTIONS API
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /api/bank-accounts
+ * Returns all bank accounts.
+ */
+
+// One-time registration debug
+console.log('[startup] Registering GET /api/bank-accounts route');
+app.get('/api/bank-accounts', asyncHandler(async (_req, res) => {
+  console.log('[/api/bank-accounts] handler invoked');  // runtime debug
+  const { rows } = await pool.query(
+    'SELECT * FROM bank_accounts ORDER BY bank_name, account_name'
+  );
+  res.json(rows);
+}));
+
+/**
+ * POST /api/bank-accounts
+ * Creates a new bank account.
+ */
+app.post('/api/bank-accounts', asyncHandler(async (req, res) => {
+  const {
+    bank_name,
+    account_name,
+    account_number,
+    routing_number,
+    type,
+    status,
+    balance,
+    connection_method,
+    description
+  } = req.body;
+
+  const { rows } = await pool.query(
+    `INSERT INTO bank_accounts
+     (bank_name, account_name, account_number, routing_number, type, status, balance, connection_method, description)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     RETURNING *`,
+    [
+      bank_name,
+      account_name,
+      account_number,
+      routing_number,
+      type,
+      status,
+      balance ?? 0,
+      connection_method,
+      description
+    ]
+  );
+  res.status(201).json(rows[0]);
+}));
+
+/**
+ * PUT /api/bank-accounts/:id
+ * Updates an existing bank account.
+ */
+app.put('/api/bank-accounts/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    bank_name,
+    account_name,
+    account_number,
+    routing_number,
+    type,
+    status,
+    balance,
+    connection_method,
+    description
+  } = req.body;
+
+  const { rows } = await pool.query(
+    `UPDATE bank_accounts
+       SET bank_name=$1,
+           account_name=$2,
+           account_number=$3,
+           routing_number=$4,
+           type=$5,
+           status=$6,
+           balance=$7,
+           connection_method=$8,
+           description=$9,
+           updated_at = NOW()
+     WHERE id = $10
+     RETURNING *`,
+    [
+      bank_name,
+      account_name,
+      account_number,
+      routing_number,
+      type,
+      status,
+      balance ?? 0,
+      connection_method,
+      description,
+      id
+    ]
+  );
+  res.json(rows[0]);
+}));
+
+/**
+ * DELETE /api/bank-accounts/:id
+ * Deletes a bank account.
+ */
+app.delete('/api/bank-accounts/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  await pool.query('DELETE FROM bank_accounts WHERE id=$1', [id]);
+  res.status(204).send();
+}));
+
+/**
+ * POST /api/bank-accounts/sync
+ * Placeholder: updates last_sync timestamp for all bank accounts.
+ */
+app.post('/api/bank-accounts/sync', asyncHandler(async (_req, res) => {
+  await pool.query('UPDATE bank_accounts SET last_sync = NOW(), updated_at = NOW()');
+  res.json({ message: 'Bank accounts synced (placeholder).' });
+}));
+
+/**
+ * POST /api/bank-accounts/:id/test-connection
+ * Placeholder: randomly succeed/fail connection test.
+ */
+app.post('/api/bank-accounts/:id/test-connection', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const connectionOk = Math.random() < 0.8;
+  if (connectionOk) {
+    await pool.query('UPDATE bank_accounts SET last_sync = NOW(), updated_at = NOW() WHERE id=$1', [id]);
+    res.json({ success: true, message: 'Connection successful.' });
+  } else {
+    res.status(500).json({ success: false, message: 'Unable to connect to bank.' });
+  }
+}));
+
+/**
+ * GET /api/documents
+ * Returns a list of all PDF documents in the project root with basic metadata.
+ */
+app.get('/api/documents', (req, res) => {
+  /* ------------------------------------------------------------------
+   *  DOCUMENT LIST ENDPOINT
+   *  Adds runtime diagnostics to help trace issues in production
+   * ---------------------------------------------------------------- */
+  console.log('[/api/documents] endpoint hit');
+  try {
+    console.log('Looking for PDFs in:', __dirname);
+
+    // Locate PDF files in the same directory as server.js
+    const files = fs
+      .readdirSync(__dirname)
+      .filter((file) => file.toLowerCase().endsWith('.pdf'));
+
+    console.log('PDF files discovered:', files);
+
+    const documents = files.map((filename) => {
+      const stats = fs.statSync(path.join(__dirname, filename));
+      return {
+        filename,
+        // Turn "AccuFund_Migration_Guide_v8.6.pdf" ➜ "AccuFund Migration Guide v8.6"
+        displayName: filename.replace(/_/g, ' ').replace(/\.pdf$/i, ''),
+        size: stats.size,
+        lastModified: stats.mtime,
+        url: `/${filename}`,
+      };
+    });
+
+    console.log('Returning document metadata count:', documents.length);
+    res.json({ success: true, count: documents.length, documents });
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    res
+      .status(500)
+      .json({ success: false, error: 'Failed to fetch documents' });
+  }
+});
 
 // Error handler
 app.use((err, req, res, next) => {
