@@ -76,6 +76,79 @@ The **Consolidated View** toggle (header-right) lets a user switch between:
 
 ---
 
+## 5. Advanced Features Integration (v8.5)
+
+Version 8.5 introduced several enterprise-grade capabilities that *build on* the entity & fund hierarchy.  
+The diagram below shows how each new feature consumes hierarchy metadata.
+
+```
+ ┌────────────────────────┐
+ │  Natural Language      │
+ │  Query (NLQ) Engine    │
+ └──────────┬─────────────┘
+            │ uses
+ ┌──────────▼─────────────┐
+ │  Custom Reports        │
+ │  Builder               │
+ └──────────┬─────────────┘
+            │ queries
+ ┌──────────▼─────────────┐
+ │  Consolidated SQL      │
+ │  Views (entities/funds)│
+ └──────────┬─────────────┘
+            │ sources
+ ┌──────────▼─────────────┐
+ │  Hierarchical Tables   │
+ │  (entities, funds, …)  │
+ └────────────────────────┘
+```
+
+### 5.1. Natural Language Query (NLQ) System
+
+| Aspect | Integration Point |
+|--------|-------------------|
+| **Entity Scoping** | Each NLQ request automatically injects `entity_id IN (…)` filters derived from the entity selector. |
+| **Fund Awareness** | If the query references a fund code/name, NLQ joins `funds` → `entities` to respect entity ownership. |
+| **Consolidation** | When *Consolidated View* is on, NLQ resolves the full descendant list and expands the SQL filter set. |
+
+**Example**  
+> “Show expenses over \$1 000 for *Education Fund* this quarter.”  
+NLQ SQL fragment:  
+```sql
+WHERE entity_id IN ('c37c2e7c-…')            -- selected entity + children
+  AND fund_id   =  (SELECT id FROM funds
+                    WHERE code = 'EDU-FND'
+                      AND entity_id = 'c37c2e7c-…')
+  AND debit_amount > 1000
+  AND entry_date BETWEEN '2025-04-01' AND '2025-06-30';
+```
+
+### 5.2. Custom Reports Builder
+
+* **Entity Filter Widget** – defaults to the current entity path; users may expand to siblings if they hold permission.  
+* **Fund Filter Widget** – fund dropdown is auto-filtered by the chosen entity.  
+* **Group-By** – selecting *Entity* or *Fund* leverages the hierarchy to show roll-ups and grand totals.  
+* **Saved Definitions** – persist the selected entity scope so scheduled reports always run in the correct context.
+
+### 5.3. Data Import/Export with Hierarchy
+
+| Import Type | Hierarchy Handling |
+|-------------|-------------------|
+| **AccuFund Migration** | `accufund-migration-guide.html` maps legacy *Fund* → new *Fund* **within the correct entity**. |
+| **CSV Journal Lines** | Requires an `entity_code` column; loader looks up `entities.id` before insert. |
+| **Bulk Fund Loader**  | Accepts `parent_entity_code` to attach incoming funds to the proper entity. |
+
+During import the system rejects rows referencing inactive or non-existent entities/funds, ensuring referential integrity.
+
+### 5.4. Docker Deployment Considerations
+
+* **Service Naming** – `PGHOST=db` inside Docker Compose keeps hierarchy SQL scripts unchanged across environments.  
+* **Multi-Org Scaling** – spin up additional app containers on the same network; all share the single hierarchy aware database.  
+* **Back-ups** – `db-data` named volume captures *all* entity/fund records; nightly `pg_dump` recommended.  
+* **Update Scripts** – `scripts/update-linux.sh` and `scripts/update-docker-windows.ps1` preserve hierarchy by backing up the database first then running migrations.
+
+---
+
 ## 4. Navigating the Hierarchy
 
 ### 4.1. Entity Selector
@@ -103,7 +176,7 @@ Green = consolidated, Grey = entity-only.
 
 ---
 
-## 5. Best Practices
+## 6. Best Practices
 
 1. **Stable Codes** – pick short immutable codes; reports use them as anchors.  
 2. **Consolidation** – enable only where necessary (root, regional hubs). Avoid double-counting by *not* enabling it on every level.  
@@ -116,7 +189,7 @@ Green = consolidated, Grey = entity-only.
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
 | Symptom | Likely Cause | Fix |
 |---------|--------------|-----|
@@ -126,11 +199,14 @@ Green = consolidated, Grey = entity-only.
 
 ---
 
-## 7. Further Reading
+## 8. Further Reading
 
 * **SETUP.md** – deployment & database prerequisites  
 * **docs/REPORTS.md** – financial statement configuration  
 * **src/js/entity-hierarchy.js** – client-side implementation
+* **DOCKER_SETUP_WINDOWS.md** – container deployment guide  
+* **nonprofit-accounting-user-guide.html** – full end-user manual  
+* **scripts/update-linux.sh** / **scripts/update-docker-windows.ps1** – automated update workflows
 
 Happy accounting!  
 If you have questions or feature requests, open an issue on GitHub.

@@ -161,7 +161,18 @@
         }
         
         // Set report header
-        orgNameEl.textContent = state.organizationSettings.name || 'Community Nonprofit Organization';
+        // Dynamically determine the correct organization name
+        let orgName = (state.organizationSettings && state.organizationSettings.name) || null;
+        try {
+            const entities = await fetch('/api/entities').then(r => r.json());
+            const topLevel = entities.find(e => e.parent_entity_id === null && e.is_consolidated === true);
+            if (topLevel && topLevel.name) {
+                orgName = topLevel.name;
+            }
+        } catch (err) {
+            console.error('REPORTS: Failed to fetch top-level organization name:', err);
+        }
+        orgNameEl.textContent = orgName || 'Nonprofit Organization';
         titleEl.textContent = definition.name || 'Custom Report';
         dateEl.textContent = `As of ${new Date().toLocaleDateString()}`;
         

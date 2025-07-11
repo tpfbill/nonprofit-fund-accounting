@@ -10,7 +10,6 @@ const appState = {
     accounts: [],
     funds: [],
     journalEntries: [],
-    bankAccounts: [],
     users: [],
     organizationSettings: {},
     customReportDefinitions: [],
@@ -399,28 +398,133 @@ function updateDashboardRecentTransactions() {
     
     const recentTransactionsTbody = recentTransactionsTable.querySelector('tbody');
     if (!recentTransactionsTbody) return;
-    
-    // Get relevant journal entries based on selected entity and consolidated view
-    const relevantEntityIds = getRelevantEntityIds();
-    
-    let relevantEntries = appState.journalEntries.filter(entry => 
-        relevantEntityIds.includes(entry.entity_id) && 
-        entry.status === 'Posted'
+/**
+ * Render the list of documentation files returned from the API.
+ * @param {Array<Object>} documents – array of document metadata objects
+ */
+function renderDocuments(documents) {
+    const documentGrid = document.getElementById('document-grid');
+    if (!documentGrid) return;
+
+    // Empty / error handling
+    if (!documents || documents.length === 0) {
+        documentGrid.innerHTML = '<div class="no-documents">No documentation found.</div>';
+        return;
+    }
+
+    /* ------------------------------------------------------------
+     * Stats header (file count and total size)
+     * ---------------------------------------------------------- */
+    const totalDocuments = documents.length;
+    const totalSizeKB    = documents.reduce(
+        (sum, doc) => sum + Math.round(doc.size / 1024),
+        0
     );
-    
-    // Sort by date (most recent first)
-    relevantEntries.sort((a, b) => new Date(b.entry_date) - new Date(a.entry_date));
-    
-    // Take only the 5 most recent
-    relevantEntries = relevantEntries.slice(0, 5);
-    
-    // Update the recent transactions table
-    recentTransactionsTbody.innerHTML = '';
-    
-    if (relevantEntries.length === 0) {
-        recentTransactionsTbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center">No recent transactions found</td>
+
+    const statsHTML = `
+        <div class="document-stats">
+            <div class="stat-item">
+                <span class="stat-value">${totalDocuments}</span>
+                <span class="stat-label">Documents</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">${totalSizeKB} KB</span>
+                <span class="stat-label">Total Size</span>
+            </div>
+        </div>
+    `;
+
+    /* ------------------------------------------------------------
+     * Document cards
+     * ---------------------------------------------------------- */
+    const documentsHTML = documents
+        .map(doc => {
+            const sizeKB       = Math.round(doc.size / 1024);
+            const lastModified = new Date(doc.lastModified).toLocaleDateString();
+            const description  = getDocumentDescription(doc.filename);
+
+            return `
+                <div class="document-card" onclick="openDocument('${doc.url}')">
+                    <div class="document-card-header">
+                        <div class="document-icon">PDF</div>
+                        <h3 class="document-title">${doc.displayName}</h3>
+                    </div>
+                    <div class="document-info">
+                        <div class="document-size">Size: ${sizeKB} KB</div>
+                        <div class="document-date">Updated: ${lastModified}</div>
+                    </div>
+                    <div class="document-description">
+                        ${description}
+                    </div>
+                    <div class="document-actions">
+                        <button class="document-btn document-btn-primary"
+                                onclick="event.stopPropagation(); openDocument('${doc.url}')">
+                            View PDF
+                        </button>
+                        <button class="document-btn document-btn-secondary"
+                                onclick="event.stopPropagation(); downloadDocument('${doc.url}', '${doc.filename}')">
+                            Download
+                        </button>
+                    </div>
+                </div>
+            `;
+        })
+        .join('');
+
+    /* ------------------------------------------------------------
+     * Inject into DOM
+     * ---------------------------------------------------------- */
+    documentGrid.innerHTML =
+        statsHTML + '<div class="document-grid">' + documentsHTML + '</div>';
+}
+
+// -----------------------------------------------------------------
+// Documentation helper utilities
+// -----------------------------------------------------------------
+
+/**
+ * Return a human-readable description for a given documentation file.
+ * Extend this map as new docs are added.
+ */
+function getDocumentDescription(filename) {
+    const descriptions = {
+        'AccuFund_Migration_Guide_v8.6.pdf':
+            'Complete guide for migrating from AccuFund to the Nonprofit Fund Accounting System, including data import procedures and validation steps.',
+        'AccuFund_Migration_Steps_v8.6.pdf':
+            'Step-by-step instructions for the AccuFund migration process, with detailed procedures and troubleshooting tips.',
+        'AccuFund_Verification_Procedure_v8.6.pdf':
+            'Verification and validation procedures to ensure data integrity after AccuFund migration.',
+        'Administrator_Guide_v8.6.pdf':
+            'Comprehensive administrator guide covering system setup, user management, entity configuration, and maintenance procedures.',
+        'User_Guide_v8.6.pdf':
+            'End-user guide covering daily operations, journal entries, reporting, and system features.',
+        'Windows_HyperV_Deployment_Guide_v8.6.pdf':
+            'Step-by-step guide for deploying the system on Windows Hyper-V with Ubuntu 22.04 LTS virtual machines.',
+        'Zoho_Books_Comparison_v8.6.pdf':
+            'Detailed comparison between the Nonprofit Fund Accounting System and Zoho Books, highlighting key differences and migration considerations.'
+    };
+    return descriptions[filename] || 'Documentation file for the Nonprofit Fund Accounting System.';
+}
+
+/**
+ * Open a document in a new browser tab.
+ */
+function openDocument(url) {
+    window.open(url, '_blank', 'noopener');
+}
+
+/**
+ * Force-download a document instead of opening it.
+ */
+function downloadDocument(url, filename) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
             </tr>
         `;
         return;
@@ -1983,285 +2087,23 @@ async function loadDocumentationPage() {
     }
 }
 
-// ===================================================================
-// BANK ACCOUNT CONNECTION FUNCTIONS
-// ===================================================================
-
-// Load from API and refresh table
-async function loadBankAccountData() {
-    try {
-        const accounts = await fetchData('bank-accounts');
-        appState.bankAccounts = accounts;
-        updateBankAccountsTable();
-        return accounts;
-    } catch (err) {
-        console.error('Error loading bank accounts:', err);
-        return [];
-    }
-}
-
-// Render table rows
-function updateBankAccountsTable() {
-    const tableBody = document
-        .getElementById('bank-accounts-table')
-        ?.querySelector('tbody');
-    if (!tableBody) return;
-
-    if (!appState.bankAccounts.length) {
-        tableBody.innerHTML =
-            '<tr><td colspan="8" class="text-center">No bank accounts connected.</td></tr>';
-        return;
-    }
-
-    tableBody.innerHTML = '';
-    appState.bankAccounts.forEach(acc => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${acc.bank_name}</td>
-            <td>${acc.account_name}</td>
-            <td>${acc.account_number || '—'}</td>
-            <td>${acc.type}</td>
-            <td><span class="status status-${acc.status.toLowerCase()}">${acc.status}</span></td>
-            <td>${formatCurrency(acc.balance)}</td>
-            <td>${acc.last_sync ? formatDate(acc.last_sync) : 'Never'}</td>
-            <td>
-                <button class="action-button btn-test-conn" data-id="${acc.id}">Test</button>
-                <button class="action-button btn-edit-bank-account" data-id="${acc.id}">Edit</button>
-                <button class="action-button btn-delete-bank-account" data-id="${acc.id}">Delete</button>
-            </td>
-        `;
-        tableBody.appendChild(row);
-    });
-
-    /* delegate table-level actions */
-    tableBody.onclick = e => {
-        const btn = e.target.closest('button');
-        if (!btn) return;
-        const id = btn.dataset.id;
-        if (btn.classList.contains('btn-edit-bank-account')) {
-            openBankAccountModal(id);
-        } else if (btn.classList.contains('btn-delete-bank-account')) {
-            deleteBankAccount(id);
-        } else if (btn.classList.contains('btn-test-conn')) {
-            testBankAccountConnection(id);
-        }
-    };
-}
-
-// Modal open (add / edit)
-function openBankAccountModal(accountId = null) {
-    const modal = document.getElementById('bank-account-modal');
-    if (!modal) return;
-
-    // reset form
-    modal.querySelectorAll('input,select,textarea').forEach(el => {
-        if (el.type === 'checkbox') el.checked = false;
-        else el.value = '';
-    });
-    document.getElementById('edit-bank-account-id').value = '';
-
-    // edit mode → populate
-    if (accountId) {
-        const acc = appState.bankAccounts.find(a => a.id === accountId);
-        if (acc) {
-            document.getElementById('edit-bank-account-id').value = acc.id;
-            document.getElementById('bank-name-select').value = acc.bank_name;
-            document.getElementById('bank-account-name-input').value = acc.account_name;
-            document.getElementById('bank-account-number-input').value = acc.account_number || '';
-            document.getElementById('routing-number-input').value = acc.routing_number || '';
-            document.getElementById('bank-account-type-select').value = acc.type;
-            document.getElementById('connection-method-select').value = acc.connection_method;
-            document.getElementById('bank-account-status-select').value = acc.status;
-            document.getElementById('initial-balance-input').value = acc.balance;
-            document.getElementById('bank-account-description-textarea').value =
-                acc.description || '';
-        }
-    }
-
-    modal.style.display = 'block';
-    modal.classList.remove('hidden');
-}
-
-// Save (create / update)
-async function saveBankAccount() {
-    const id = document.getElementById('edit-bank-account-id').value;
-    const payload = {
-        bank_name: document.getElementById('bank-name-select').value,
-        account_name: document.getElementById('bank-account-name-input').value,
-        account_number: document.getElementById('bank-account-number-input').value,
-        routing_number: document.getElementById('routing-number-input').value,
-        type: document.getElementById('bank-account-type-select').value,
-        status: document.getElementById('bank-account-status-select').value,
-        balance: parseFloat(document.getElementById('initial-balance-input').value || 0),
-        connection_method: document.getElementById('connection-method-select').value,
-        description: document.getElementById('bank-account-description-textarea').value
-    };
-
-    try {
-        const endpoint = id ? `bank-accounts/${id}` : 'bank-accounts';
-        const method = id ? 'PUT' : 'POST';
-        await saveData(endpoint, payload, method);
-        document.getElementById('bank-account-modal').style.display = 'none';
-        await loadBankAccountData();
-    } catch (err) {
-        alert('Error saving bank account: ' + err.message);
-    }
-}
-
-// Delete
-async function deleteBankAccount(accountId) {
-    if (!confirm('Delete this bank account?')) return;
-    try {
-        await fetch(`/api/bank-accounts/${accountId}`, { method: 'DELETE' });
-        await loadBankAccountData();
-    } catch (err) {
-        alert('Error deleting account: ' + err.message);
-    }
-}
-
-// Sync all
-async function syncBankAccounts() {
-    try {
-        await fetch('/api/bank-accounts/sync', { method: 'POST' });
-        alert('Sync complete.');
-        await loadBankAccountData();
-    } catch (err) {
-        alert('Sync failed: ' + err.message);
-    }
-}
-
-// Test connection
-async function testBankAccountConnection(accountId) {
-    try {
-        const res = await fetch(`/api/bank-accounts/${accountId}/test-connection`, {
-            method: 'POST'
-        });
-        const data = await res.json();
-        if (res.ok) {
-            alert(data.message);
-            await loadBankAccountData();
-        } else {
-            throw new Error(data.message || 'Connection failed');
-        }
-    } catch (err) {
-        alert('Connection test error: ' + err.message);
-    }
-}
-
-// ===================================================================
-// APPLICATION INITIALISATION
-// ===================================================================
-
-/**
- * Sets up click handlers for all navigation items that declare a
- * data-page attribute, and ensures the correct page/content is shown.
- */
-function setupNavigation() {
-    const navItems = document.querySelectorAll('.nav-item[data-page]');
-    navItems.forEach(item => {
-        item.addEventListener('click', e => {
-            const page = e.currentTarget.dataset.page;
-            if (page) showPage(page);
-        });
-    });
-
-    /* ------------------------------------------------------------------
-     *  Tab switching inside pages (e.g. Settings, Fund-Reports)
-     * ------------------------------------------------------------------ */
-    const tabItems = document.querySelectorAll('.tab-item[data-tab]');
-    tabItems.forEach(tabItem => {
-        tabItem.addEventListener('click', e => {
-            const targetTab = e.currentTarget.dataset.tab;
-            if (targetTab) switchTab(e.currentTarget, targetTab);
-        });
-    });
-}
-
-/**
- * Simple page-switcher – hides all `.page` containers then shows the
- * requested one and updates nav highlighting.  Also triggers any
- * page-specific data loading.
- */
-function showPage(pageName) {
-    // hide / show content
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    const pageEl = document.getElementById(`${pageName}-page`);
-    if (pageEl) pageEl.classList.add('active');
-
-    // nav highlight
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    const navItem = document.querySelector(`.nav-item[data-page="${pageName}"]`);
-    if (navItem) navItem.classList.add('active');
-
-    // store state
-    appState.currentPage = pageName;
-
-    // page-specific lazy loads
-    switch (pageName) {
-        case 'dashboard':
-            loadDashboardData();
-            break;
-        case 'settings':
-            loadUserData();
-            loadBankAccountData();
-            break;
-        case 'documentation':
-            loadDocumentationPage();
-            break;
-        // extend as additional pages are added
-    }
-}
-
-// -------------------------------------------------------------------
-// Generic tab switcher (works for any .tab-container structure)
-// -------------------------------------------------------------------
-function switchTab(clickedTab, targetTabId) {
-    const tabContainer = clickedTab.closest('.tab-container');
-    if (!tabContainer) return;
-
-    /* update active class on tab items */
-    tabContainer.querySelectorAll('.tab-item').forEach(item =>
-        item.classList.remove('active')
-    );
-    clickedTab.classList.add('active');
-
-    /* show / hide panels */
-    tabContainer.querySelectorAll('.tab-panel').forEach(panel =>
-        panel.classList.remove('active')
-    );
-    const targetPanel = document.getElementById(targetTabId);
-    if (targetPanel) targetPanel.classList.add('active');
-
-    /* remember settings tab state in appState */
-    if (targetTabId.startsWith('settings-')) {
-        appState.currentTab = targetTabId;
-    }
-}
-
-// Kick-off once DOM is ready
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('[App] Initialising…');
-
-    // 1) Connectivity status
-    await checkDatabaseConnection();
-
-    // 2) Base data required for most screens
-    await Promise.all([
-        loadEntityData(),
-        loadAccountData(),
-        loadFundData(),
-        loadJournalEntryData(),
-        loadUserData()
-    ]);
-
-    // 3) Dashboard charts / cards
-    await loadDashboardData();
-
-    // 4) Navigation bindings
-    setupNavigation();
-
-    // 5) Periodic DB health check
-    setInterval(checkDatabaseConnection, 30_000); // every 30s
-
-    console.log('[App] Ready.');
-});
+function renderDocuments(documents, count) {
+    const documentGrid = document.getElementById('document-grid');
+    
+    // Add stats header
+    const statsHTML = `
+        <div class="document-stats">
+            <p class="document-stats-text">Found ${count} documentation file${count !== 1 ? 's' : ''}</p>
+        </div>
+    `;
+    
+    // Generate document cards
+    const documentsHTML = documents.map(doc => {
+        const sizeKB = Math.round(doc.size / 1024);
+        const lastModified = formatDate(doc.lastModified);
+        
+        // Get description based on document type
+        const description = getDocumentDescription(doc.filename);
+        
+        return `
+            <div class="document-card" onclick="openDocument('${doc.url

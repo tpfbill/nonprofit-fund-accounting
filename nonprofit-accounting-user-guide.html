@@ -205,8 +205,8 @@
         <div class="cover-page">
             <h1>Non-Profit Fund Accounting System</h1>
             <h2>User Guide</h2>
-            <p>Version 1.0</p>
-            <p>Date: June 18, 2025</p>
+            <p>Version 8.6</p>
+            <p>Date: July 8, 2025</p>
         </div>
 
         <div class="toc page-break-before">
@@ -250,21 +250,33 @@
                         <li><a href="#journal-add-post">6.3 Adding/Posting Entries (Conceptual)</a></li>
                     </ul>
                 </li>
-                <li><a href="#financial-reports">7. Financial Reports</a>
+                <li><a href="#inter-entity-transfers">7. Inter-Entity Transfers</a>
                     <ul>
-                        <li><a href="#reports-access">7.1 Accessing Reports Page</a></li>
-                        <li><a href="#report-financial-position">7.2 Statement of Financial Position</a></li>
-                        <li><a href="#report-activities">7.3 Statement of Activities</a></li>
-                        <li><a href="#report-functional-expenses">7.4 Statement of Functional Expenses</a></li>
-                        <li><a href="#report-budget-vs-actual">7.5 Budget vs. Actual Report</a></li>
+                        <li><a href="#iet-access">7.1 Accessing the Inter-Entity Transfer Wizard</a></li>
+                        <li><a href="#iet-purpose">7.2 Purpose and Benefits</a></li>
+                        <li><a href="#iet-using">7.3 Using the Wizard</a></li>
+                        <li><a href="#iet-best-practices">7.4 Best Practices</a></li>
+                        <li><a href="#iet-troubleshooting">7.5 Troubleshooting</a></li>
                     </ul>
                 </li>
-                <li><a href="#system-settings">8. System Settings</a>
+                <li><a href="#financial-reports">8. Financial Reports</a>
                     <ul>
-                        <li><a href="#settings-access">8.1 Accessing Settings</a></li>
-                        <li><a href="#settings-users">8.2 User Management</a></li>
-                        <li><a href="#settings-organization">8.3 Organization Settings</a></li>
-                        <li><a href="#settings-fiscal-years">8.4 Fiscal Year Management</a></li>
+                        <li><a href="#reports-access">8.1 Accessing Reports Page</a></li>
+                        <li><a href="#report-financial-position">8.2 Statement of Financial Position</a></li>
+                        <li><a href="#report-activities">8.3 Statement of Activities</a></li>
+                        <li><a href="#report-functional-expenses">8.4 Statement of Functional Expenses</a></li>
+                        <li><a href="#report-budget-vs-actual">8.5 Budget vs. Actual Report</a></li>
+                    </ul>
+                </li>
+                <li><a href="#natural-language-query">9. Natural Language Query</a></li>
+                <li><a href="#custom-reports-builder">10. Custom Reports Builder</a></li>
+                <li><a href="#data-import-export">11. Data Import / Export</a></li>
+                <li><a href="#system-settings">12. System Settings</a>
+                    <ul>
+                        <li><a href="#settings-access">12.1 Accessing Settings</a></li>
+                        <li><a href="#settings-users">12.2 User Management</a></li>
+                        <li><a href="#settings-organization">12.3 Organization Settings</a></li>
+                        <li><a href="#settings-fiscal-years">12.4 Fiscal Year Management</a></li>
                     </ul>
                 </li>
             </ul>
@@ -280,6 +292,10 @@
                 <li>Comprehensive financial reporting capabilities.</li>
                 <li>User-friendly interface for managing accounts, funds, and transactions.</li>
                 <li>Centralized system for all your non-profit's financial data.</li>
+                <li>Advanced <strong>Natural Language Query</strong> engine for conversational data exploration.</li>
+                <li>Flexible <strong>Custom Reports Builder</strong> with powerful filtering and grouping options.</li>
+                <li>Robust <strong>Data Import/Export</strong> utilities including full AccuFund migration support.</li>
+                <li>Enhanced navigation and UX improvements across all modules.</li>
             </ul>
         </div>
 
@@ -474,9 +490,129 @@
             <p>Unposted entries can be reviewed and then posted to the general ledger. This action would typically be available from the entry's view or action menu.</p>
         </div>
 
+        <div id="inter-entity-transfers" class="page-break-before">
+            <h2 class="section-title">7. Inter-Entity Transfers</h2>
+            
+            <h3 id="iet-access" class="subsection-title">7.1 Accessing the Inter-Entity Transfer Wizard</h3>
+            <p>The Inter-Entity Transfer Wizard is a specialized tool for creating balanced transactions between different entities in your organization. To access the wizard:</p>
+            <ol>
+                <li>Click on <strong>"Inter-Entity Transfer"</strong> in the main navigation menu, or</li>
+                <li>Navigate to <code>http://localhost:3000/inter-entity-transfer-wizard.html</code> directly</li>
+            </ol>
+            <div class="text-screenshot">
+                <strong>Textual Screenshot: Inter-Entity Transfer Navigation</strong>
+                <p>The main navigation bar shows: Dashboard, Chart of Accounts, Funds, Journal Entries, Inter-Entity Transfer, Fund Reports, Custom Reports, Ask Questions, Reports, Settings. "Inter-Entity Transfer" is highlighted.</p>
+            </div>
+
+            <h3 id="iet-purpose" class="subsection-title">7.2 Purpose and Benefits</h3>
+            <p>The Inter-Entity Transfer feature solves a common challenge in multi-entity nonprofit organizations: moving funds between related legal entities while maintaining proper accounting records.</p>
+            
+            <h4 class="subsubsection-title">Key Benefits:</h4>
+            <ul class="feature-list">
+                <li><strong>Automatic Dual-Entry:</strong> Creates balanced journal entries in both the source and target entities</li>
+                <li><strong>Proper Due To/Due From Tracking:</strong> Maintains the financial relationship between entities</li>
+                <li><strong>Audit Trail:</strong> Links paired transactions with a matching transaction ID</li>
+                <li><strong>Simplified Workflow:</strong> Completes in one operation what would normally require multiple manual entries</li>
+                <li><strong>Error Prevention:</strong> Ensures balanced entries and proper account selection</li>
+            </ul>
+
+            <h4 class="subsubsection-title">When to Use:</h4>
+            <p>Use the Inter-Entity Transfer Wizard whenever you need to:</p>
+            <ul class="feature-list">
+                <li>Move cash between bank accounts of different legal entities</li>
+                <li>Record advances from one entity to another</li>
+                <li>Process reimbursements between related entities</li>
+                <li>Allocate shared expenses across multiple entities</li>
+            </ul>
+
+            <h3 id="iet-using" class="subsection-title">7.3 Using the Wizard</h3>
+            <p>The Inter-Entity Transfer Wizard guides you through a three-step process:</p>
+
+            <h4 class="subsubsection-title">Step 1: Transfer Details</h4>
+            <p>In this first step, you'll provide all the information needed for the transfer:</p>
+            <ol>
+                <li><strong>From Entity:</strong> Select the source entity (where funds are coming from)</li>
+                <li><strong>To Entity:</strong> Select the target entity (where funds are going to)</li>
+                <li><strong>Transfer Date:</strong> The date when the transfer occurred</li>
+                <li><strong>Amount:</strong> The dollar amount being transferred</li>
+                <li><strong>From Fund:</strong> The fund within the source entity</li>
+                <li><strong>To Fund:</strong> The fund within the target entity</li>
+                <li><strong>Due From Account:</strong> The asset account in the source entity that tracks amounts due from other entities</li>
+                <li><strong>Due To Account:</strong> The liability account in the target entity that tracks amounts owed to other entities</li>
+                <li><strong>Description:</strong> Purpose or reason for the transfer</li>
+                <li><strong>Reference Number:</strong> Optional identifier (will be auto-generated if left blank)</li>
+            </ol>
+            <p>After completing all required fields, click <strong>"Continue to Review"</strong>.</p>
+
+            <div class="tip">
+                <strong>Tip:</strong> The system will automatically filter the dropdowns to show only relevant options. For example, once you select a source entity, the "From Fund" dropdown will only show funds belonging to that entity.
+            </div>
+
+            <h4 class="subsubsection-title">Step 2: Review</h4>
+            <p>The review step shows a summary of the transfer and previews the journal entries that will be created:</p>
+            <ul class="feature-list">
+                <li><strong>Transfer Summary:</strong> Shows all details entered in Step 1</li>
+                <li><strong>Source Journal Entry Preview:</strong> Shows how the entry will appear in the source entity's books</li>
+                <li><strong>Target Journal Entry Preview:</strong> Shows how the entry will appear in the target entity's books</li>
+            </ul>
+            <p>Carefully review all information. If changes are needed, click <strong>"Back"</strong> to return to Step 1. When everything looks correct, click <strong>"Submit Transfer"</strong>.</p>
+
+            <h4 class="subsubsection-title">Step 3: Confirmation</h4>
+            <p>Upon successful submission, you'll see a confirmation screen with:</p>
+            <ul class="feature-list">
+                <li>A success message with a green checkmark</li>
+                <li>A summary of the completed transfer</li>
+                <li>The generated matching transaction ID</li>
+                <li>Links to view both the source and target journal entries</li>
+                <li>Options to create another transfer or return to the dashboard</li>
+            </ul>
+
+            <h3 id="iet-best-practices" class="subsection-title">7.4 Best Practices</h3>
+            <ul class="feature-list">
+                <li><strong>Use Consistent Account Naming:</strong> Name your Due To/Due From accounts consistently (e.g., "Due From - TPF" and "Due To - TPF-ES") to make reconciliation easier</li>
+                <li><strong>Transfer on Actual Date:</strong> Always use the actual date when cash moved between accounts, not the date you're recording the entry</li>
+                <li><strong>Descriptive References:</strong> Include meaningful reference numbers that tie to bank transfers or check numbers</li>
+                <li><strong>Regular Reconciliation:</strong> Periodically verify that Due To and Due From accounts between entities have matching balances</li>
+                <li><strong>Document Purpose:</strong> Always include a clear description explaining why the transfer was made</li>
+            </ul>
+
+            <h3 id="iet-troubleshooting" class="subsection-title">7.5 Troubleshooting</h3>
+            <table class="guide-table">
+                <tr>
+                    <th>Issue</th>
+                    <th>Possible Cause</th>
+                    <th>Solution</th>
+                </tr>
+                <tr>
+                    <td>"No Due From accounts found"</td>
+                    <td>The source entity doesn't have properly configured asset accounts for tracking amounts due from other entities</td>
+                    <td>Create an Asset account with "Due From" in the name or with a code starting with "19" in the Chart of Accounts for the source entity</td>
+                </tr>
+                <tr>
+                    <td>"No Due To accounts found"</td>
+                    <td>The target entity doesn't have properly configured liability accounts for tracking amounts owed to other entities</td>
+                    <td>Create a Liability account with "Due To" in the name or with a code starting with "29" in the Chart of Accounts for the target entity</td>
+                </tr>
+                <tr>
+                    <td>Wizard hangs on submission</td>
+                    <td>Network issue or server error during processing</td>
+                    <td>Check your network connection, refresh the page, and try again. If the problem persists, check with your administrator</td>
+                </tr>
+                <tr>
+                    <td>Can't select certain entities</td>
+                    <td>You may not have permission to access all entities, or some entities may be inactive</td>
+                    <td>Verify your permissions with the system administrator</td>
+                </tr>
+            </table>
+
+            <div class="tip">
+                <strong>Tip:</strong> If you need to cancel a transfer after it's been submitted, you'll need to void both journal entries separately. Look for the entries with the same matching transaction ID.
+            </div>
+        </div>
+
         <div id="financial-reports" class="page-break-before">
-            <h2 class="section-title">7. Financial Reports</h2>
-            <h3 id="reports-access" class="subsection-title">7.1 Accessing Reports Page</h3>
+            <h2 class="section-title">8. Financial Reports</h2>
+            <h3 id="reports-access" class="subsection-title">8.1 Accessing Reports Page</h3>
             <p>To access financial reports, click on "Reports" in the main navigation bar. This page initially shows a gallery of available reports.</p>
             <div class="text-screenshot">
                 <strong>Textual Screenshot: Reports Gallery</strong>
@@ -484,7 +620,7 @@
             </div>
             <p>To generate a specific report, click its "Generate" button. The view will change to display the selected report.</p>
             
-            <h3 id="report-financial-position" class="subsection-title">7.2 Statement of Financial Position (Balance Sheet)</h3>
+            <h3 id="report-financial-position" class="subsection-title">8.2 Statement of Financial Position (Balance Sheet)</h3>
             <p><strong>Purpose:</strong> Shows the organization's assets, liabilities, and net assets at a specific point in time.</p>
             <p><strong>Key Sections:</strong></p>
             <ul class="feature-list">
@@ -499,7 +635,7 @@
             </div>
             <p>The report view includes buttons for "Back to Reports", "Print", "Export PDF", and "Export Excel".</p>
 
-            <h3 id="report-activities" class="subsection-title">7.3 Statement of Activities (Income Statement)</h3>
+            <h3 id="report-activities" class="subsection-title">8.3 Statement of Activities (Income Statement)</h3>
             <p><strong>Purpose:</strong> Shows revenues, expenses, and the change in net assets over a period of time (typically a fiscal year).</p>
             <p><strong>Key Sections:</strong></p>
             <ul class="feature-list">
@@ -510,7 +646,7 @@
                 <li><strong>Net Assets, End of Year.</strong></li>
             </ul>
 
-            <h3 id="report-functional-expenses" class="subsection-title">7.4 Statement of Functional Expenses</h3>
+            <h3 id="report-functional-expenses" class="subsection-title">8.4 Statement of Functional Expenses</h3>
             <p><strong>Purpose:</strong> Details expenses by their natural classification (e.g., Salaries, Rent) and their functional classification (Program Services, Management & General, Fundraising).</p>
             <p><strong>Key Sections:</strong></p>
             <ul class="feature-list">
@@ -519,7 +655,7 @@
                 <li>Percentage of total for each functional classification.</li>
             </ul>
 
-            <h3 id="report-budget-vs-actual" class="subsection-title">7.5 Budget vs. Actual Report</h3>
+            <h3 id="report-budget-vs-actual" class="subsection-title">8.5 Budget vs. Actual Report</h3>
             <p><strong>Purpose:</strong> Compares budgeted amounts to actual financial performance for a specific period, highlighting variances.</p>
             <p><strong>Key Sections:</strong></p>
             <ul class="feature-list">
@@ -531,12 +667,112 @@
             <p>This report includes filter options at the top for Fund and Period (e.g., Year to Date, Q1, Q2).</p>
         </div>
 
+        <!-- =============================================================== -->
+        <!-- 9. Natural Language Query                                      -->
+        <!-- =============================================================== -->
+        <div id="natural-language-query" class="page-break-before">
+            <h2 class="section-title">9. Natural Language Query</h2>
+
+            <h3 class="subsection-title">9.1 Overview</h3>
+            <p>The <strong>Natural Language Query (NLQ)</strong> feature lets you explore your financial data by simply typing or speaking plain-English questions. The system interprets your query, runs the appropriate report, and presents the results instantly.</p>
+
+            <h3 class="subsection-title">9.2 Accessing NLQ</h3>
+            <ul class="feature-list">
+                <li>Click <em>Reports &gt; Ask Questions</em> from the main navigation bar, <em>or</em></li>
+                <li>Use the keyboard shortcut <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Q</kbd>.</li>
+            </ul>
+
+            <h3 class="subsection-title">9.3 Key Capabilities</h3>
+            <ul class="feature-list">
+                <li><strong>Instant Suggestions&nbsp;—</strong> The sidebar shows example questions based on your data.</li>
+                <li><strong>Context-Aware Filters&nbsp;—</strong> Ask for date ranges, amounts, or specific funds in the same sentence.</li>
+                <li><strong>Smart History&nbsp;—</strong> Your 10 most-recent queries are saved locally for quick reuse.</li>
+                <li><strong>CSV Export&nbsp;—</strong> One-click "Export to CSV" for any NLQ result set.</li>
+            </ul>
+
+            <h3 class="subsection-title">9.4 Examples</h3>
+            <div class="text-screenshot">
+                <strong>Example Queries</strong>
+                <ul>
+                    <li>"Show me all expenses over $1,000 for the Education Fund in Q1."</li>
+                    <li>"What were total donations this month?"</li>
+                    <li>"Fund balances as of 12/31/2024."</li>
+                </ul>
+            </div>
+
+            <h3 class="subsection-title">9.5 Tips for Best Results</h3>
+            <ul class="feature-list">
+                <li>Use <em>plain language</em> — phrases like "show me" or "list" work well.</li>
+                <li>Specify <em>amount operators</em> ("over", "under", "between").</li>
+                <li>Include <em>fund names or codes</em> to narrow the scope.</li>
+                <li>If results look wrong, refine the question rather than re-running the same one.</li>
+            </ul>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- 10. Custom Reports Builder                                       -->
+        <!-- =============================================================== -->
+        <div id="custom-reports-builder" class="page-break-before">
+            <h2 class="section-title">10. Custom Reports Builder</h2>
+
+            <h3 class="subsection-title">10.1 Overview</h3>
+            <p>The <strong>Custom Reports Builder</strong> allows power-users to design bespoke reports without writing SQL. You choose the data source, fields, filters, grouping, and sorting, then preview or export the results.</p>
+
+            <h3 class="subsection-title">10.2 Accessing the Builder</h3>
+            <p>Navigate to <em>Reports &gt; Build Custom Reports</em>.</p>
+
+            <h3 class="subsection-title">10.3 Workflow</h3>
+            <ol>
+                <li>Select a <strong>Data Source</strong> (e.g., Journal Entry Lines, Funds, Accounts).</li>
+                <li>Pick the <strong>Fields</strong> you want to see.</li>
+                <li>Add <strong>Filters</strong> such as date ranges or specific accounts.</li>
+                <li>Optionally set <strong>Grouping</strong> and <strong>Sorting</strong>.</li>
+                <li>Click <em>Preview Report</em> to see results, then <em>Save</em> or <em>Export</em>.</li>
+            </ol>
+
+            <h3 class="subsection-title">10.4 Saved Report Management</h3>
+            <ul class="feature-list">
+                <li>Saved reports appear in the "Load Saved Report" dropdown.</li>
+                <li>You can update, duplicate, or delete saved reports at any time.</li>
+            </ul>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- 11. Data Import / Export                                        -->
+        <!-- =============================================================== -->
+        <div id="data-import-export" class="page-break-before">
+            <h2 class="section-title">11. Data Import / Export</h2>
+
+            <h3 class="subsection-title">11.1 Overview</h3>
+            <p>Import historical transactions, chart of accounts, and fund balances from external systems (such as AccuFund) via CSV or SQL scripts. Export your data for backup or analysis with a single click.</p>
+
+            <h3 class="subsection-title">11.2 Importing Data</h3>
+            <ul class="feature-list">
+                <li><strong>AccuFund Migration&nbsp;—</strong> Use the <code>accufund-migration-guide.html</code> for step-by-step instructions.</li>
+                <li><strong>CSV Upload&nbsp;—</strong> Go to <em>Settings &gt; Data Import</em>, choose the target table, upload the file, and map columns.</li>
+                <li><strong>Validation&nbsp;—</strong> The system validates required fields, data types, and referential integrity before committing changes.</li>
+            </ul>
+
+            <h3 class="subsection-title">11.3 Exporting Data</h3>
+            <ul class="feature-list">
+                <li>Each standard report has an <em>Export to CSV</em> or <em>Export to PDF</em> button.</li>
+                <li>Administrators can export full tables from <em>Settings &gt; Data Export</em>.</li>
+            </ul>
+
+            <h3 class="subsection-title">11.4 Best Practices</h3>
+            <ul class="feature-list">
+                <li>Always back up your database before large imports.</li>
+                <li>Import data in <em>chronological order</em> (oldest to newest).</li>
+                <li>Review the validation log; correct and re-upload any rejected rows.</li>
+            </ul>
+        </div>
+
         <div id="system-settings" class="page-break-before">
-            <h2 class="section-title">8. System Settings</h2>
-            <h3 id="settings-access" class="subsection-title">8.1 Accessing Settings</h3>
+            <h2 class="section-title">12. System Settings</h2>
+            <h3 id="settings-access" class="subsection-title">12.1 Accessing Settings</h3>
             <p>To access system settings, click on "Settings" in the main navigation bar. The Settings page uses a tabbed interface for different categories of settings.</p>
 
-            <h3 id="settings-users" class="subsection-title">8.2 User Management</h3>
+            <h3 id="settings-users" class="subsection-title">12.2 User Management</h3>
             <p>Select the "Users" tab to manage user accounts.</p>
             <ul class="feature-list">
                 <li><strong>Viewing Users:</strong> A table lists existing users with their Name, Email, Role, and Status. An "Edit" button is available for each user.</li>
@@ -548,7 +784,7 @@
                 <p>A table lists users. Above the table is an "Add User" button. Columns include Name, Email, Role, Status, Actions.</p>
             </div>
 
-            <h3 id="settings-organization" class="subsection-title">8.3 Organization Settings</h3>
+            <h3 id="settings-organization" class="subsection-title">12.3 Organization Settings</h3>
             <p>Select the "Organization" tab to configure details about your non-profit.</p>
             <ul class="feature-list">
                 <li><strong>General Information:</strong> Fields for Organization Name, EIN/Tax ID, Phone Number, Email Address.</li>
@@ -562,7 +798,7 @@
                 <p>A form with sections for General Information, Address, Financial Settings, and System Settings. Input fields and dropdowns are present for each setting. "Save Changes" button is available.</p>
             </div>
 
-            <h3 id="settings-fiscal-years" class="subsection-title">8.4 Fiscal Year Management</h3>
+            <h3 id="settings-fiscal-years" class="subsection-title">12.4 Fiscal Year Management</h3>
             <p>Select the "Fiscal Years" tab to manage your organization's fiscal years and periods.</p>
             <ul class="feature-list">
                 <li><strong>Viewing Fiscal Years:</strong> A table lists existing fiscal years with their Name/Code, Start Date, End Date, and Status (e.g., Current, Closed). Action buttons allow viewing or editing.</li>

@@ -107,6 +107,60 @@
         </ul>
     </div>
 
+    <!-- ================================================================= -->
+    <!-- 2.5 Inter-Entity Transfer Configuration (v8.6+)                    -->
+    <!-- ================================================================= -->
+    <div class="section-content">
+        <h2>2.5 Inter-Entity Transfer Configuration (v8.6+)</h2>
+
+        <p>The <strong>Inter-Entity Transfer</strong> feature, introduced in version&nbsp;8.6 of the Fund Accounting
+        System, automates cash movements between related legal entities by creating paired
+        <em>Due&nbsp;To</em>/<em>Due&nbsp;From</em> journal entries.  When migrating from AccuFund you
+        must ensure the underlying account structure and historical transactions correctly map to this
+        new capability.</p>
+
+        <h3>Why It Matters for Multi-Entity Organizations</h3>
+        <ul>
+            <li>Eliminates manual dual-entry work between entities.</li>
+            <li>Provides an auditable <code>matching_transaction_id</code> that links both sides of the transfer.</li>
+            <li>Keeps inter-company balances in sync via <em>Due To</em>/<em>Due From</em> accounts.</li>
+        </ul>
+
+        <h3>Required <em>Due To / Due From</em> Account Structure</h3>
+        <ul>
+            <li><strong>Assets 19xx – “Due From &lt;Other Entity&gt;”</strong></li>
+            <li><strong>Liabilities 29xx – “Due To &lt;Other Entity&gt;”</strong></li>
+            <li>Create one pair per counter-party entity to simplify reconciliation.</li>
+        </ul>
+
+        <h3>Mapping AccuFund Accounts to the New System</h3>
+        <ul>
+            <li>Locate AccuFund GL accounts used for inter-company settlements.</li>
+            <li>Map each to the correct 19xx / 29xx account code in the new chart of
+            accounts (or create new accounts if missing).</li>
+            <li>Confirm each account is assigned to the correct entity in the import CSV.</li>
+        </ul>
+
+        <h3>Migration Considerations for Existing Inter-Entity Transactions</h3>
+        <ul>
+            <li>When importing historical journal entries, populate
+            <code>is_inter_entity</code>, <code>target_entity_id</code> and
+            <code>matching_transaction_id</code> so legacy transfers appear as linked pairs.</li>
+            <li>If AccuFund stored transfers as single multi-line entries, split them into two
+            separate entries (one per entity) during transformation.</li>
+        </ul>
+
+        <h3>Validation Steps Post-Migration</h3>
+        <ul>
+            <li>Run the “Inter-Entity Transfers” report and verify all historic transfers appear in
+            matched pairs.</li>
+            <li>Confirm each entity’s <em>Due To</em> balance equals the counter-party’s
+            <em>Due From</em> balance.</li>
+            <li>Perform a sample transfer in the new system to ensure automatic dual-entry posting
+            functions as expected.</li>
+        </ul>
+    </div>
+
     <div class="section-content">
         <h2>3. Process and Training</h2>
         <h3>Process Documentation:</h3>

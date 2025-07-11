@@ -1,12 +1,15 @@
 // db-config.js
 // Client-side configuration for database connection parameters.
 
+// Allow overriding via environment variables while keeping sensible defaults
+// so the config automatically matches the local PostgreSQL setup but can be
+// customized without editing source code.
 const DB_CONFIG = {
-    host: 'localhost',
-    port: 5432,
-    user: 'postgres',
-    password: 'npfa123',
-    database: 'fund_accounting_db'
+    host: process.env.PGHOST || 'localhost',
+    port: Number(process.env.PGPORT) || 5432,
+    user: process.env.PGUSER || 'postgres',
+    password: process.env.PGPASSWORD || 'npfa123',
+    database: process.env.PGDATABASE || 'fund_accounting_db'
 };
 
 // Helper function to get the database configuration.
