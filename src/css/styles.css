@@ -31,20 +31,31 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height
    colours & underlines while re-using existing hover / active rules.
    ------------------------------------------------------------------*/
 a.nav-item {
-    color: #333;              /* match default nav text colour */
-    text-decoration: none;    /* remove underline */
+    color: inherit !important;           /* inherit colour from .nav-item */
+    text-decoration: none !important;    /* ensure no underline */
     display: inline-block;    /* behave like the div-based items */
 }
 
 /* preserve hover background whilst keeping underline removed */
 a.nav-item:hover {
-    text-decoration: none;
+    text-decoration: none !important;
+    color: inherit !important;
 }
 
 /* ensure active anchor nav item has no underline (colour already
    managed by the .nav-item.active rule above) */
 a.nav-item.active {
-    text-decoration: none;
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+/* ------------------------------------------------------------------
+   Override browser “visited” styling so the Documentation tab (anchor)
+   does not turn purple / underlined after being clicked.
+   ------------------------------------------------------------------*/
+a.nav-item:visited {
+    color: inherit !important;          /* keep same colour as others   */
+    text-decoration: none !important;   /* ensure no underline appears  */
 }
 
 .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
