@@ -25,6 +25,28 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height
 .nav-item:hover { background-color: #e0e0e0; }
 .nav-item.active { background-color: #2196f3; color: white; }
 .main-content { max-width: 1200px; margin: 20px auto; padding: 20px; background-color: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+/* ------------------------------------------------------------------
+   Anchor-based nav items (e.g., “Documentation”) should look and
+   behave exactly like div.nav-item elements.  Override default link
+   colours & underlines while re-using existing hover / active rules.
+   ------------------------------------------------------------------*/
+a.nav-item {
+    color: #333;              /* match default nav text colour */
+    text-decoration: none;    /* remove underline */
+    display: inline-block;    /* behave like the div-based items */
+}
+
+/* preserve hover background whilst keeping underline removed */
+a.nav-item:hover {
+    text-decoration: none;
+}
+
+/* ensure active anchor nav item has no underline (colour already
+   managed by the .nav-item.active rule above) */
+a.nav-item.active {
+    text-decoration: none;
+}
+
 .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
 .content-header h2 { margin: 0; font-size: 1.5em; }
 .action-button { background-color: #4caf50; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: 500; }
