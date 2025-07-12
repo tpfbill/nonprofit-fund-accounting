@@ -4,6 +4,9 @@
  * This script handles data fetching, UI rendering, navigation, and user interactions.
  */
 
+// DEBUGGING: App.js loaded on (timestamp)
+console.log('App.js loaded:', new Date().toISOString(), '- Using API at http://localhost:3000');
+
 // Application State
 const appState = {
     entities: [],
@@ -54,7 +57,9 @@ function formatPercentage(value, total) {
 async function fetchData(endpoint) {
     try {
         console.log(`Fetching data from /api/${endpoint}...`);
-        const response = await fetch(`/api/${endpoint}`);
+        /* Use absolute URL pointing at the backend API (port 3000) to avoid
+         * accidental requests to the static-file server on port 8080. */
+        const response = await fetch(`http://localhost:3000/api/${endpoint}`);
         if (!response.ok) {
             throw new Error(`API Error: ${response.status}`);
         }
@@ -69,7 +74,7 @@ async function fetchData(endpoint) {
 
 async function saveData(endpoint, data, method = 'POST') {
     try {
-        const response = await fetch(`/api/${endpoint}`, {
+        const response = await fetch(`http://localhost:3000/api/${endpoint}`, {
             method,
             headers: {
                 'Content-Type': 'application/json'
@@ -92,7 +97,7 @@ async function checkDatabaseConnection() {
         const dbStatusIndicator = document.getElementById('db-status-indicator');
         
         // Try to fetch entities as a connection test
-        const response = await fetch('/api/entities');
+        const response = await fetch('http://localhost:3000/api/entities');
         if (response.ok) {
             if (dbStatusIndicator) {
                 dbStatusIndicator.textContent = 'DB Connected';
@@ -167,6 +172,10 @@ async function loadFundData() {
         
         // Update dashboard fund balances
         updateDashboardFundBalances();
+        
+        // Funds are now available – rebuild entity-hierarchy viz so
+        // second-level entities display their funds correctly.
+        updateEntityHierarchyVisualization();
         
         return funds;
     } catch (error) {
