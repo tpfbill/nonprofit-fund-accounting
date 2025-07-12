@@ -2046,6 +2046,10 @@ function initializeNavigation() {
                 loadDashboardData();
             } else if (page === 'settings') {
                 showTab(document.getElementById('settings-page'), 'settings-users');
+            } else if (page === 'fund-reports') {
+                /* Ensure the fund dropdown is freshly populated whenever the
+                 * Fund Reports page is opened so new or updated funds appear. */
+                populateFundReportsDropdown();
             }
         });
     });
