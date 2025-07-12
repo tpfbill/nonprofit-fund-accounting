@@ -54,8 +54,8 @@
             <div class="nav-item" onclick="window.location.href='custom-reports-builder.html'">Custom Reports</div>
             <!-- Natural Language Queries navigation -->
             <div class="nav-item" onclick="window.location.href='natural-language-queries.html'">Ask Questions</div>
-            <!-- Documentation Library navigation -->
-            <div class="nav-item" data-page="documentation">Documentation</div>
+            <!-- Documentation Library navigation - direct anchor link with no JavaScript -->
+            <a href="direct-docs.html" class="nav-item">Documentation</a>
             <div class="nav-item" onclick="window.location.href='reports.html'">Reports</div>
             <div class="nav-item" data-page="settings">Settings</div>
         </div>
@@ -238,22 +238,6 @@
             </div>
         </div>
         <!-- ================= End Fund Reports Page =================== -->
-
-        <!-- ================= Documentation Page ====================== -->
-        <div id="documentation-page" class="page">
-            <div class="content-header">
-                <h2>Documentation Library</h2>
-                <p style="color: #666; margin-top: 10px;">
-                    Access comprehensive guides and documentation for the Non-Profit Fund Accounting System
-                </p>
-            </div>
-            <div class="documentation-container">
-                <div class="document-grid" id="document-grid">
-                    <div class="loading-message">Loading documentation...</div>
-                </div>
-            </div>
-        </div>
-        <!-- ================= End Documentation Page ================== -->
 
         <div id="settings-page" class="page">
             <div class="content-header"><h2>System Settings</h2></div>
@@ -587,14 +571,11 @@
             }
         });
     </script>
-
-    <!-- Documentation functionality -->
-    <script src="documentation.js"></script>
     
     <!-- Main application script -->
-    <script src="app.js"></script>
+    <!-- Direct hierarchy-visualization fix -->
+    <script src="direct-hierarchy-fix.js?v=20250712003000"></script>
+    <!-- Main application script -->
+    <script src="app.js?v=20250712003000"></script>
 </body>
 </html>
-
-
-
