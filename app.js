@@ -781,51 +781,94 @@ function updateEntityHierarchyVisualization() {
 }
 
 function buildEntityHierarchyData() {
-    // Create entity map for quick lookup
+    /* ------------------------------------------------------------------
+     * Build an entity map keyed by **stringified** IDs so we avoid
+     * subtle equality issues (UUID objects vs. plain strings, etc.).
+     * Also sprinkle in some debugging to trace hierarchy creation.
+     * ------------------------------------------------------------------ */
+
+    console.log('[Hierarchy] Building entity hierarchy data …');
+    console.log('[Hierarchy] Entities:', appState.entities.length, 'Funds:', appState.funds.length);
+
     const entityMap = {};
     appState.entities.forEach(entity => {
-        entityMap[entity.id] = {
+        const id = String(entity.id);
+        entityMap[id] = {
             ...entity,
+            id,                               // normalised string id
             type: appState.entityTypes.ENTITY,
             children: []
         };
+        console.debug(`  • mapped entity ${entity.name} (${entity.code})`);
     });
-    
-    // Find root entity (TPF_PARENT)
-    const rootEntity = appState.entities.find(entity => 
-        entity.parent_entity_id === null && 
-        (entity.name === 'The Principle Foundation' || entity.code === 'TPF_PARENT')
-    );
-    
-    // If no specific root, use any entity without a parent
-    const fallbackRoot = rootEntity || appState.entities.find(entity => entity.parent_entity_id === null);
-    
-    // Build the hierarchy
+
+    /* ------------------------------------------------------------------
+     * Identify root (TPF_PARENT) – fall back to first top-level entity
+     * ------------------------------------------------------------------ */
+    const rootEntity =
+        appState.entities.find(
+            e =>
+                e.parent_entity_id === null &&
+                (e.name === 'The Principle Foundation' || e.code === 'TPF_PARENT')
+        ) || appState.entities.find(e => e.parent_entity_id === null);
+
     const hierarchy = {
-        root: fallbackRoot ? entityMap[fallbackRoot.id] : null,
+        root: rootEntity ? entityMap[String(rootEntity.id)] : null,
         entities: entityMap
     };
-    
-    // Add child entities to their parents
+
+    /* ------------------------------------------------------------------
+     * Wire child entities to their parents
+     * ------------------------------------------------------------------ */
     appState.entities.forEach(entity => {
-        if (entity.parent_entity_id && entityMap[entity.parent_entity_id]) {
-            entityMap[entity.parent_entity_id].children.push(entityMap[entity.id]);
+        if (!entity.parent_entity_id) return;
+        const parentId = String(entity.parent_entity_id);
+        const selfId = String(entity.id);
+
+        if (entityMap[parentId]) {
+            entityMap[parentId].children.push(entityMap[selfId]);
+        } else {
+            console.warn(`[Hierarchy] Parent entity ${parentId} missing for ${entity.code}`);
         }
     });
-    
-    // Add funds to their respective entities
+
+    /* ------------------------------------------------------------------
+     * Attach funds to owning entities
+     * ------------------------------------------------------------------ */
     appState.funds.forEach(fund => {
-        const fundObj = {
+        const owningId = String(fund.entity_id);
+        if (!entityMap[owningId]) {
+            console.warn(`[Hierarchy] Entity ${owningId} not found for fund ${fund.code}`);
+            return;
+        }
+
+        entityMap[owningId].children.push({
             ...fund,
+            id: String(fund.id),
             type: appState.entityTypes.FUND,
             children: []
-        };
-        
-        if (entityMap[fund.entity_id]) {
-            entityMap[fund.entity_id].children.push(fundObj);
-        }
+        });
     });
-    
+
+    /* ------------------------------------------------------------------
+     * Debug: log counts so we can see if funds were attached
+     * ------------------------------------------------------------------ */
+    if (hierarchy.root) {
+        console.log(
+            `[Hierarchy] Root ${hierarchy.root.name} children:`,
+            hierarchy.root.children.length
+        );
+        hierarchy.root.children.forEach(child => {
+            const fundCount = child.children.filter(c => c.type === appState.entityTypes.FUND)
+                .length;
+            console.log(
+                `    - ${child.name} (${child.code}) → entities+funds: ${child.children.length} (funds ${fundCount})`
+            );
+        });
+    } else {
+        console.warn('[Hierarchy] No root entity detected – hierarchy may be empty.');
+    }
+
     return hierarchy;
 }
 
