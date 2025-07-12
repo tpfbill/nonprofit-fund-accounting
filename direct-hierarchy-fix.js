@@ -5,44 +5,19 @@
  */
 
 (function() {
+    // Store reference to the fix function in window for direct access
+    window.rebuildEntityHierarchy = applyHierarchyFix;
+    
     // Execute when document is fully loaded
     document.addEventListener('DOMContentLoaded', function() {
         console.log('[DirectHierarchyFix] Script loaded and ready');
         
-        // Apply the fix when Settings page is shown
-        const fixHierarchyOnSettingsPage = function() {
-            if (window.appState && window.appState.currentPage === 'settings') {
-                console.log('[DirectHierarchyFix] Settings page detected, applying fix...');
-                setTimeout(applyHierarchyFix, 500); // Small delay to ensure data is loaded
-            }
-        };
-        
-        // Watch for page changes
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.attributeName === 'class' && 
-                    mutation.target.classList.contains('active') && 
-                    mutation.target.id === 'settings-page') {
-                    fixHierarchyOnSettingsPage();
-                }
-            });
-        });
-        
-        // Start observing page changes
-        document.querySelectorAll('.page').forEach(page => {
-            observer.observe(page, { attributes: true });
-        });
-        
-        // Also check current page on load
-        if (document.getElementById('settings-page').classList.contains('active')) {
-            fixHierarchyOnSettingsPage();
-        }
-        
         // Add a direct fix button to the entity hierarchy section
         const addFixButton = function() {
             const entityViz = document.getElementById('entity-relationship-viz');
-            if (entityViz) {
+            if (entityViz && !document.getElementById('rebuild-hierarchy-btn')) {
                 const fixButton = document.createElement('button');
+                fixButton.id = 'rebuild-hierarchy-btn';
                 fixButton.textContent = 'Rebuild Hierarchy';
                 fixButton.className = 'action-button';
                 fixButton.style.marginBottom = '10px';
@@ -54,14 +29,40 @@
             }
         };
         
-        // Try to add the button when settings tab is shown
-        document.querySelectorAll('.tab-item').forEach(tab => {
-            tab.addEventListener('click', function(e) {
-                if (e.currentTarget.dataset.tab === 'settings-entities') {
-                    setTimeout(addFixButton, 100);
+        // Add fix button when entities tab is shown in settings
+        // Use a direct approach instead of mutation observer
+        const entitiesTab = document.querySelector('.tab-item[data-tab="settings-entities"]');
+        if (entitiesTab) {
+            // Use the original click handler, don't override it
+            const originalClickHandler = entitiesTab.onclick;
+            entitiesTab.onclick = function(e) {
+                // Call the original handler if it exists
+                if (typeof originalClickHandler === 'function') {
+                    originalClickHandler.call(this, e);
                 }
-            });
-        });
+                
+                // Add our button after a slight delay
+                setTimeout(function() {
+                    addFixButton();
+                    // Apply the fix automatically
+                    setTimeout(applyHierarchyFix, 300);
+                }, 100);
+            };
+        }
+        
+        // Check if we're already on the settings-entities tab
+        if (document.getElementById('settings-page') && 
+            document.getElementById('settings-page').classList.contains('active')) {
+            const entitiesPanel = document.getElementById('settings-entities');
+            if (entitiesPanel && entitiesPanel.classList.contains('active')) {
+                // We're already on the entities tab, add the button
+                setTimeout(function() {
+                    addFixButton();
+                    // Apply the fix automatically
+                    setTimeout(applyHierarchyFix, 300);
+                }, 500);
+            }
+        }
     });
     
     /**
@@ -217,7 +218,9 @@
             childrenContainer.className = 'direct-children-container';
             
             // Toggle functionality
-            toggleButton.addEventListener('click', function() {
+            toggleButton.addEventListener('click', function(e) {
+                // Stop event propagation to prevent conflicts with other handlers
+                e.stopPropagation();
                 childrenContainer.classList.toggle('collapsed');
                 toggleButton.textContent = childrenContainer.classList.contains('collapsed') ? '►' : '▼';
             });
