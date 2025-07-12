@@ -1772,15 +1772,32 @@ async function deleteJournalEntry(entryId) {
 // ===================================================================
 
 function populateFundReportsDropdown() {
+    /* ------------------------------------------------------------------
+     * DEBUGGING
+     * ------------------------------------------------------------------
+     *  1.  Log when the function is called
+     *  2.  Log how many funds are in appState.funds
+     *  3.  Log each fund that is being processed
+     *  4.  Warn if the dropdown element cannot be found
+     * ------------------------------------------------------------------ */
+    console.log('[FundReports] populateFundReportsDropdown() called');
+    console.log(`[FundReports] appState.funds contains ${appState.funds.length} fund(s)`);
+
     const fundSelect = document.getElementById('fund-reports-fund-select');
-    if (!fundSelect) return;
+    if (!fundSelect) {
+        console.warn('[FundReports] ⚠️  #fund-reports-fund-select element not found – cannot populate dropdown');
+        return;
+    }
+
+    console.log('[FundReports] 🞄 Dropdown element located – populating options …');
 
     fundSelect.innerHTML = '<option value="">Select a Fund...</option>';
     
     // Sort funds alphabetically by name
-    const sortedFunds = [...appState.funds].sort((a,b) => a.name.localeCompare(b.name));
+    const sortedFunds = [...appState.funds].sort((a, b) => a.name.localeCompare(b.name));
     
     sortedFunds.forEach(fund => {
+        console.debug(`[FundReports]    ↳ adding option: ${fund.name} (${fund.code}) [id=${fund.id}]`);
         const option = document.createElement('option');
         option.value = fund.id;
         option.textContent = `${fund.name} (${fund.code})`;
@@ -2042,13 +2059,12 @@ function initializeNavigation() {
 
             // Load page-specific data
             if (page === 'dashboard') {
-                console.log('[Navigation] Loading dashboard data...');
+                console.log('[Navigation] Loading dashboard data');
                 loadDashboardData();
             } else if (page === 'settings') {
                 showTab(document.getElementById('settings-page'), 'settings-users');
             } else if (page === 'fund-reports') {
-                /* Ensure the fund dropdown is freshly populated whenever the
-                 * Fund Reports page is opened so new or updated funds appear. */
+                // ensure dropdown is current each time Fund Reports opens
                 populateFundReportsDropdown();
             }
         });
