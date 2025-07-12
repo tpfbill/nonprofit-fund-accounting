@@ -205,8 +205,8 @@
         <div class="cover-page">
             <h1>Non-Profit Fund Accounting System</h1>
             <h2>User Guide</h2>
-            <p>Version 8.6</p>
-            <p>Date: July 8, 2025</p>
+            <p>Version 8.8</p>
+            <p>Date: July 11, 2025</p>
         </div>
 
         <div class="toc page-break-before">
@@ -271,12 +271,20 @@
                 <li><a href="#natural-language-query">9. Natural Language Query</a></li>
                 <li><a href="#custom-reports-builder">10. Custom Reports Builder</a></li>
                 <li><a href="#data-import-export">11. Data Import / Export</a></li>
-                <li><a href="#system-settings">12. System Settings</a>
+                <li><a href="#bank-account-management">12. Bank Account Management</a>
                     <ul>
-                        <li><a href="#settings-access">12.1 Accessing Settings</a></li>
-                        <li><a href="#settings-users">12.2 User Management</a></li>
-                        <li><a href="#settings-organization">12.3 Organization Settings</a></li>
-                        <li><a href="#settings-fiscal-years">12.4 Fiscal Year Management</a></li>
+                        <li><a href="#bank-access">12.1 Accessing Bank Accounts</a></li>
+                        <li><a href="#bank-add-edit">12.2 Adding/Editing Bank Accounts</a></li>
+                        <li><a href="#bank-reconciliation">12.3 Bank Account Reconciliation</a></li>
+                        <li><a href="#bank-linking">12.4 Linking Transactions</a></li>
+                    </ul>
+                </li>
+                <li><a href="#system-settings">13. System Settings</a>
+                    <ul>
+                        <li><a href="#settings-access">13.1 Accessing Settings</a></li>
+                        <li><a href="#settings-users">13.2 User Management</a></li>
+                        <li><a href="#settings-organization">13.3 Organization Settings</a></li>
+                        <li><a href="#settings-fiscal-years">13.4 Fiscal Year Management</a></li>
                     </ul>
                 </li>
             </ul>
@@ -300,11 +308,48 @@
         </div>
 
         <div id="getting-started" class="page-break-before">
+        <!-- 12. Bank Account Management                                     -->
+        <!-- =============================================================== -->
+        <div id="bank-account-management" class="page-break-before">
+            <h2 class="section-title">12. Bank Account Management</h2>
+
+            <h3 id="bank-access" class="subsection-title">12.1 Accessing Bank Accounts</h3>
+            <p>Select <strong>Bank Accounts</strong> from the main navigation bar (or navigate to <code>/bank-accounts</code>). A table lists every connected or manually-tracked bank account.</p>
+
+            <h3 id="bank-add-edit" class="subsection-title">12.2 Adding/Editing Bank Accounts</h3>
+            <p>Click <em>Add Bank Account</em> to open the account form.  Required fields include:</p>
+            <ul class="feature-list">
+                <li><strong>Bank Name</strong> – e.g.&nbsp;“First National Bank”.</li>
+                <li><strong>Account Name</strong> – descriptive label (“Operating Checking”).</li>
+                <li><strong>Account / Routing Numbers</strong> (optional for manual tracking).</li>
+                <li><strong>Type</strong> – Checking, Savings, Credit Card, etc.</li>
+                <li><strong>Connection Method</strong> – Manual, Plaid, or OFX.</li>
+            </ul>
+            <p>Edit an account by clicking the <em>Edit</em> button in the Actions column.</p>
+
+            <h3 id="bank-reconciliation" class="subsection-title">12.3 Bank Account Reconciliation</h3>
+            <p>The <em>Reconcile</em> button lets you compare system activity with bank statements.</p>
+            <ol>
+                <li>Select a statement period and enter the ending balance.</li>
+                <li>Mark cleared transactions; the system shows the <em>Difference</em> until it reaches $0.00.</li>
+                <li>Click <em>Finish Reconciliation</em> to lock the period and save a PDF summary.</li>
+            </ol>
+
+            <h3 id="bank-linking" class="subsection-title">12.4 Linking Transactions</h3>
+            <p>While viewing a bank account, you may link imported bank feeds to existing journal entries:</p>
+            <ul class="feature-list">
+                <li>Match suggestions appear automatically based on date and amount.</li>
+                <li>Select <em>Create New Entry</em> if no match exists.</li>
+                <li>Linked items are removed from the <em>Unmatched</em> queue, ensuring your GL stays in sync with the bank.</li>
+            </ul>
+        </div>
+
+        <!-- =============================================================== -->
             <h2 class="section-title">2. Getting Started</h2>
             <h3 id="accessing" class="subsection-title">2.1 Accessing the Application</h3>
             <p>To access the Non-Profit Fund Accounting System, open your web browser and navigate to the following URL:</p>
-            <p><code>http://localhost:8080/simple-centered-app.html</code></p>
-            <p>(Note: This URL is for the local demo version. Your production URL may differ.)</p>
+            <h2 class="section-title">13. System Settings</h2>
+            <h3 id="settings-access" class="subsection-title">13.1 Accessing Settings</h3>
 
             <h3 id="logging-in" class="subsection-title">2.2 Logging In</h3>
             <p>While the current demo version does not feature a live login screen, a typical login process would involve entering your assigned username and password. For demonstration purposes, the system assumes you are logged in as "John Doe (Admin)".</p>
@@ -772,7 +817,7 @@
             <h3 id="settings-access" class="subsection-title">12.1 Accessing Settings</h3>
             <p>To access system settings, click on "Settings" in the main navigation bar. The Settings page uses a tabbed interface for different categories of settings.</p>
 
-            <h3 id="settings-users" class="subsection-title">12.2 User Management</h3>
+            <h3 id="settings-users" class="subsection-title">13.2 User Management</h3>
             <p>Select the "Users" tab to manage user accounts.</p>
             <ul class="feature-list">
                 <li><strong>Viewing Users:</strong> A table lists existing users with their Name, Email, Role, and Status. An "Edit" button is available for each user.</li>
@@ -784,7 +829,7 @@
                 <p>A table lists users. Above the table is an "Add User" button. Columns include Name, Email, Role, Status, Actions.</p>
             </div>
 
-            <h3 id="settings-organization" class="subsection-title">12.3 Organization Settings</h3>
+            <h3 id="settings-organization" class="subsection-title">13.3 Organization Settings</h3>
             <p>Select the "Organization" tab to configure details about your non-profit.</p>
             <ul class="feature-list">
                 <li><strong>General Information:</strong> Fields for Organization Name, EIN/Tax ID, Phone Number, Email Address.</li>
@@ -798,7 +843,7 @@
                 <p>A form with sections for General Information, Address, Financial Settings, and System Settings. Input fields and dropdowns are present for each setting. "Save Changes" button is available.</p>
             </div>
 
-            <h3 id="settings-fiscal-years" class="subsection-title">12.4 Fiscal Year Management</h3>
+            <h3 id="settings-fiscal-years" class="subsection-title">13.4 Fiscal Year Management</h3>
             <p>Select the "Fiscal Years" tab to manage your organization's fiscal years and periods.</p>
             <ul class="feature-list">
                 <li><strong>Viewing Fiscal Years:</strong> A table lists existing fiscal years with their Name/Code, Start Date, End Date, and Status (e.g., Current, Closed). Action buttons allow viewing or editing.</li>

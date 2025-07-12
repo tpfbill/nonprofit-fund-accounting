@@ -17,6 +17,17 @@
     </script>
     <!-- Chart.js debugging utilities -->
     <script src="chart-debug.js"></script>
+
+    <!-- Force hide the old documentation page -->
+    <style>
+      #documentation-page {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+      }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -54,8 +65,8 @@
             <div class="nav-item" onclick="window.location.href='custom-reports-builder.html'">Custom Reports</div>
             <!-- Natural Language Queries navigation -->
             <div class="nav-item" onclick="window.location.href='natural-language-queries.html'">Ask Questions</div>
-            <!-- Documentation Library navigation - direct anchor link with no JavaScript -->
-            <a href="direct-docs.html" class="nav-item">Documentation</a>
+            <!-- Documentation Library navigation - direct anchor link -->
+            <a href="direct-docs.html" class="nav-item" id="documentation-link">Documentation</a>
             <div class="nav-item" onclick="window.location.href='reports.html'">Reports</div>
             <div class="nav-item" data-page="settings">Settings</div>
         </div>
@@ -568,13 +579,29 @@
                         loadBankAccountData();
                     }
                 });
-            }
-        });
+
+                /* -----------------------------------------------------------
+                 *  Ensure documentation list is fetched whenever the
+                /* Documentation tab now navigates directly to an external page
+                 * using a cache-busting timestamp; no dynamic JS loading needed. */
     </script>
+
     
     <!-- Main application script -->
-    <!-- Main application script -->
-    <!-- Cache-busting timestamp updated to force fresh load -->
-    <script src="app.js?v=20250712010000"></script>
+    <!-- Cache-busting query string ensures the latest app.js is fetched -->
+    <script src="app.js?v=20250712001650"></script>
+
+    <!-- Ensure documentation link always carries a fresh timestamp -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const docLink = document.getElementById('documentation-link');
+        if (docLink) {
+          docLink.href = 'direct-docs.html?t=' + Date.now();
+        }
+      });
+    </script>
 </body>
 </html>
+
+
+

@@ -1,0 +1,582 @@
+<h1
+id="nonprofit-fund-accounting-system---administrators-guide-v8.8">Nonprofit
+Fund Accounting System - Administrator's Guide (v8.8)</h1>
+<h2 id="introduction-and-scope">1. Introduction and Scope</h2>
+<p>Welcome to the Administrator's Guide for the Nonprofit Fund
+Accounting System. This document provides comprehensive instructions for
+system administrators responsible for deploying, managing, and
+maintaining the application.</p>
+<p>This guide is intended for technical users with command-line access
+to the server environment. It covers installation, configuration,
+security, maintenance, and troubleshooting for both traditional Linux
+and Docker-based deployments. For end-user functionality, please refer
+to the <code>nonprofit-accounting-user-guide.html</code>.</p>
+<hr />
+<h2 id="system-requirements">2. System Requirements</h2>
+<h3 id="traditional-linux-deployment">2.1. Traditional Linux
+Deployment</h3>
+<ul>
+<li><strong>Operating System</strong>: Ubuntu Server 22.04 LTS
+(Recommended) or other modern Debian/RHEL-based distro.</li>
+<li><strong>Software</strong>:
+<ul>
+<li>Node.js v18.x or later</li>
+<li>PostgreSQL v16 or later</li>
+<li>Nginx (or another web server as a reverse proxy)</li>
+<li>Git</li>
+</ul></li>
+<li><strong>Hardware</strong>: Minimum 1 vCPU, 1 GB RAM, 25 GB
+Storage.</li>
+</ul>
+<h3 id="docker-deployment-windows-or-linux">2.2. Docker Deployment
+(Windows or Linux)</h3>
+<ul>
+<li><strong>Docker Desktop for Windows</strong> with WSL 2 backend
+enabled, or <strong>Docker Engine</strong> on Linux.</li>
+<li><strong>Docker Compose</strong></li>
+<li><strong>Git</strong></li>
+<li><strong>Hardware</strong>: Minimum 2 CPU cores, 4 GB RAM, 50 GB
+Storage.</li>
+</ul>
+<hr />
+<h2 id="installation-procedures">3. Installation Procedures</h2>
+<h3 id="traditional-linux-server">3.1. Traditional Linux Server</h3>
+<p>This is a summary of the full deployment process.</p>
+<ol type="1">
+<li><p><strong>Connect &amp; Update</strong>:
+<code>ssh user@your-server-ip</code> then
+<code>sudo apt update &amp;&amp; sudo apt upgrade -y</code>.</p></li>
+<li><p><strong>Create App User</strong>: <code>sudo adduser npfa</code>
+and <code>sudo usermod -aG sudo npfa</code>. Switch to user with
+<code>sudo su - npfa</code>.</p></li>
+<li><p><strong>Install Dependencies</strong>:</p>
+<ul>
+<li><strong>Node.js</strong>: Use <code>nodesource</code> to install
+v18.</li>
+<li><strong>PostgreSQL</strong>:
+<code>sudo apt install postgresql postgresql-contrib</code>.</li>
+<li><strong>Nginx</strong>: <code>sudo apt install nginx</code>.</li>
+</ul></li>
+<li><p><strong>Clone Repository</strong>:
+<code>git clone -b v8.8 https://github.com/tpfbill/nonprofit-fund-accounting.git</code>
+into <code>/home/npfa/</code>.</p></li>
+<li><p><strong>Install App Dependencies</strong>:
+<code>cd nonprofit-fund-accounting &amp;&amp; npm install</code>.</p></li>
+<li><p><strong>Configure Environment</strong>: Create a
+<code>.env</code> file with your database credentials and
+<code>NODE_ENV=production</code>.</p></li>
+<li><p><strong>Set up Database</strong>: Create the user and database in
+PostgreSQL.</p></li>
+<li><p><strong>Initialize Database</strong>: Run the comprehensive database initialization script:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">psql</span> <span class="at">-h</span> localhost <span class="at">-U</span> postgres <span class="at">-d</span> fund_accounting_db <span class="at">-f</span> db-init.sql</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">node</span> add-test-data.js</span></code></pre></div></li>
+<li><p><strong>Create Systemd Service</strong>: Create
+<code>/etc/systemd/system/npfa.service</code> to run the app as a
+service.</p></li>
+<li><p><strong>Configure Nginx</strong>: Set up a reverse proxy in
+<code>/etc/nginx/sites-available/</code> to forward requests to the
+Node.js app on port 3000.</p></li>
+<li><p><strong>Enable Firewall &amp; SSL</strong>: Use <code>ufw</code>
+and <code>certbot</code> to secure the server.</p></li>
+</ol>
+<h3 id="docker-deployment-windowslinux">3.2. Docker Deployment
+(Windows/Linux)</h3>
+<p>For detailed instructions, refer to
+<strong><code>DOCKER_SETUP_WINDOWS.md</code></strong>. The process
+is:</p>
+<ol type="1">
+<li><p><strong>Clone Repository</strong>:
+<code>git clone -b v8.8 https://github.com/tpfbill/nonprofit-fund-accounting.git</code>.</p></li>
+<li><p><strong>Configure Environment</strong>: Rename
+<code>.env.docker</code> to <code>.env</code>.</p></li>
+<li><p><strong>Build &amp; Run</strong>:
+<code>docker-compose up -d --build</code>.</p></li>
+<li><p><strong>Initialize Database</strong>:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> exec app sh</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Inside container:</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">apk</span> add <span class="at">--no-cache</span> postgresql-client</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">psql</span> <span class="at">-h</span> db <span class="at">-U</span> postgres <span class="at">-d</span> fund_accounting_db <span class="at">-f</span> db-init.sql</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">node</span> add-test-data.js</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="bu">exit</span></span></code></pre></div></li>
+<li><p><strong>Access</strong>: Open <code>http://localhost:3000</code>
+in your browser.</p></li>
+</ol>
+<hr />
+<h2 id="initial-system-configuration">4. Initial System
+Configuration</h2>
+<p>After installation, perform these initial setup steps via the
+application's UI:</p>
+<ol type="1">
+<li><strong>Log In</strong>: Use the default administrator credentials
+(if any) or create the first user directly in the database.</li>
+<li><strong>Organization Settings</strong>: Navigate to
+<code>Settings &gt; Organization</code> and configure your
+organization's name, address, and financial settings.</li>
+<li><strong>Fiscal Years</strong>: Navigate to
+<code>Settings &gt; Fiscal Years</code> to define your fiscal
+periods.</li>
+<li><strong>Chart of Accounts</strong>: Navigate to
+<code>Chart of Accounts</code> and either import your CoA from AccuFund
+or configure it manually.</li>
+<li><strong>Funds</strong>: Navigate to <code>Funds</code> and set up
+your fund structure.</li>
+</ol>
+<hr />
+<h2 id="database-administration">5. Database Administration</h2>
+<ul>
+<li><p><strong>Read-Only User for BI Tools</strong>: It is highly
+recommended to create a separate, read-only user for connecting
+third-party BI tools like Metabase or Tableau.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Connect to psql as the postgres user</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> readonly_user LOGIN <span class="kw">PASSWORD</span> <span class="st">&#39;your_secure_password&#39;</span>;</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">CONNECT</span> <span class="kw">ON</span> <span class="kw">DATABASE</span> fund_accounting_db <span class="kw">TO</span> readonly_user;</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">USAGE</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> readonly_user;</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">SELECT</span> <span class="kw">ON</span> <span class="kw">ALL</span> <span class="kw">TABLES</span> <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">TO</span> readonly_user;</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">ALTER</span> <span class="kw">DEFAULT</span> <span class="kw">PRIVILEGES</span> <span class="kw">IN</span> <span class="kw">SCHEMA</span> <span class="kw">public</span> <span class="kw">GRANT</span> <span class="kw">SELECT</span> <span class="kw">ON</span> <span class="kw">TABLES</span> <span class="kw">TO</span> readonly_user;</span></code></pre></div></li>
+<li><p><strong>Comprehensive Database Initialization</strong>: As of v8.8, a comprehensive database initialization script (<code>db-init.sql</code>) is provided that creates all necessary tables with proper relationships. This script includes:</p>
+<ul>
+<li>Creation of the pgcrypto extension for UUID generation</li>
+<li>Tables for users, entities, funds, accounts, journal entries, and bank accounts</li>
+<li>Appropriate indexes and constraints</li>
+<li>Default permissions</li>
+</ul>
+<p>To use this script:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">psql</span> <span class="at">-h</span> localhost <span class="at">-U</span> postgres <span class="at">-d</span> fund_accounting_db <span class="at">-f</span> db-init.sql</span></code></pre></div></li>
+<li><p><strong>Manual Migrations</strong>: If a future update requires a
+database schema change, a migration script (<code>.sql</code> file) will
+be provided. Run it using <code>psql</code>. Always back up the database
+first.</p></li>
+</ul>
+<hr />
+<h2 id="user-management">6. User Management</h2>
+<p>User management is handled within the application UI: *
+<strong>Location</strong>: <code>Settings &gt; Users</code> *
+<strong>Actions</strong>: * <strong>Add User</strong>: Click "Add User"
+and fill in the details. * <strong>Edit User</strong>: Click the "Edit"
+button next to a user to change their name, email, or role. *
+<strong>Deactivate User</strong>: Edit the user and change their status
+to "Inactive".</p>
+<hr />
+<h2 id="entity-and-fund-hierarchy-administration">7. Entity and Fund
+Hierarchy Administration</h2>
+<p>The organizational structure is critical for proper reporting. *
+<strong>Reference</strong>: <code>docs/HIERARCHY_GUIDE.md</code>
+provides a deep dive into the architecture. *
+<strong>Management</strong>: Handled in
+<code>Settings &gt; Entities</code>. * <strong>Key Principles</strong>:
+* There should be <strong>one</strong> top-level entity with
+<code>is_consolidated = true</code>. * Child entities should correctly
+point to their parent. * Funds are always associated with a single
+entity. * Use the "All Entities" filter on the Funds and Journal Entries
+pages to manage items before deleting an entity.</p>
+<h3 id="inter-entity-transfer-configuration">7.4 Inter-Entity Transfer
+Configuration</h3>
+<p>The <strong>Inter-Entity Transfer</strong> feature allows you to move cash between sibling entities while
+automatically creating a balanced pair of journal entries and
+maintaining accurate <strong>Due To / Due From</strong> balances.</p>
+<h4 id="purpose">1. Purpose</h4>
+<ul>
+<li>Eliminate manual dual-entry work when one legal entity advances or
+reimburses funds to another.<br />
+</li>
+<li>Preserve an auditable trail by linking the two journal entries with
+a shared <strong><code>matching_transaction_id</code></strong>.</li>
+</ul>
+<h4 id="required-account-types">2. Required Account Types</h4>
+<p>Each entity that will participate in transfers must have:</p>
+<table>
+<thead>
+<tr>
+<th>Account Type</th>
+<th>Typical Code Range</th>
+<th>Example Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Asset</strong></td>
+<td>19-xxxx</td>
+<td>"Due From &lt;Other Entity&gt;"</td>
+</tr>
+<tr>
+<td><strong>Liability</strong></td>
+<td>29-xxxx</td>
+<td>"Due To &lt;Other Entity&gt;"</td>
+</tr>
+</tbody>
+</table>
+<p>These accounts should be <strong>Active</strong> and mapped to the
+correct entity.</p>
+<h4 id="setup-checklist">3. Setup Checklist</h4>
+<ol type="1">
+<li>Navigate to <strong>Chart of Accounts → Add Account</strong>.<br />
+</li>
+<li>Select the <strong>Entity</strong> field so the account belongs to
+the right legal entity.<br />
+</li>
+<li>Choose <strong>Type = Asset</strong> (for "Due From") or
+<strong>Liability</strong> (for "Due To").<br />
+</li>
+<li>Use consistent codes (e.g., <code>1901</code>, <code>2901</code>) so
+the dropdown filters in the wizard recognise them.<br />
+</li>
+<li>Repeat for every pair of entities that may transact.</li>
+</ol>
+<h4 id="best-practices">4. Best Practices</h4>
+<ul>
+<li>Create one dedicated Due To / Due From account <strong>per
+counter-party</strong> instead of a single pooled account.<br />
+</li>
+<li>Agree on a naming convention (e.g., "Due From – TPF" / "Due To –
+TPF-ES") to make reconciliation easier.<br />
+</li>
+<li>Post transfers <strong>as-of the actual cash movement date</strong>
+to keep books aligned with bank activity.<br />
+</li>
+<li>Review the <strong>Inter-Entity Transfers</strong> list (Reports →
+Inter-Entity) monthly to ensure all pairs are present and balanced.</li>
+</ul>
+<h4 id="troubleshooting">5. Troubleshooting</h4>
+<table>
+<colgroup>
+<col style="width: 21%" />
+<col style="width: 42%" />
+<col style="width: 36%" />
+</colgroup>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Likely Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"No Due From accounts found" in wizard</td>
+<td>Asset account not matching filter (name lacks "Due From" or code not
+<code>19…</code>)</td>
+<td>Edit or create the correct account and retry.</td>
+</tr>
+<tr>
+<td>Transfer posts but entity balances don't match</td>
+<td>One of the journal entries was edited or deleted</td>
+<td>Use the <strong>matching_transaction_id</strong> to locate both
+entries, correct or repost.</td>
+</tr>
+<tr>
+<td>Wizard hangs on submission</td>
+<td>Database constraint failure (missing fund/account ID)</td>
+<td>Check server logs; ensure all selected IDs exist and are
+active.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="bank-account-management-system">8. Bank Account Management System</h2>
+<p>The Bank Account Management System (added in v8.7) provides comprehensive tools for managing bank accounts, tracking balances, and monitoring connections.</p>
+
+<h3 id="features">8.1. Features</h3>
+<ul>
+<li><strong>Account Management</strong>: Create, edit, and delete bank accounts</li>
+<li><strong>Connection Testing</strong>: Verify connectivity to bank accounts</li>
+<li><strong>Synchronization</strong>: Update account information and balances</li>
+<li><strong>Balance Tracking</strong>: Monitor account balances across all connected accounts</li>
+</ul>
+
+<h3 id="configuration">8.2. Configuration</h3>
+<p>Bank accounts are managed through the application UI:</p>
+<ol type="1">
+<li><strong>Access</strong>: Navigate to <code>Settings &gt; Bank Accounts</code></li>
+<li><strong>Add Account</strong>: Click "Add Bank Account" and fill in the required details:
+<ul>
+<li>Bank Name: Select from predefined options or enter a custom name</li>
+<li>Account Name: Descriptive name for the account</li>
+<li>Account Number: The actual account number (masked in the UI for security)</li>
+<li>Routing Number: Bank routing number</li>
+<li>Account Type: Checking, Savings, Credit Line, etc.</li>
+<li>Connection Method: Manual, Online Banking, or API Integration</li>
+<li>Status: Active, Inactive, or Pending</li>
+<li>Initial Balance: Starting balance for the account</li>
+<li>Description: Optional notes about the account</li>
+</ul>
+</li>
+<li><strong>Test Connection</strong>: Use the "Test" button to verify connectivity</li>
+<li><strong>Sync All Accounts</strong>: Click "Sync All Accounts" to update all account information</li>
+</ol>
+
+<h3 id="database-schema">8.3. Database Schema</h3>
+<p>The bank account data is stored in the <code>bank_accounts</code> table:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> <span class="cf">IF</span> <span class="kw">NOT</span> <span class="kw">EXISTS</span> bank_accounts (</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    id UUID <span class="kw">PRIMARY</span> <span class="kw">KEY</span> <span class="kw">DEFAULT</span> gen_random_uuid(),</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    bank_name <span class="kw">VARCHAR</span>(<span class="dv">100</span>) <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    account_name <span class="kw">VARCHAR</span>(<span class="dv">100</span>) <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    account_number <span class="kw">VARCHAR</span>(<span class="dv">50</span>),</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    routing_number <span class="kw">VARCHAR</span>(<span class="dv">50</span>),</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">type</span> <span class="kw">VARCHAR</span>(<span class="dv">50</span>) <span class="kw">NOT</span> <span class="kw">NULL</span>,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    status <span class="kw">VARCHAR</span>(<span class="dv">20</span>) <span class="kw">DEFAULT</span> <span class="st">&#39;Active&#39;</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    balance <span class="kw">DECIMAL</span>(<span class="dv">15</span>,<span class="dv">4</span>) <span class="kw">DEFAULT</span> <span class="dv">0</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    connection_method <span class="kw">VARCHAR</span>(<span class="dv">50</span>) <span class="kw">DEFAULT</span> <span class="st">&#39;Manual&#39;</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    description <span class="kw">TEXT</span>,</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    last_sync TIMESTAMPTZ,</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    created_at TIMESTAMPTZ <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="fu">CURRENT_TIMESTAMP</span>,</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    updated_at TIMESTAMPTZ <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">DEFAULT</span> <span class="fu">CURRENT_TIMESTAMP</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div>
+
+<h3 id="api-endpoints">8.4. API Endpoints</h3>
+<p>The following API endpoints are available for bank account management:</p>
+<ul>
+<li><code>GET /api/bank-accounts</code>: List all bank accounts</li>
+<li><code>POST /api/bank-accounts</code>: Create a new bank account</li>
+<li><code>PUT /api/bank-accounts/:id</code>: Update an existing bank account</li>
+<li><code>DELETE /api/bank-accounts/:id</code>: Delete a bank account</li>
+<li><code>POST /api/bank-accounts/sync</code>: Synchronize all bank accounts</li>
+<li><code>POST /api/bank-accounts/:id/test-connection</code>: Test connection to a specific bank account</li>
+</ul>
+
+<h3 id="troubleshooting-bank-accounts">8.5. Troubleshooting</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Likely Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Connection test fails</td>
+<td>Network connectivity issues or incorrect credentials</td>
+<td>Check network settings, verify account credentials, ensure the bank's API is operational</td>
+</tr>
+<tr>
+<td>Bank accounts not displaying</td>
+<td>Database connectivity issue or permission problem</td>
+<td>Verify database connection, check if the bank_accounts table exists, ensure proper permissions</td>
+</tr>
+<tr>
+<td>Sync operation hangs</td>
+<td>Timeout connecting to bank API or rate limiting</td>
+<td>Check server logs, increase timeout settings, implement retry logic with exponential backoff</td>
+</tr>
+<tr>
+<td>Balance discrepancies</td>
+<td>Manual edits or failed sync operations</td>
+<td>Reconcile with bank statements, check transaction history, perform manual balance adjustment</td>
+</tr>
+</tbody>
+</table>
+
+<h3 id="security-considerations-bank">8.6. Security Considerations</h3>
+<ul>
+<li><strong>Sensitive Data</strong>: Account numbers and routing numbers should be encrypted in the database</li>
+<li><strong>API Credentials</strong>: Store bank API credentials securely using environment variables</li>
+<li><strong>Access Control</strong>: Restrict bank account management to administrative users only</li>
+<li><strong>Audit Trail</strong>: Maintain logs of all changes to bank account information</li>
+</ul>
+<hr />
+<h2 id="backup-and-recovery-procedures">9. Backup and Recovery
+Procedures</h2>
+<h3 id="backup">9.1. Backup</h3>
+<p>Automated backup scripts are included in the <code>scripts/</code>
+directory.</p>
+<ul>
+<li><p><strong>Linux</strong>: Schedule
+<code>scripts/update-linux.sh</code> to run daily via <code>cron</code>.
+It automatically creates backups before updating. For manual
+backups:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pg_dump</span> <span class="at">-U</span> postgres <span class="at">-h</span> localhost fund_accounting_db <span class="op">&gt;</span> backup.sql</span></code></pre></div></li>
+<li><p><strong>Docker</strong>: Schedule
+<code>scripts/update-docker-windows.ps1</code> to run daily. For manual
+backups:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker-compose</span> exec <span class="at">-T</span> db pg_dump <span class="at">-U</span> postgres <span class="at">-d</span> fund_accounting_db <span class="op">&gt;</span> backup.sql</span></code></pre></div></li>
+</ul>
+<h3 id="recovery">9.2. Recovery</h3>
+<p>In case of failure, use the backups to restore the system.</p>
+<ul>
+<li><strong>Linux</strong>:
+<ol type="1">
+<li>Stop the application: <code>sudo systemctl stop npfa</code>.</li>
+<li>Restore the database:
+<code>sudo -u postgres psql -d fund_accounting_db -f /path/to/backup.sql</code>.</li>
+<li>Restore application files if needed from the <code>.tar.gz</code>
+backup.</li>
+<li>Start the application: <code>sudo systemctl start npfa</code>.</li>
+</ol></li>
+<li><strong>Docker</strong>:
+<ol type="1">
+<li>Stop the containers: <code>docker-compose down</code>.</li>
+<li>Restore the database:
+<code>cat /path/to/backup.sql | docker-compose exec -T db psql -U postgres -d fund_accounting_db</code>.</li>
+<li>Start the containers: <code>docker-compose up -d</code>.</li>
+</ol></li>
+</ul>
+<hr />
+<h2 id="system-monitoring-and-maintenance">10. System Monitoring and
+Maintenance</h2>
+<ul>
+<li><strong>Checking Service Status</strong>:
+<ul>
+<li><strong>Linux</strong>:
+<code>sudo systemctl status npfa.service</code></li>
+<li><strong>Docker</strong>: <code>docker-compose ps</code></li>
+</ul></li>
+<li><strong>Viewing Logs</strong>:
+<ul>
+<li><strong>Linux</strong>: <code>sudo journalctl -u npfa -f</code>
+(live logs)</li>
+<li><strong>Docker</strong>: <code>docker-compose logs -f app</code>
+(live logs)</li>
+</ul></li>
+<li><strong>Log Rotation</strong>: Ensure <code>logrotate</code> is
+configured for Nginx and the application logs to prevent disk space
+issues.</li>
+<li><strong>Database Maintenance</strong>: Periodically run
+<code>VACUUM</code> and <code>ANALYZE</code> on the PostgreSQL database
+to maintain performance.</li>
+</ul>
+<hr />
+<h2 id="security-considerations">11. Security Considerations</h2>
+<ul>
+<li><strong>Firewall</strong>: Use <code>ufw</code> on Linux to allow
+only necessary ports (SSH, HTTP, HTTPS).</li>
+<li><strong>SSL/HTTPS</strong>: Always deploy with an SSL certificate.
+Use Certbot with Nginx for free, auto-renewing certificates.</li>
+<li><strong>Database Security</strong>:
+<ul>
+<li>Use a strong, unique password for the <code>postgres</code>
+user.</li>
+<li>Configure <code>pg_hba.conf</code> to only allow connections from
+trusted hosts.</li>
+<li>Use the dedicated read-only user for external BI tools.</li>
+</ul></li>
+<li><strong>Application Security</strong>:
+<ul>
+<li>Run the Node.js process as a non-root user (<code>npfa</code>).</li>
+<li>Keep Node.js and npm packages updated (<code>npm audit</code>).</li>
+</ul></li>
+<li><strong>SSH Security</strong>: Disable password authentication and
+use SSH keys for server access.</li>
+</ul>
+<hr />
+<h2 id="performance-tuning">12. Performance Tuning</h2>
+<ul>
+<li><strong>Database</strong>: Ensure PostgreSQL has adequate
+<code>shared_buffers</code> and <code>work_mem</code> configured in
+<code>postgresql.conf</code> based on server RAM.</li>
+<li><strong>Nginx</strong>: Enable gzip compression and caching for
+static assets in your Nginx site configuration.</li>
+<li><strong>Node.js</strong>: For high-traffic environments, use a
+process manager like <code>pm2</code> to run the Node.js application in
+cluster mode, leveraging all CPU cores.</li>
+</ul>
+<hr />
+<h2 id="troubleshooting-common-issues">13. Troubleshooting Common
+Issues</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>502 Bad Gateway</strong></td>
+<td>The Node.js application (<code>npfa.service</code> or
+<code>app</code> container) is not running or has crashed.</td>
+<td>1. Check the application logs for errors (<code>journalctl</code> or
+<code>docker-compose logs</code>). <br> 2. Ensure the database is
+running. <br> 3. Restart the application service.</td>
+</tr>
+<tr>
+<td><strong>"DB Offline"</strong></td>
+<td>The Node.js application cannot connect to the PostgreSQL
+database.</td>
+<td>1. Verify PostgreSQL is running. <br> 2. Check the <code>.env</code>
+file for correct database credentials (host, user, password, dbname).
+<br> 3. Ensure network connectivity between the app and DB servers (or
+containers).</td>
+</tr>
+<tr>
+<td><strong>404 Not Found on API routes</strong></td>
+<td>Nginx is not proxying requests correctly, or the Node.js routes are
+not registered.</td>
+<td>1. Ensure the API routes are defined <em>before</em> the
+<code>app.use(express.static(...))</code> line in
+<code>server.js</code>. <br> 2. Check the Nginx configuration for a
+correct <code>proxy_pass</code> directive.</td>
+</tr>
+<tr>
+<td><strong>Permission Denied errors</strong></td>
+<td>File system permissions are incorrect.</td>
+<td>Ensure the <code>npfa</code> user owns the application directory:
+<code>sudo chown -R npfa:npfa /home/npfa/nonprofit-fund-accounting</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="update-and-upgrade-procedures">14. Update and Upgrade
+Procedures</h2>
+<p>The repository includes automated update scripts in the
+<code>scripts/</code> directory. <strong>It is highly recommended to use
+these scripts for all updates.</strong></p>
+<ul>
+<li><strong>Linux</strong>: <code>scripts/update-linux.sh</code></li>
+<li><strong>Docker on Windows</strong>:
+<code>scripts/update-docker-windows.ps1</code></li>
+</ul>
+<p>These scripts automatically handle backups, code pulling, dependency
+updates, service restarts, and verification. Refer to the comments
+within the scripts for detailed information.</p>
+<hr />
+<h2 id="integration-management">15. Integration Management</h2>
+<ul>
+<li><strong>Natural Language Query (NLQ)</strong>: The NLQ engine relies
+on pattern matching defined in
+<code>natural-language-queries.html</code>. To add new query types, new
+patterns must be added to the <code>NLQ_PATTERNS</code> object in that
+file.</li>
+<li><strong>Custom Reports Builder</strong>: This feature uses a secure
+<code>REPORT_BUILDER_FIELD_MAP</code> in <code>server.js</code> to
+whitelist accessible tables and fields. To expose new data sources or
+fields to the report builder, they must be added to this map.</li>
+<li><strong>BI Tools</strong>: Connect using the dedicated read-only
+database user. The BI tool will have direct access to all tables and can
+build reports on the same data as the main application.</li>
+</ul>
+<hr />
+<h2 id="best-practices-for-production">16. Best Practices for
+Production</h2>
+<ol type="1">
+<li><strong>Automate Backups</strong>: Ensure the backup script is
+running daily via <code>cron</code> or Windows Task Scheduler.</li>
+<li><strong>Separate Environments</strong>: Maintain separate
+development, staging, and production environments. Test all updates in
+staging before deploying to production.</li>
+<li><strong>Use Version Control</strong>: All changes, including
+configuration, should be committed to Git. Use feature branches for
+development and merge to the main production branch (<code>v8.8</code>
+in our case) for deployment.</li>
+<li><strong>Monitor Actively</strong>: Use tools like <code>htop</code>
+for real-time monitoring and set up alerts for service failures or high
+resource usage.</li>
+<li><strong>Secure Credentials</strong>: Never commit secrets (like
+passwords or API keys) directly to Git. Use environment files
+(<code>.env</code>) and add them to <code>.gitignore</code>.</li>
+</ol>
+<p>This guide provides the foundation for successfully administering the
+Non-Profit Fund Accounting System. For further technical details, refer
+to the other documentation files in the repository.</p>

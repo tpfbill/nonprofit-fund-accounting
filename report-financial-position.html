@@ -59,7 +59,8 @@
             display: flex;
             justify-content: space-between;
         }
-        button {
+        button,
+        .button {
             padding: 10px 15px;
             background-color: #4caf50;
             color: white;
@@ -67,12 +68,24 @@
             border-radius: 4px;
             cursor: pointer;
         }
-        button:hover {
+        button:hover,
+        .button:hover {
             background-color: #45a049;
         }
-        .back-btn {
-            background-color: #607d8b;
+
+        /* --- Centered navigation back button (matches other pages) --- */
+        .navigation {
+            margin-top: 15px;
+            text-align: center;
+            margin-bottom: 20px;
         }
+        .button {
+            background-color: #607D8B;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .button.secondary { background-color: #607D8B; }
+        .button.secondary:hover { background-color: #455A64; }
     </style>
 </head>
 <body>
@@ -109,8 +122,16 @@
             </tbody>
         </table>
         
+        <!-- New centered navigation button -->
+        <div class="navigation">
+            <button id="btn-back-to-main"
+                    class="button secondary"
+                    onclick="window.location.href='index.html'">
+                &larr; Back to Main Dashboard
+            </button>
+        </div>
+
         <div class="actions">
-            <button class="back-btn" onclick="window.location.href='index.html'">Back to Application</button>
             <div>
                 <button onclick="window.print()">Print Report</button>
                 <button onclick="alert('Export to PDF functionality would be implemented here.')">Export to PDF</button>

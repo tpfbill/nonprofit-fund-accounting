@@ -80,12 +80,43 @@
         .activities { background-color: #2196F3; }
         .expenses { background-color: #FF9800; }
         .budget { background-color: #9C27B0; }
+
+        /* --- Navigation button (matches Inter-Entity Transfer page) --- */
+        .navigation {
+            margin-top: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .button {
+            background-color: #607D8B;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+            text-decoration: none;
+        }
+        .button:hover { background-color: #455A64; }
+        .button.secondary { background-color: #607D8B; }
+        .button.secondary:hover { background-color: #455A64; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Nonprofit Fund Accounting Reports</h1>
         <p>Select a report to view. Each report will open in a new window.</p>
+
+        <!-- Navigation back to main dashboard -->
+        <div class="navigation">
+            <button id="btn-back-to-main"
+                    class="button secondary"
+                    onclick="window.location.href='index.html'">
+                &larr; Back to Main Dashboard
+            </button>
+        </div>
         
         <div class="report-grid">
             <div class="report-card">
@@ -112,8 +143,6 @@
                 <a href="report-budget-vs-actual.html" target="_blank" class="report-link budget">View Report</a>
             </div>
         </div>
-        
-        <a href="index.html" class="back-link">← Back to Main Application</a>
     </div>
     
     <script>

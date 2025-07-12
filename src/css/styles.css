@@ -84,6 +84,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height
 .status-unposted, .status-draft { background-color: #fff8e1; color: #ffa000;}
 /* Modal Styles */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 9990; overflow-y: auto;}
+/* ------------------------------------------------------------------
    Bank-account status badges (double-class selectors for clarity)
    ------------------------------------------------------------------*/
 .status.status-active   { background-color: #e8f5e9; color: #2e7d32; }   /* green */
@@ -264,6 +265,15 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height
     color: white;
 }
 
+.error-message {
+    text-align: center;
+    padding: 40px;
+    background-color: #ffebee;
+    color: #c62828;
+    font-size: 16px;
+    border-radius: 4px;
+}
+
 .document-btn-primary:hover {
     background-color: #1565c0;
 }
@@ -282,6 +292,28 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height
     padding: 40px;
     color: #666;
     font-size: 16px;
+
+}
+
+/* ------------------------------------------------------------------
+   Document Stats (value / label pair)
+   ------------------------------------------------------------------*/
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 30px;
+}
+
+.stat-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #2196F3;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    color: #666;
 }
 
 .no-documents {
