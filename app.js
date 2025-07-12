@@ -2006,3 +2006,114 @@ async function generateFundStatementReport() {
         contentDiv.innerHTML = `<p class="error">Error generating report: ${error.message}</p>`;
     }
 }
+// Navigation Functions
+function showPage(pageId) {
+    console.log(`[Navigation] Switching to page: ${pageId}`);
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const pageEl = document.getElementById(`${pageId}-page`);
+    if (pageEl) {
+        pageEl.classList.add('active');
+        appState.currentPage = pageId;
+    } else {
+        console.error(`[Navigation] Page element not found: ${pageId}-page`);
+    }
+}
+
+function showTab(panelContainer, tabId) {
+    console.log(`[Navigation] Switching to tab: ${tabId}`);
+    panelContainer.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    panelContainer.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    const tabItem = panelContainer.querySelector(`.tab-item[data-tab="${tabId}"]`);
+    const panel = panelContainer.querySelector(`#${tabId}`);
+    if (tabItem) tabItem.classList.add('active');
+    if (panel) panel.classList.add('active');
+}
+
+function initializeNavigation() {
+    console.log('[Navigation] Initializing navigation handlers...');
+    
+    // Main navigation
+    document.querySelectorAll('.nav-item[data-page]').forEach(nav => {
+        nav.addEventListener('click', e => {
+            console.log('[Navigation] Nav item clicked:', e.currentTarget.dataset.page);
+            const page = e.currentTarget.dataset.page;
+            if (!page) return;
+            showPage(page);
+
+            // Load page-specific data
+            if (page === 'dashboard') {
+                console.log('[Navigation] Loading dashboard data...');
+                loadDashboardData();
+            } else if (page === 'settings') {
+                showTab(document.getElementById('settings-page'), 'settings-users');
+            }
+        });
+    });
+
+    // Settings tabs
+    const settingsPage = document.getElementById('settings-page');
+    if (settingsPage) {
+        settingsPage.querySelectorAll('.tab-item').forEach(tab => {
+            tab.addEventListener('click', e => {
+                const tabId = e.currentTarget.dataset.tab;
+                showTab(settingsPage, tabId);
+                appState.currentTab = tabId;
+                if (tabId === 'settings-bank-accounts' && typeof loadBankAccountData === 'function') {
+                    loadBankAccountData();
+                }
+            });
+        });
+    }
+
+    // Modal close buttons
+    document.querySelectorAll('.modal-close-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            const modalId = e.currentTarget.dataset.modalId;
+            const modalEl = document.getElementById(modalId);
+            if (modalEl) modalEl.style.display = 'none';
+        });
+    });
+
+    // Entity selector
+    const entitySelector = document.getElementById('entity-selector');
+    if (entitySelector) {
+        entitySelector.addEventListener('change', e => {
+            appState.selectedEntityId = e.target.value;
+            loadDashboardData();
+            updateFundsTable();
+            updateJournalEntriesTable();
+        });
+    }
+
+    // Consolidated view toggle
+    const consolidatedToggle = document.getElementById('consolidated-view-toggle');
+    if (consolidatedToggle) {
+        consolidatedToggle.addEventListener('change', e => {
+            appState.isConsolidatedView = e.target.checked;
+            document.body.classList.toggle('consolidated-view', appState.isConsolidatedView);
+            loadDashboardData();
+        });
+    }
+}
+
+// Application Initialization
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('[Init] Application initializing...');
+
+    initializeNavigation();
+    await checkDatabaseConnection();
+
+    // Load core data in parallel
+    await Promise.all([
+        loadEntityData(),
+        loadFundData(),
+        loadAccountData(),
+        loadJournalEntryData(),
+        loadUserData()
+    ]);
+
+    // Load dashboard data
+    loadDashboardData();
+
+    console.log('[Init] Application ready.');
+});
