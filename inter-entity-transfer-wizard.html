@@ -42,22 +42,46 @@
             border-left: 4px solid #0d6efd;
             padding: 15px;
         }
+        /* -----------------------------------------------------------
+         * Navigation button (match Custom Reports page style)
+         * --------------------------------------------------------- */
+        .navigation {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .button {
+            background-color: #607D8B;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+        .button:hover { background-color: #455A64; }
+        .button.secondary { background-color: #607D8B; }
+        .button.secondary:hover { background-color: #455A64; }
     </style>
 </head>
 <body>
     <div class="container mt-4 mb-5">
+        <!-- Page Heading & Centered Back Button -->
         <div class="row">
-            <div class="col-12">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-                        <li class="breadcrumb-item"><a href="#">Transactions</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Inter-Entity Transfer</li>
-                    </ol>
-                </nav>
+            <div class="col">
                 <h2 class="mb-4">
                     <i class="fas fa-exchange-alt me-2"></i> Inter-Entity Transfer Wizard
                 </h2>
+
+                <!-- Navigation back to main dashboard -->
+                <div class="navigation text-center mb-4">
+                    <button id="btn-back-to-main"
+                            class="button secondary"
+                            onclick="window.location.href='index.html'">
+                        &larr; Back to Main Dashboard
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -448,7 +472,7 @@
         async function fetchEntities() {
             showInfo("Loading entities...");
             try {
-                const response = await fetch('/api/entities');
+                const response = await fetch('http://localhost:3000/api/entities');
                 if (!response.ok) throw new Error('Failed to fetch entities');
                 
                 entities = await response.json();
@@ -535,7 +559,7 @@
         async function fetchFundsForEntity(entityId, targetElement) {
             showInfo("Loading funds...");
             try {
-                const response = await fetch(`/api/funds?entityId=${entityId}`);
+                const response = await fetch(`http://localhost:3000/api/funds?entityId=${entityId}`);
                 if (!response.ok) throw new Error('Failed to fetch funds');
                 
                 const entityFunds = await response.json();
@@ -563,7 +587,7 @@
         async function fetchAccountsForEntity(entityId, prefix) {
             showInfo("Loading accounts...");
             try {
-                const response = await fetch(`/api/accounts?entityId=${entityId}`);
+                const response = await fetch(`http://localhost:3000/api/accounts?entityId=${entityId}`);
                 if (!response.ok) throw new Error('Failed to fetch accounts');
                 
                 const entityAccounts = await response.json();
@@ -868,7 +892,7 @@
 
         // Create a journal entry
         async function createJournalEntry(journalEntryData) {
-            const response = await fetch('/api/journal-entries', {
+            const response = await fetch('http://localhost:3000/api/journal-entries', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -887,7 +911,7 @@
         // Create journal entry lines
         async function createJournalEntryLines(journalEntryId, lines) {
             for (const line of lines) {
-                const response = await fetch(`/api/journal-entries/${journalEntryId}/lines`, {
+                const response = await fetch(`http://localhost:3000/api/journal-entries/${journalEntryId}/lines`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -921,7 +945,7 @@
         async function getCashAccountId(entityId) {
             // Check if we already have accounts for this entity
             if (!accounts[entityId]) {
-                const response = await fetch(`/api/accounts?entityId=${entityId}`);
+                const response = await fetch(`http://localhost:3000/api/accounts?entityId=${entityId}`);
                 if (!response.ok) throw new Error('Failed to fetch accounts');
                 accounts[entityId] = await response.json();
             }

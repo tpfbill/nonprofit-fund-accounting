@@ -230,6 +230,13 @@
     </div>
 
     <script>
+    /* ================================================================
+     *  API CONFIGURATION
+     *  Centralised base URL for backend requests so that all relative
+     *  endpoints automatically point to the correct server/port.
+     * ============================================================== */
+    const API_BASE_URL = 'http://localhost:3000';
+
         document.addEventListener('DOMContentLoaded', () => {
             const state = {
                 queryHistory: [],
@@ -245,6 +252,15 @@
             const resultsPlaceholder = document.getElementById('results-placeholder');
 
             async function apiRequest(endpoint, method = 'GET', body = null) {
+                /* ------------------------------------------------------
+                 * Ensure we always call the backend on port 3000.
+                 * If the caller already supplied an absolute URL, use it
+                 * verbatim; otherwise prefix with API_BASE_URL.
+                 * ---------------------------------------------------- */
+                const fullUrl = endpoint.startsWith('http')
+                    ? endpoint
+                    : `${API_BASE_URL}${endpoint}`;
+
                 const options = {
                     method,
                     headers: { 'Content-Type': 'application/json' }
@@ -252,10 +268,10 @@
                 if (body) {
                     options.body = JSON.stringify(body);
                 }
-                const response = await fetch(endpoint, options);
+                const response = await fetch(fullUrl, options);
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error(`API Error Response for ${endpoint}:`, errorText);
+                    console.error(`API Error Response for ${fullUrl}:`, errorText);
                     throw new Error(`API Error: ${response.status}`);
                 }
                 return response.json();

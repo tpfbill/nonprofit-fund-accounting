@@ -4,6 +4,9 @@
  * This script handles data fetching, UI rendering, navigation, and user interactions.
  */
 
+// DEBUGGING: App.js loaded on (timestamp)
+console.log('App.js loaded:', new Date().toISOString(), '- Using API at http://localhost:3000');
+
 // Application State
 const appState = {
     entities: [],
@@ -54,7 +57,9 @@ function formatPercentage(value, total) {
 async function fetchData(endpoint) {
     try {
         console.log(`Fetching data from /api/${endpoint}...`);
-        const response = await fetch(`/api/${endpoint}`);
+        /* Use absolute URL pointing at the backend API (port 3000) to avoid
+         * accidental requests to the static-file server on port 8080. */
+        const response = await fetch(`http://localhost:3000/api/${endpoint}`);
         if (!response.ok) {
             throw new Error(`API Error: ${response.status}`);
         }
@@ -69,7 +74,7 @@ async function fetchData(endpoint) {
 
 async function saveData(endpoint, data, method = 'POST') {
     try {
-        const response = await fetch(`/api/${endpoint}`, {
+        const response = await fetch(`http://localhost:3000/api/${endpoint}`, {
             method,
             headers: {
                 'Content-Type': 'application/json'
@@ -92,7 +97,7 @@ async function checkDatabaseConnection() {
         const dbStatusIndicator = document.getElementById('db-status-indicator');
         
         // Try to fetch entities as a connection test
-        const response = await fetch('/api/entities');
+        const response = await fetch('http://localhost:3000/api/entities');
         if (response.ok) {
             if (dbStatusIndicator) {
                 dbStatusIndicator.textContent = 'DB Connected';
@@ -167,6 +172,10 @@ async function loadFundData() {
         
         // Update dashboard fund balances
         updateDashboardFundBalances();
+        
+        // Funds are now available – rebuild entity-hierarchy viz so
+        // second-level entities display their funds correctly.
+        updateEntityHierarchyVisualization();
         
         return funds;
     } catch (error) {
@@ -745,7 +754,16 @@ function updateEntitiesTable() {
 }
 
 function updateEntityHierarchyVisualization() {
-    const entityRelationshipViz = document.getElementById('entity-relationship-viz');
+    /* ------------------------------------------------------------------
+     * Re-build the on-screen hierarchy tree.
+     * Adds additional logging and guards against edge-cases where the
+     * root node cannot be created for any reason.
+     * ------------------------------------------------------------------ */
+    console.log('[Hierarchy] Updating entity hierarchy visualization …');
+
+    const entityRelationshipViz = document.getElementById(
+        'entity-relationship-viz'
+    );
     if (!entityRelationshipViz) return;
     
     // Clear existing content
@@ -765,68 +783,128 @@ function updateEntityHierarchyVisualization() {
     
     // Create root node
     const rootNode = createEntityHierarchyNode(hierarchyData.root);
-    vizContainer.appendChild(rootNode);
-    
-    // Add to container
-    entityRelationshipViz.appendChild(vizContainer);
+
+    if (rootNode) {
+        vizContainer.appendChild(rootNode);
+        entityRelationshipViz.appendChild(vizContainer);
+        console.log('[Hierarchy] Visualization updated successfully');
+    } else {
+        console.error(
+            '[Hierarchy] Failed to create root node – diagram not rendered'
+        );
+        entityRelationshipViz.innerHTML =
+            '<p class="text-center">Error building entity hierarchy</p>';
+    }
 }
 
 function buildEntityHierarchyData() {
-    // Create entity map for quick lookup
+    /* ------------------------------------------------------------------
+     * Build an entity map keyed by **stringified** IDs so we avoid
+     * subtle equality issues (UUID objects vs. plain strings, etc.).
+     * Also sprinkle in some debugging to trace hierarchy creation.
+     * ------------------------------------------------------------------ */
+
+    console.log('[Hierarchy] Building entity hierarchy data …');
+    console.log('[Hierarchy] Entities:', appState.entities.length, 'Funds:', appState.funds.length);
+
     const entityMap = {};
     appState.entities.forEach(entity => {
-        entityMap[entity.id] = {
+        const id = String(entity.id);
+        entityMap[id] = {
             ...entity,
+            id,                               // normalised string id
             type: appState.entityTypes.ENTITY,
             children: []
         };
+        console.debug(`  • mapped entity ${entity.name} (${entity.code})`);
     });
-    
-    // Find root entity (TPF_PARENT)
-    const rootEntity = appState.entities.find(entity => 
-        entity.parent_entity_id === null && 
-        (entity.name === 'The Principle Foundation' || entity.code === 'TPF_PARENT')
-    );
-    
-    // If no specific root, use any entity without a parent
-    const fallbackRoot = rootEntity || appState.entities.find(entity => entity.parent_entity_id === null);
-    
-    // Build the hierarchy
+
+    /* ------------------------------------------------------------------
+     * Identify root (TPF_PARENT) – fall back to first top-level entity
+     * ------------------------------------------------------------------ */
+    const rootEntity =
+        appState.entities.find(
+            e =>
+                e.parent_entity_id === null &&
+                (e.name === 'The Principle Foundation' || e.code === 'TPF_PARENT')
+        ) || appState.entities.find(e => e.parent_entity_id === null);
+
     const hierarchy = {
-        root: fallbackRoot ? entityMap[fallbackRoot.id] : null,
+        root: rootEntity ? entityMap[String(rootEntity.id)] : null,
         entities: entityMap
     };
-    
-    // Add child entities to their parents
+
+    /* ------------------------------------------------------------------
+     * Wire child entities to their parents
+     * ------------------------------------------------------------------ */
     appState.entities.forEach(entity => {
-        if (entity.parent_entity_id && entityMap[entity.parent_entity_id]) {
-            entityMap[entity.parent_entity_id].children.push(entityMap[entity.id]);
+        if (!entity.parent_entity_id) return;
+        const parentId = String(entity.parent_entity_id);
+        const selfId = String(entity.id);
+
+        if (entityMap[parentId]) {
+            entityMap[parentId].children.push(entityMap[selfId]);
+        } else {
+            console.warn(`[Hierarchy] Parent entity ${parentId} missing for ${entity.code}`);
         }
     });
-    
-    // Add funds to their respective entities
+
+    /* ------------------------------------------------------------------
+     * Attach funds to owning entities
+     * ------------------------------------------------------------------ */
     appState.funds.forEach(fund => {
-        const fundObj = {
+        const owningId = String(fund.entity_id);
+        if (!entityMap[owningId]) {
+            console.warn(`[Hierarchy] Entity ${owningId} not found for fund ${fund.code}`);
+            return;
+        }
+
+        entityMap[owningId].children.push({
             ...fund,
+            id: String(fund.id),
             type: appState.entityTypes.FUND,
             children: []
-        };
-        
-        if (entityMap[fund.entity_id]) {
-            entityMap[fund.entity_id].children.push(fundObj);
-        }
+        });
     });
-    
+
+    /* ------------------------------------------------------------------
+     * Debug: log counts so we can see if funds were attached
+     * ------------------------------------------------------------------ */
+    if (hierarchy.root) {
+        console.log(
+            `[Hierarchy] Root ${hierarchy.root.name} children:`,
+            hierarchy.root.children.length
+        );
+        hierarchy.root.children.forEach(child => {
+            const fundCount = child.children.filter(c => c.type === appState.entityTypes.FUND)
+                .length;
+            console.log(
+                `    - ${child.name} (${child.code}) → entities+funds: ${child.children.length} (funds ${fundCount})`
+            );
+        });
+    } else {
+        console.warn('[Hierarchy] No root entity detected – hierarchy may be empty.');
+    }
+
     return hierarchy;
 }
 
 function createEntityHierarchyNode(node) {
-    if (!node) return null;
+    if (!node) {
+        console.warn('[Hierarchy Node] Attempted to create a node with null data');
+        return null;
+    }
     
+    // Log node creation for debugging
+    console.log(`[Hierarchy Node] Creating node: ${node.name} (${node.code}), type: ${node.type}, children: ${node.children?.length || 0}`);
+    
+    // Create node container with the appropriate class based on node type
     const nodeContainer = document.createElement('div');
     nodeContainer.className = `hierarchy-node ${node.type === appState.entityTypes.FUND ? 'fund-node' : 'entity-node'}`;
     nodeContainer.dataset.id = node.id;
     nodeContainer.dataset.type = node.type;
+    nodeContainer.dataset.name = node.name; // Add name for easier debugging
+    nodeContainer.dataset.code = node.code; // Add code for easier debugging
     
     // Create node header
     const nodeHeader = document.createElement('div');
@@ -862,6 +940,8 @@ function createEntityHierarchyNode(node) {
     
     // Add children if any
     if (node.children && node.children.length > 0) {
+        console.log(`[Hierarchy Node] ${node.name} has ${node.children.length} children`);
+        
         // Create toggle button for expanding/collapsing
         const toggleButton = document.createElement('button');
         toggleButton.className = 'toggle-children';
@@ -880,6 +960,8 @@ function createEntityHierarchyNode(node) {
         const entityChildren = node.children.filter(child => child.type === appState.entityTypes.ENTITY);
         const fundChildren = node.children.filter(child => child.type === appState.entityTypes.FUND);
         
+        console.log(`[Hierarchy Node] ${node.name} has ${entityChildren.length} entity children and ${fundChildren.length} fund children`);
+        
         // Add entity children
         entityChildren.forEach(child => {
             const childNode = createEntityHierarchyNode(child);
@@ -890,9 +972,12 @@ function createEntityHierarchyNode(node) {
         
         // Add fund children
         fundChildren.forEach(child => {
+            console.log(`[Hierarchy Node] Creating fund child: ${child.name} (${child.code})`);
             const childNode = createEntityHierarchyNode(child);
             if (childNode) {
                 childrenContainer.appendChild(childNode);
+            } else {
+                console.warn(`[Hierarchy Node] Failed to create node for fund: ${child.name}`);
             }
         });
         
@@ -900,6 +985,8 @@ function createEntityHierarchyNode(node) {
         if (childrenContainer.children.length > 0) {
             nodeHeader.insertBefore(toggleButton, nodeHeader.firstChild);
             nodeContainer.appendChild(childrenContainer);
+        } else {
+            console.warn(`[Hierarchy Node] No children were added to ${node.name} despite having ${node.children.length} children in the data`);
         }
     }
     
@@ -1919,349 +2006,114 @@ async function generateFundStatementReport() {
         contentDiv.innerHTML = `<p class="error">Error generating report: ${error.message}</p>`;
     }
 }
-
-async function generateFundsComparisonReport() {
-    const contentDiv = document.getElementById('funds-comparison-content');
-    try {
-        contentDiv.innerHTML = '<p>Loading report...</p>';
-        const data = await fetchData('reports/funds-comparison');
-
-        if (data.length === 0) {
-            contentDiv.innerHTML = '<p>No funds found to compare.</p>';
-            return;
-        }
-
-        let tableHTML = `
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Fund Name</th>
-                        <th>Fund Code</th>
-                        <th>Balance</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        data.forEach(fund => {
-            tableHTML += `
-                <tr>
-                    <td>${fund.name}</td>
-                    <td>${fund.code}</td>
-                    <td>${formatCurrency(fund.balance)}</td>
-                </tr>
-            `;
-        });
-        tableHTML += `</tbody></table>`;
-        contentDiv.innerHTML = tableHTML;
-
-    } catch (error) {
-        contentDiv.innerHTML = `<p class="error">Error generating report: ${error.message}</p>`;
-    }
-}
-
-// Documentation Page Functions
-async function loadDocumentationPage() {
-    console.log('Loading documentation page...');
-    const documentGrid = document.getElementById('document-grid');
-    
-    try {
-        // Show loading message
-        documentGrid.innerHTML = '<div class="loading-message">Loading documentation...</div>';
-        
-        // Fetch documents from API
-        const response = await fetch('/api/documents');
-        const result = await response.json();
-        
-        if (result.success && result.documents.length > 0) {
-            renderDocuments(result.documents, result.count);
-        } else {
-            documentGrid.innerHTML = '<div class="no-documents">No documentation files found.</div>';
-        }
-    } catch (error) {
-        console.error('Error loading documentation:', error);
-        documentGrid.innerHTML = '<div class="no-documents">Error loading documentation files.</div>';
-    }
-}
-
-// ===================================================================
-// BANK ACCOUNT CONNECTION FUNCTIONS
-// ===================================================================
-
-// Load from API and refresh table
-async function loadBankAccountData() {
-    try {
-        const accounts = await fetchData('bank-accounts');
-        appState.bankAccounts = accounts;
-        updateBankAccountsTable();
-        return accounts;
-    } catch (err) {
-        console.error('Error loading bank accounts:', err);
-        return [];
-    }
-}
-
-// Render table rows
-function updateBankAccountsTable() {
-    const tableBody = document
-        .getElementById('bank-accounts-table')
-        ?.querySelector('tbody');
-    if (!tableBody) return;
-
-    if (!appState.bankAccounts.length) {
-        tableBody.innerHTML =
-            '<tr><td colspan="8" class="text-center">No bank accounts connected.</td></tr>';
-        return;
-    }
-
-    tableBody.innerHTML = '';
-    appState.bankAccounts.forEach(acc => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${acc.bank_name}</td>
-            <td>${acc.account_name}</td>
-            <td>${acc.account_number || '—'}</td>
-            <td>${acc.type}</td>
-            <td><span class="status status-${acc.status.toLowerCase()}">${acc.status}</span></td>
-            <td>${formatCurrency(acc.balance)}</td>
-            <td>${acc.last_sync ? formatDate(acc.last_sync) : 'Never'}</td>
-            <td>
-                <button class="action-button btn-test-conn" data-id="${acc.id}">Test</button>
-                <button class="action-button btn-edit-bank-account" data-id="${acc.id}">Edit</button>
-                <button class="action-button btn-delete-bank-account" data-id="${acc.id}">Delete</button>
-            </td>
-        `;
-        tableBody.appendChild(row);
-    });
-
-    /* delegate table-level actions */
-    tableBody.onclick = e => {
-        const btn = e.target.closest('button');
-        if (!btn) return;
-        const id = btn.dataset.id;
-        if (btn.classList.contains('btn-edit-bank-account')) {
-            openBankAccountModal(id);
-        } else if (btn.classList.contains('btn-delete-bank-account')) {
-            deleteBankAccount(id);
-        } else if (btn.classList.contains('btn-test-conn')) {
-            testBankAccountConnection(id);
-        }
-    };
-}
-
-// Modal open (add / edit)
-function openBankAccountModal(accountId = null) {
-    const modal = document.getElementById('bank-account-modal');
-    if (!modal) return;
-
-    // reset form
-    modal.querySelectorAll('input,select,textarea').forEach(el => {
-        if (el.type === 'checkbox') el.checked = false;
-        else el.value = '';
-    });
-    document.getElementById('edit-bank-account-id').value = '';
-
-    // edit mode → populate
-    if (accountId) {
-        const acc = appState.bankAccounts.find(a => a.id === accountId);
-        if (acc) {
-            document.getElementById('edit-bank-account-id').value = acc.id;
-            document.getElementById('bank-name-select').value = acc.bank_name;
-            document.getElementById('bank-account-name-input').value = acc.account_name;
-            document.getElementById('bank-account-number-input').value = acc.account_number || '';
-            document.getElementById('routing-number-input').value = acc.routing_number || '';
-            document.getElementById('bank-account-type-select').value = acc.type;
-            document.getElementById('connection-method-select').value = acc.connection_method;
-            document.getElementById('bank-account-status-select').value = acc.status;
-            document.getElementById('initial-balance-input').value = acc.balance;
-            document.getElementById('bank-account-description-textarea').value =
-                acc.description || '';
-        }
-    }
-
-    modal.style.display = 'block';
-    modal.classList.remove('hidden');
-}
-
-// Save (create / update)
-async function saveBankAccount() {
-    const id = document.getElementById('edit-bank-account-id').value;
-    const payload = {
-        bank_name: document.getElementById('bank-name-select').value,
-        account_name: document.getElementById('bank-account-name-input').value,
-        account_number: document.getElementById('bank-account-number-input').value,
-        routing_number: document.getElementById('routing-number-input').value,
-        type: document.getElementById('bank-account-type-select').value,
-        status: document.getElementById('bank-account-status-select').value,
-        balance: parseFloat(document.getElementById('initial-balance-input').value || 0),
-        connection_method: document.getElementById('connection-method-select').value,
-        description: document.getElementById('bank-account-description-textarea').value
-    };
-
-    try {
-        const endpoint = id ? `bank-accounts/${id}` : 'bank-accounts';
-        const method = id ? 'PUT' : 'POST';
-        await saveData(endpoint, payload, method);
-        document.getElementById('bank-account-modal').style.display = 'none';
-        await loadBankAccountData();
-    } catch (err) {
-        alert('Error saving bank account: ' + err.message);
-    }
-}
-
-// Delete
-async function deleteBankAccount(accountId) {
-    if (!confirm('Delete this bank account?')) return;
-    try {
-        await fetch(`/api/bank-accounts/${accountId}`, { method: 'DELETE' });
-        await loadBankAccountData();
-    } catch (err) {
-        alert('Error deleting account: ' + err.message);
-    }
-}
-
-// Sync all
-async function syncBankAccounts() {
-    try {
-        await fetch('/api/bank-accounts/sync', { method: 'POST' });
-        alert('Sync complete.');
-        await loadBankAccountData();
-    } catch (err) {
-        alert('Sync failed: ' + err.message);
-    }
-}
-
-// Test connection
-async function testBankAccountConnection(accountId) {
-    try {
-        const res = await fetch(`/api/bank-accounts/${accountId}/test-connection`, {
-            method: 'POST'
-        });
-        const data = await res.json();
-        if (res.ok) {
-            alert(data.message);
-            await loadBankAccountData();
-        } else {
-            throw new Error(data.message || 'Connection failed');
-        }
-    } catch (err) {
-        alert('Connection test error: ' + err.message);
-    }
-}
-
-// ===================================================================
-// APPLICATION INITIALISATION
-// ===================================================================
-
-/**
- * Sets up click handlers for all navigation items that declare a
- * data-page attribute, and ensures the correct page/content is shown.
- */
-function setupNavigation() {
-    const navItems = document.querySelectorAll('.nav-item[data-page]');
-    navItems.forEach(item => {
-        item.addEventListener('click', e => {
-            const page = e.currentTarget.dataset.page;
-            if (page) showPage(page);
-        });
-    });
-
-    /* ------------------------------------------------------------------
-     *  Tab switching inside pages (e.g. Settings, Fund-Reports)
-     * ------------------------------------------------------------------ */
-    const tabItems = document.querySelectorAll('.tab-item[data-tab]');
-    tabItems.forEach(tabItem => {
-        tabItem.addEventListener('click', e => {
-            const targetTab = e.currentTarget.dataset.tab;
-            if (targetTab) switchTab(e.currentTarget, targetTab);
-        });
-    });
-}
-
-/**
- * Simple page-switcher – hides all `.page` containers then shows the
- * requested one and updates nav highlighting.  Also triggers any
- * page-specific data loading.
- */
-function showPage(pageName) {
-    // hide / show content
+// Navigation Functions
+function showPage(pageId) {
+    console.log(`[Navigation] Switching to page: ${pageId}`);
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    const pageEl = document.getElementById(`${pageName}-page`);
-    if (pageEl) pageEl.classList.add('active');
+    const pageEl = document.getElementById(`${pageId}-page`);
+    if (pageEl) {
+        pageEl.classList.add('active');
+        appState.currentPage = pageId;
+    } else {
+        console.error(`[Navigation] Page element not found: ${pageId}-page`);
+    }
+}
 
-    // nav highlight
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    const navItem = document.querySelector(`.nav-item[data-page="${pageName}"]`);
-    if (navItem) navItem.classList.add('active');
+function showTab(panelContainer, tabId) {
+    console.log(`[Navigation] Switching to tab: ${tabId}`);
+    panelContainer.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    panelContainer.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    const tabItem = panelContainer.querySelector(`.tab-item[data-tab="${tabId}"]`);
+    const panel = panelContainer.querySelector(`#${tabId}`);
+    if (tabItem) tabItem.classList.add('active');
+    if (panel) panel.classList.add('active');
+}
 
-    // store state
-    appState.currentPage = pageName;
+function initializeNavigation() {
+    console.log('[Navigation] Initializing navigation handlers...');
+    
+    // Main navigation
+    document.querySelectorAll('.nav-item[data-page]').forEach(nav => {
+        nav.addEventListener('click', e => {
+            console.log('[Navigation] Nav item clicked:', e.currentTarget.dataset.page);
+            const page = e.currentTarget.dataset.page;
+            if (!page) return;
+            showPage(page);
 
-    // page-specific lazy loads
-    switch (pageName) {
-        case 'dashboard':
+            // Load page-specific data
+            if (page === 'dashboard') {
+                console.log('[Navigation] Loading dashboard data...');
+                loadDashboardData();
+            } else if (page === 'settings') {
+                showTab(document.getElementById('settings-page'), 'settings-users');
+            }
+        });
+    });
+
+    // Settings tabs
+    const settingsPage = document.getElementById('settings-page');
+    if (settingsPage) {
+        settingsPage.querySelectorAll('.tab-item').forEach(tab => {
+            tab.addEventListener('click', e => {
+                const tabId = e.currentTarget.dataset.tab;
+                showTab(settingsPage, tabId);
+                appState.currentTab = tabId;
+                if (tabId === 'settings-bank-accounts' && typeof loadBankAccountData === 'function') {
+                    loadBankAccountData();
+                }
+            });
+        });
+    }
+
+    // Modal close buttons
+    document.querySelectorAll('.modal-close-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            const modalId = e.currentTarget.dataset.modalId;
+            const modalEl = document.getElementById(modalId);
+            if (modalEl) modalEl.style.display = 'none';
+        });
+    });
+
+    // Entity selector
+    const entitySelector = document.getElementById('entity-selector');
+    if (entitySelector) {
+        entitySelector.addEventListener('change', e => {
+            appState.selectedEntityId = e.target.value;
             loadDashboardData();
-            break;
-        case 'settings':
-            loadUserData();
-            loadBankAccountData();
-            break;
-        case 'documentation':
-            loadDocumentationPage();
-            break;
-        // extend as additional pages are added
+            updateFundsTable();
+            updateJournalEntriesTable();
+        });
+    }
+
+    // Consolidated view toggle
+    const consolidatedToggle = document.getElementById('consolidated-view-toggle');
+    if (consolidatedToggle) {
+        consolidatedToggle.addEventListener('change', e => {
+            appState.isConsolidatedView = e.target.checked;
+            document.body.classList.toggle('consolidated-view', appState.isConsolidatedView);
+            loadDashboardData();
+        });
     }
 }
 
-// -------------------------------------------------------------------
-// Generic tab switcher (works for any .tab-container structure)
-// -------------------------------------------------------------------
-function switchTab(clickedTab, targetTabId) {
-    const tabContainer = clickedTab.closest('.tab-container');
-    if (!tabContainer) return;
-
-    /* update active class on tab items */
-    tabContainer.querySelectorAll('.tab-item').forEach(item =>
-        item.classList.remove('active')
-    );
-    clickedTab.classList.add('active');
-
-    /* show / hide panels */
-    tabContainer.querySelectorAll('.tab-panel').forEach(panel =>
-        panel.classList.remove('active')
-    );
-    const targetPanel = document.getElementById(targetTabId);
-    if (targetPanel) targetPanel.classList.add('active');
-
-    /* remember settings tab state in appState */
-    if (targetTabId.startsWith('settings-')) {
-        appState.currentTab = targetTabId;
-    }
-}
-
-// Kick-off once DOM is ready
+// Application Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('[App] Initialising…');
+    console.log('[Init] Application initializing...');
 
-    // 1) Connectivity status
+    initializeNavigation();
     await checkDatabaseConnection();
 
-    // 2) Base data required for most screens
+    // Load core data in parallel
     await Promise.all([
         loadEntityData(),
-        loadAccountData(),
         loadFundData(),
+        loadAccountData(),
         loadJournalEntryData(),
         loadUserData()
     ]);
 
-    // 3) Dashboard charts / cards
-    await loadDashboardData();
+    // Load dashboard data
+    loadDashboardData();
 
-    // 4) Navigation bindings
-    setupNavigation();
-
-    // 5) Periodic DB health check
-    setInterval(checkDatabaseConnection, 30_000); // every 30s
-
-    console.log('[App] Ready.');
+    console.log('[Init] Application ready.');
 });

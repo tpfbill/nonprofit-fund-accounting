@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Accounting System (v8.6) vs. Zoho Books - Comparison for Grant-Making Charities</title>
+    <title>Custom Accounting System (v8.8) vs. Zoho Books - Comparison for Grant-Making Charities</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -153,9 +153,9 @@
 <body>
     <div class="guide-container">
         <div class="cover-page">
-            <h1>Custom Non-Profit Accounting System (v8.6) vs. Zoho Books</h1>
+            <h1>Custom Non-Profit Accounting System (v8.8) vs. Zoho Books</h1>
             <h2>A Comparative Analysis for Grant-Making Charities</h2>
-            <p>Date: July 9, 2025</p>
+            <p>Date: July 11, 2025</p>
         </div>
 
         <div class="toc page-break-before">
@@ -164,15 +164,16 @@
                 <li><a href="#introduction">1. Introduction</a></li>
                 <li><a href="#fund-accounting">2. Fund Accounting Capabilities</a></li>
                 <li><a href="#grant-management">3. Grant Management Features</a></li>
-                <li><a href="#inter-entity">4. Inter-Entity Transfers (v8.6)</a></li>
-                <li><a href="#financial-reporting">5. Financial Reporting</a></li>
-                <li><a href="#customization-flexibility">6. Customization & Flexibility</a></li>
-                <li><a href="#integration-ecosystem">7. Integration & Ecosystem</a></li>
-                <li><a href="#user-experience">8. User Experience & Learning Curve</a></li>
-                <li><a href="#compliance-regulatory">9. Compliance & Regulatory Features</a></li>
-                <li><a href="#cost-considerations">10. Cost Considerations</a></li>
-                <li><a href="#organization-size">11. Organization Size Considerations</a></li>
-                <li><a href="#conclusion">12. Conclusion</a></li>
+                <li><a href="#inter-entity">4. Inter-Entity Transfers (v8.8)</a></li>
+                <li><a href="#bank-account-management">5. Bank Account Management (v8.7+)</a></li>
+                <li><a href="#financial-reporting">6. Financial Reporting</a></li>
+                <li><a href="#customization-flexibility">7. Customization & Flexibility</a></li>
+                <li><a href="#integration-ecosystem">8. Integration & Ecosystem</a></li>
+                <li><a href="#user-experience">9. User Experience & Learning Curve</a></li>
+                <li><a href="#compliance-regulatory">10. Compliance & Regulatory Features</a></li>
+                <li><a href="#cost-considerations">11. Cost Considerations</a></li>
+                <li><a href="#organization-size">12. Organization Size Considerations</a></li>
+                <li><a href="#conclusion">13. Conclusion</a></li>
             </ul>
         </div>
 
@@ -190,7 +191,7 @@
                     <li><strong>Purpose-Built:</strong> Designed from the ground up with fund accounting as a core principle.</li>
                     <li><strong>Native Fund Segregation:</strong> Directly supports various fund types (Unrestricted, Temporarily Restricted, Permanently Restricted) and enforces segregation.</li>
                     <li><strong>Integrated Fund Tracking:</strong> Fund balances are inherently tracked and visible throughout the system, including dashboards and reports.</li>
-                    <li><strong>Enhanced Multi-Entity Support (v8.6):</strong> Built-in infrastructure for inter-entity transactions with automatic Due To/Due From balancing and consolidated reporting.</li>
+                    <li><strong>Enhanced Multi-Entity Support (v8.8):</strong> Built-in infrastructure for inter-entity transactions with automatic Due To/Due From balancing and consolidated reporting.</li>
                     <li><strong>Transaction Allocation:</strong> All financial transactions can be directly and easily associated with specific funds.</li>
                 </ul>
             </div>
@@ -227,8 +228,8 @@
 
         <!-- ===== New Section: Inter-Entity Transfers ===== -->
         <div id="inter-entity" class="page-break-before">
-            <h2 class="section-title">4. Inter-Entity Transfers (v8.6)</h2>
-            <p>Version 8.6 introduces a dedicated Inter-Entity Transfer engine that automates transfers of funds between related entities or departments while maintaining balanced books and audit trails.</p>
+            <h2 class="section-title">4. Inter-Entity Transfers (v8.8)</h2>
+            <p>Version 8.8 introduces a dedicated Inter-Entity Transfer engine that automates transfers of funds between related entities or departments while maintaining balanced books and audit trails.</p>
 
             <div class="comparison-point">
                 <h3>Custom System</h3>
@@ -251,8 +252,37 @@
             </div>
         </div>
 
+        <!-- ===== New Section: Bank Account Management ===== -->
+        <div id="bank-account-management" class="page-break-before">
+            <h2 class="section-title">5. Bank Account Management (v8.7+)</h2>
+            <p>Version 8.7 introduced a comprehensive Bank Account Management module that provides robust tracking, reconciliation, and integration capabilities for all financial institution accounts.</p>
+
+            <div class="comparison-point">
+                <h3>Custom System</h3>
+                <ul class="comparison-list">
+                    <li><strong>Centralized Banking Hub:</strong> Unified dashboard for managing all bank accounts, credit cards, and investment accounts in one place.</li>
+                    <li><strong>Automated Reconciliation:</strong> Smart matching algorithms automatically pair transactions with bank statement entries, dramatically reducing manual reconciliation time.</li>
+                    <li><strong>Online Connectivity Options:</strong> Support for direct bank feeds via Plaid or OFX connections, with fallback to manual CSV imports.</li>
+                    <li><strong>Transaction Categorization:</strong> AI-assisted categorization learns from historical patterns to suggest account and fund allocations.</li>
+                    <li><strong>Reconciliation History:</strong> Complete audit trail of all reconciliations with point-in-time snapshots for auditors.</li>
+                    <li><strong>Multi-Currency Support:</strong> Handles foreign currency accounts with automatic exchange rate tracking and translation.</li>
+                </ul>
+            </div>
+
+            <div class="comparison-point">
+                <h3>Zoho Books</h3>
+                <ul class="comparison-list">
+                    <li><strong>Basic Bank Feeds:</strong> Offers bank connections but with more limited coverage of financial institutions compared to specialized providers.</li>
+                    <li><strong>Manual Reconciliation Focus:</strong> While bank reconciliation is supported, it relies more heavily on manual matching processes.</li>
+                    <li><strong>Limited Fund-Specific Features:</strong> Bank transactions must be manually allocated to funds using workarounds, as the banking module isn't fund-aware.</li>
+                    <li><strong>Standard Reports:</strong> Provides basic reconciliation reports but lacks specialized non-profit focused bank reporting.</li>
+                    <li><strong>Single-Entity Design:</strong> Bank accounts are managed within a single Zoho Books organization, making multi-entity banking more challenging.</li>
+                </ul>
+            </div>
+        </div>
+
         <div id="financial-reporting" class="page-break-before">
-            <h2 class="section-title">5. Financial Reporting</h2>
+            <h2 class="section-title">6. Financial Reporting</h2>
             <div class="comparison-point">
                 <h3>Custom System</h3>
                 <ul class="comparison-list">
@@ -274,7 +304,7 @@
         </div>
 
         <div id="customization-flexibility" class="page-break-before">
-            <h2 class="section-title">6. Customization & Flexibility</h2>
+            <h2 class="section-title">7. Customization & Flexibility</h2>
             <div class="comparison-point">
                 <h3>Custom System</h3>
                 <ul class="comparison-list">
@@ -296,7 +326,7 @@
         </div>
 
         <div id="integration-ecosystem" class="page-break-before">
-            <h2 class="section-title">7. Integration & Ecosystem</h2>
+            <h2 class="section-title">8. Integration & Ecosystem</h2>
             <div class="comparison-point">
                 <h3>Custom System</h3>
                 <ul class="comparison-list">
@@ -316,7 +346,7 @@
         </div>
 
         <div id="user-experience" class="page-break-before">
-            <h2 class="section-title">8. User Experience & Learning Curve</h2>
+            <h2 class="section-title">9. User Experience & Learning Curve</h2>
             <div class="comparison-point">
                 <h3>Custom System</h3>
                 <ul class="comparison-list">
@@ -338,7 +368,7 @@
         </div>
 
         <div id="compliance-regulatory" class="page-break-before">
-            <h2 class="section-title">9. Compliance & Regulatory Features</h2>
+            <h2 class="section-title">10. Compliance & Regulatory Features</h2>
             <div class="comparison-point">
                 <h3>Custom System</h3>
                 <ul class="comparison-list">
@@ -359,7 +389,7 @@
         </div>
 
         <div id="cost-considerations" class="page-break-before">
-            <h2 class="section-title">10. Cost Considerations</h2>
+            <h2 class="section-title">11. Cost Considerations</h2>
             <div class="comparison-point">
                 <h3>Custom System</h3>
                 <ul class="comparison-list">
@@ -381,7 +411,7 @@
         </div>
 
         <div id="organization-size" class="page-break-before">
-            <h2 class="section-title">11. Organization Size Considerations</h2>
+            <h2 class="section-title">12. Organization Size Considerations</h2>
             <div class="comparison-point">
                 <h3>Custom System is often better suited for:</h3>
                 <ul class="comparison-list">
@@ -403,13 +433,14 @@
         </div>
 
         <div id="conclusion" class="page-break-before">
-            <h2 class="section-title">12. Conclusion</h2>
+            <h2 class="section-title">13. Conclusion</h2>
             <p>The choice between the Custom Non-Profit Accounting System and Zoho Books depends heavily on the specific needs, resources, and complexity of the grant-making charity.</p>
 
             <h3 class="subsection-title">Choose the Custom System if:</h3>
             <ul class="comparison-list">
                 <li><strong>True fund accounting and robust fund segregation are paramount</strong> to your operations and reporting.</li>
-                <li><strong>Your organization operates multiple entities and requires automated inter-entity transfer tracking (v8.6)</strong> to maintain balanced books across entities.</li>
+                <li><strong>Your organization operates multiple entities and requires automated inter-entity transfer tracking (v8.8)</strong> to maintain balanced books across entities.</li>
+                <li><strong>You need comprehensive bank account management with automated reconciliation (v8.7+)</strong> to streamline financial operations.</li>
                 <li>You have <strong>complex grant management and compliance reporting requirements</strong> that demand a tailored solution.</li>
                 <li>Your organization has the <strong>financial and technical resources</strong> to invest in upfront development and ongoing maintenance of a custom system.</li>
                 <li>You require <strong>maximum flexibility and control</strong> over your accounting processes and software features.</li>
@@ -428,7 +459,7 @@
         </div>
 
         <div class="footer">
-            <p>Comparative Analysis | Generated on July 9, 2025</p>
+            <p>Comparative Analysis | Generated on July 11, 2025</p>
         </div>
     </div>
 </body>

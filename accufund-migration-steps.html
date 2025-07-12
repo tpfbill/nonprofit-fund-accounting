@@ -164,13 +164,13 @@
     </style>
 </head>
 <body>
-    <h1>Step-by-Step AccuFund Migration Guide (v8.6)</h1>
+    <h1>Step-by-Step AccuFund Migration Guide (v8.8)</h1>
 
     <div class="section-content">
         <p>This comprehensive guide provides detailed, step-by-step instructions for migrating your financial data from AccuFund to the Nonprofit Fund Accounting System. Follow these instructions carefully to ensure a successful migration with minimal disruption to your operations.</p>
         
         <div class="note">
-            <strong>Note:</strong> This guide is specifically updated for version 8.6 of the Nonprofit Fund Accounting System, which includes support for Inter-Entity Transfers. If you're migrating to an earlier version, some steps may not apply.
+            <strong>Note:</strong> This guide is specifically updated for version 8.8 of the Nonprofit Fund Accounting System, which includes support for <em>Inter-Entity Transfers</em> (v8.6) <strong>and the new Bank Account Management module</strong> (v8.7+). If you're migrating to an earlier version, some steps may not apply.
         </div>
     </div>
 
@@ -180,7 +180,7 @@
             <li><a href="#preparation">Preparation and Assessment</a></li>
             <li><a href="#extraction">Data Extraction from AccuFund</a></li>
             <li><a href="#mapping">Data Mapping and Transformation</a></li>
-            <li><a href="#inter-entity">Inter-Entity Transfer Migration (v8.6)</a></li>
+            <li><a href="#inter-entity">Inter-Entity Transfer Migration (v8.8)</a></li>
             <li><a href="#validation">Data Validation</a></li>
             <li><a href="#import">Data Import Process</a></li>
             <li><a href="#verification">Post-Migration Verification</a></li>
@@ -239,7 +239,7 @@
                 <div class="command">
                     git clone https://github.com/tpfbill/nonprofit-fund-accounting.git<br>
                     cd nonprofit-fund-accounting<br>
-                    git checkout v8.6
+                    git checkout v8.8
                 </div>
                 <li>Install Node.js dependencies:</li>
                 <div class="command">
@@ -322,7 +322,22 @@
         </div>
 
         <div class="step">
-            <div class="step-title"><span class="step-number">5</span>Extract Balances</div>
+            <div class="step-title"><span class="step-number">5</span>Extract Bank Account Information</div>
+            <p>Export all bank account information from AccuFund's Banking module.</p>
+            <ol>
+                <li>In AccuFund, go to <strong>Administration > Banking > Bank Accounts</strong></li>
+                <li>Generate a Bank Accounts Listing report</li>
+                <li>Include all fields, especially: Bank Name, Account Name, Account Number, Routing Number, Account Type, Status, and Current Balance</li>
+                <li>Export to CSV format</li>
+                <li>Save the file as <code>accufund_bank_accounts.csv</code></li>
+            </ol>
+            <div class="note">
+                <strong>Note:</strong> Be sure to capture the Last Reconciled Date for each account to maintain reconciliation history.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-title"><span class="step-number">6</span>Extract Balances</div>
             <p>Export current account balances for verification purposes.</p>
             <ol>
                 <li>In AccuFund, go to <strong>General Ledger > Reports > Trial Balance</strong></li>
@@ -391,7 +406,32 @@
         </div>
 
         <div class="step">
-            <div class="step-title"><span class="step-number">4</span>Transform Journal Entry Data</div>
+            <div class="step-title"><span class="step-number">4</span>Create Bank Account Mapping</div>
+            <p>Map AccuFund bank accounts to the new system's bank_accounts table structure.</p>
+            <ol>
+                <li>Create a spreadsheet with the following columns to match the v8.7+ bank_accounts table:
+                    <ul>
+                        <li>bank_name</li>
+                        <li>account_name</li>
+                        <li>account_number</li>
+                        <li>routing_number</li>
+                        <li>type (map to: "Checking", "Savings", "Credit Card", etc.)</li>
+                        <li>status ("Active" or "Inactive")</li>
+                        <li>balance (current balance as of migration date)</li>
+                        <li>connection_method (default to "Manual" for initial import)</li>
+                        <li>description</li>
+                    </ul>
+                </li>
+                <li>For each AccuFund bank account, map the information to the corresponding fields</li>
+                <li>Save this mapping as <code>bank_account_mapping.csv</code></li>
+            </ol>
+            <div class="tip">
+                <strong>Tip:</strong> Include the GL account code that corresponds to each bank account to ensure proper reconciliation with the chart of accounts.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-title"><span class="step-number">5</span>Transform Journal Entry Data</div>
             <p>Process the journal entry data to match the new system's format.</p>
             <ol>
                 <li>Create a script to process the journal entries CSV file</li>
@@ -428,7 +468,7 @@
     </div>
 
     <div id="inter-entity" class="section-content">
-        <h2>4. Inter-Entity Transfer Migration (v8.6)</h2>
+        <h2>4. Inter-Entity Transfer Migration (v8.8)</h2>
         
         <div class="step">
             <div class="step-title"><span class="step-number">1</span>Identify Inter-Entity Transactions</div>
@@ -458,7 +498,7 @@
                 <li>Update your account mapping to include these specialized accounts</li>
             </ol>
             <div class="note">
-                <strong>Note:</strong> The v8.6 Inter-Entity Transfer feature requires specific account structures. Each entity should have:
+                <strong>Note:</strong> The v8.8 Inter-Entity Transfer feature requires specific account structures. Each entity should have:
                 <ul>
                     <li>One "Due From" account (Asset, 19xx) for each counter-party entity</li>
                     <li>One "Due To" account (Liability, 29xx) for each counter-party entity</li>
@@ -536,7 +576,7 @@
                 <li>Set the appropriate <code>target_entity_id</code> for each entry</li>
             </ol>
             <div class="warning">
-                <strong>Warning:</strong> This step is critical for maintaining proper inter-entity relationships. Single-entry transactions must be split to work with the v8.6 Inter-Entity Transfer feature.
+                <strong>Warning:</strong> This step is critical for maintaining proper inter-entity relationships. Single-entry transactions must be split to work with the v8.8 Inter-Entity Transfer feature.
             </div>
         </div>
     </div>
@@ -571,7 +611,21 @@
         </div>
 
         <div class="step">
-            <div class="step-title"><span class="step-number">3</span>Validate Journal Entries</div>
+            <div class="step-title"><span class="step-number">3</span>Validate Bank Account Data</div>
+            <p>Verify the transformed bank account data for completeness and accuracy.</p>
+            <ol>
+                <li>Check that all bank accounts from AccuFund have been mapped</li>
+                <li>Verify that account types are correctly assigned (Checking, Savings, Credit Card, etc.)</li>
+                <li>Ensure that account numbers and routing numbers are correctly formatted</li>
+                <li>Confirm that opening balances match the balances in AccuFund as of the migration date</li>
+            </ol>
+            <div class="tip">
+                <strong>Tip:</strong> Pay special attention to bank accounts that have pending reconciliations or outstanding transactions.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-title"><span class="step-number">4</span>Validate Journal Entries</div>
             <p>Verify the transformed journal entries for completeness and accuracy.</p>
             <ol>
                 <li>Check that the total number of journal entries matches AccuFund</li>
@@ -582,7 +636,7 @@
         </div>
 
         <div class="step">
-            <div class="step-title"><span class="step-number">4</span>Validate Inter-Entity Relationships</div>
+            <div class="step-title"><span class="step-number">5</span>Validate Inter-Entity Relationships</div>
             <p>Verify that inter-entity transactions are correctly configured.</p>
             <ol>
                 <li>Check that all inter-entity transactions have been identified and paired</li>
@@ -597,7 +651,7 @@
         </div>
 
         <div class="step">
-            <div class="step-title"><span class="step-number">5</span>Validate Balances</div>
+            <div class="step-title"><span class="step-number">6</span>Validate Balances</div>
             <p>Verify that account balances match between AccuFund and the transformed data.</p>
             <ol>
                 <li>Calculate ending balances for all accounts using the transformed journal entries</li>
@@ -695,7 +749,30 @@
         </div>
 
         <div class="step">
-            <div class="step-title"><span class="step-number">5</span>Import Journal Entries</div>
+            <div class="step-title"><span class="step-number">5</span>Import Bank Accounts</div>
+            <p>Import the bank accounts into the new system.</p>
+            <ol>
+                <li>Use the AccuFund import utility to import the bank accounts:</li>
+                <div class="command">
+                    # Open the import utility in your browser<br>
+                    open http://localhost:3000/accufund-import.html
+                </div>
+                <li>Select "Bank Accounts" as the target table</li>
+                <li>Upload the transformed <code>bank_account_mapping.csv</code> file</li>
+                <li>Map the columns as prompted, ensuring all required fields are mapped correctly</li>
+                <li>Validate and import the data</li>
+                <li>Verify the bank accounts were imported correctly:</li>
+                <div class="command">
+                    psql -U postgres -d fund_accounting_db -c "SELECT * FROM bank_accounts ORDER BY bank_name, account_name"
+                </div>
+            </ol>
+            <div class="note">
+                <strong>Note:</strong> The Bank Account Management module in v8.7+ requires proper setup of bank accounts to enable reconciliation and transaction matching features.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-title"><span class="step-number">6</span>Import Journal Entries</div>
             <p>Import the journal entries into the new system.</p>
             <ol>
                 <li>Import the journal entry headers:</li>
@@ -753,7 +830,22 @@
         </div>
 
         <div class="step">
-            <div class="step-title"><span class="step-number">4</span>Verify Financial Reports</div>
+            <div class="step-title"><span class="step-number">4</span>Verify Bank Accounts</div>
+            <p>Confirm that the bank accounts have been correctly imported.</p>
+            <ol>
+                <li>Navigate to <strong>Bank Accounts</strong> in the application</li>
+                <li>Verify that all bank accounts are present with correct information</li>
+                <li>Check account types, balances, and status</li>
+                <li>Perform a test reconciliation on one bank account to ensure the feature works properly</li>
+                <li>Verify that each bank account is properly linked to its corresponding GL account</li>
+            </ol>
+            <div class="tip">
+                <strong>Tip:</strong> The Bank Account Management module added in v8.7 provides a comprehensive reconciliation workflow. Test this feature with a sample bank statement to ensure it works as expected.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-title"><span class="step-number">5</span>Verify Financial Reports</div>
             <p>Generate key financial reports and compare with AccuFund.</p>
             <ol>
                 <li>Generate a Trial Balance report in both systems</li>
@@ -764,7 +856,7 @@
         </div>
 
         <div class="step">
-            <div class="step-title"><span class="step-number">5</span>Verify Inter-Entity Transfers</div>
+            <div class="step-title"><span class="step-number">6</span>Verify Inter-Entity Transfers</div>
             <p>Confirm that inter-entity transfers have been correctly imported and are functioning as expected.</p>
             <ol>
                 <li>Navigate to <strong>Reports</strong> and run the Inter-Entity Transfers report</li>
@@ -799,7 +891,7 @@
         </div>
 
         <div class="step">
-            <div class="step-title"><span class="step-number">6</span>User Acceptance Testing</div>
+            <div class="step-title"><span class="step-number">7</span>User Acceptance Testing</div>
             <p>Have key users test the system to verify functionality.</p>
             <ol>
                 <li>Create a test plan covering key workflows</li>
@@ -889,7 +981,7 @@
 
     <div class="section-content">
         <h2>Conclusion</h2>
-        <p>Following this step-by-step guide should result in a successful migration from AccuFund to the Nonprofit Fund Accounting System v8.6. The process requires careful planning, thorough validation, and attention to detail, especially for inter-entity transfers.</p>
+        <p>Following this step-by-step guide should result in a successful migration from AccuFund to the Nonprofit Fund Accounting System v8.8. The process requires careful planning, thorough validation, and attention to detail, especially for inter-entity transfers and bank account management.</p>
         
         <p>After completing the migration, be sure to:</p>
         <ul>

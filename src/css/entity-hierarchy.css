@@ -99,9 +99,24 @@
 
 /* Fund Level (Level 3) */
 .fund-node > .node-header {
-    background-color: #e9f5f5;
-    color: #333;
-    border-left: 5px solid #5bc0be;
+    /* Make fund nodes extremely prominent */
+    background-color: #ffeb3b;      /* bright yellow */
+    color: #4e342e;                 /* dark brown text for strong contrast */
+    border-left: 6px solid #ff9800; /* vivid orange accent bar */
+    font-weight: 700;               /* bold text */
+    font-size: 15px;                /* larger font */
+    padding: 10px 12px;             /* slightly larger padding */
+}
+
+/* Subtle hover effect for fund nodes */
+.fund-node > .node-header:hover {
+    background-color: #ffe082; /* slightly darker yellow on hover */
+}
+
+/* Extra spacing so fund nodes don’t feel cramped */
+.fund-node {
+    margin-top: 6px;
+    margin-bottom: 6px;
 }
 
 /* Action Buttons */

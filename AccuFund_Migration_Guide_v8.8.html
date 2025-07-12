@@ -1,0 +1,257 @@
+<h1
+id="migration-strategy-accufund-to-custom-fund-accounting-system">Migration
+Strategy: AccuFund to Custom Fund Accounting System</h1>
+<div class="section-content">
+<p>Migrating from an established system like AccuFund to a custom-built
+solution requires careful planning. This document outlines a
+comprehensive approach to ensure a successful transition.</p>
+</div>
+<section id="data-migration-strategy" class="section-content">
+<h2>1. Data Migration Strategy</h2>
+<h3 id="assessment-and-extraction">Assessment and Extraction:</h3>
+<ul>
+<li>Export all financial data from AccuFund (charts of accounts, funds,
+transactions, budgets)</li>
+<li>Extract vendor/customer information, recurring transactions, and
+historical records</li>
+<li>Document custom reports and specialized configurations</li>
+</ul>
+<h3 id="data-transformation">Data Transformation:</h3>
+<ul>
+<li>Map AccuFund chart of accounts structure to new system</li>
+<li>Transform fund definitions and attributes</li>
+<li>Convert historical journal entries while maintaining audit
+trails</li>
+<li>Adapt budget structures to the new database schema</li>
+</ul>
+<h3 id="data-validation">Data Validation:</h3>
+<ul>
+<li>Run parallel financial reports in both systems to verify
+accuracy</li>
+<li>Implement cross-checking reconciliation processes</li>
+<li>Verify opening balances match closing balances from AccuFund</li>
+</ul>
+</section>
+<section id="technical-implementation" class="section-content">
+<h2>2. Technical Implementation</h2>
+<h3 id="database-setup">Database Setup:</h3>
+<ul>
+<li>Implement the PostgreSQL schema we designed</li>
+<li>Create import utilities for AccuFund data</li>
+<li>Build data verification and integrity checks</li>
+</ul>
+<h3 id="integration-requirements">Integration Requirements:</h3>
+<ul>
+<li>Identify any third-party systems AccuFund interfaces with (banking,
+payroll, etc.)</li>
+<li>Develop equivalent integration points in the new system</li>
+<li>Test data flow between systems</li>
+</ul>
+</section>
+<section id="inter-entity-transfer-configuration-v8.8"
+class="section-content">
+<h2>2.5 Inter-Entity Transfer Configuration (v8.8+)</h2>
+<p>The <strong>Inter-Entity Transfer</strong> feature, introduced in
+version 8.8 of the Fund Accounting System, automates cash movements
+between related legal entities by creating paired
+<em>Due To</em>/<em>Due From</em> journal entries. When migrating from
+AccuFund you must ensure the underlying account structure and historical
+transactions correctly map to this new capability.</p>
+<h3 id="why-it-matters-for-multi-entity-organizations">Why It Matters
+for Multi-Entity Organizations</h3>
+<ul>
+<li>Eliminates manual dual-entry work between entities.</li>
+<li>Provides an auditable <code>matching_transaction_id</code> that
+links both sides of the transfer.</li>
+<li>Keeps inter-company balances in sync via <em>Due To</em>/<em>Due
+From</em> accounts.</li>
+</ul>
+<h3 id="required-due-to-due-from-account-structure">Required <em>Due To
+/ Due From</em> Account Structure</h3>
+<ul>
+<li><strong>Assets 19xx – “Due From &lt;Other Entity&gt;”</strong></li>
+<li><strong>Liabilities 29xx – “Due To &lt;Other
+Entity&gt;”</strong></li>
+<li>Create one pair per counter-party entity to simplify
+reconciliation.</li>
+</ul>
+<h3 id="mapping-accufund-accounts-to-the-new-system">Mapping AccuFund
+Accounts to the New System</h3>
+<ul>
+<li>Locate AccuFund GL accounts used for inter-company settlements.</li>
+<li>Map each to the correct 19xx / 29xx account code in the new chart of
+accounts (or create new accounts if missing).</li>
+<li>Confirm each account is assigned to the correct entity in the import
+CSV.</li>
+</ul>
+<h3
+id="migration-considerations-for-existing-inter-entity-transactions">Migration
+Considerations for Existing Inter-Entity Transactions</h3>
+<ul>
+<li>When importing historical journal entries, populate
+<code>is_inter_entity</code>, <code>target_entity_id</code> and
+<code>matching_transaction_id</code> so legacy transfers appear as
+linked pairs.</li>
+<li>If AccuFund stored transfers as single multi-line entries, split
+them into two separate entries (one per entity) during
+transformation.</li>
+</ul>
+<h3 id="validation-steps-post-migration">Validation Steps
+Post-Migration</h3>
+<ul>
+<li>Run the “Inter-Entity Transfers” report and verify all historic
+transfers appear in matched pairs.</li>
+<li>Confirm each entity’s <em>Due To</em> balance equals the
+counter-party’s <em>Due From</em> balance.</li>
+<li>Perform a sample transfer in the new system to ensure automatic
+dual-entry posting functions as expected.</li>
+</ul>
+</section>
+
+<!-- ============================ NEW SECTION 2.6 ============================ -->
+<section id="bank-account-integration-v8.7" class="section-content">
+<h2>2.6 Bank Account Integration (v8.7+)</h2>
+
+<p>The <strong>Bank Account Management</strong> module—added in version 8.7
+and enhanced in v8.8—allows direct tracking and optional online
+connections to operating, savings, and credit-card accounts.  When
+migrating from AccuFund you should map every active AccuFund bank account
+to an equivalent record in the new system to preserve beginning
+balances, reconciliation history, and account metadata.</p>
+
+<h3 id="identify-accufund-bank-accounts">Identifying Bank Accounts in AccuFund</h3>
+<ul>
+  <li>Run the <em>Bank Accounts Listing</em> report (Administration → Banking).</li>
+  <li>Export the report to CSV, capturing: Bank Name, Account Name,
+      GL Account Code, Routing Number, Last Reconciled Date, and
+      Current Balance.</li>
+  <li>Note any accounts marked <em>Inactive</em>—these can be imported with
+      <code>status = "Inactive"</code> so history is preserved but the
+      account is hidden from daily workflows.</li>
+</ul>
+
+<h3 id="map-bank-data">Mapping Bank Account Data to the New System</h3>
+<ol>
+  <li><strong>Prepare CSV</strong> – Create <code>bank_accounts.csv</code>
+      with the following columns:<br>
+      <code>bank_name,account_name,account_number,routing_number,type,status,balance,connection_method,description</code></li>
+  <li><strong>Type Mapping</strong> – AccuFund “Checking” → “Checking”,
+      “Savings” → “Savings”, “Credit Card” → “Credit Card”.</li>
+  <li><strong>Connection Method</strong> – Use <code>Manual</code> for all
+      imports; you can switch to <code>Plaid</code> or <code>OFX</code>
+      later once online credentials are verified.</li>
+  <li><strong>Opening Balance</strong> – Populate the
+      <code>balance</code> field with the CSV export’s <em>Current
+      Balance</em> as of the migration cut-over date.</li>
+  <li><strong>Import</strong> – Upload the CSV via
+      <em>Settings → Data Import → Bank Accounts</em> and validate.</li>
+</ol>
+
+<h3 id="bank-best-practices">Best Practices for Setting Up Bank Accounts</h3>
+<ul>
+  <li><strong>Clear Naming</strong> – Include the entity or fund in the
+      <em>Account Name</em> (e.g., “TPF – Operating Checking”).</li>
+  <li><strong>One-to-One Mapping</strong> – Ensure each GL cash account
+      points to exactly one bank-account record to simplify
+      reconciliation.</li>
+  <li><strong>Reconcile Immediately</strong> – After import, run the
+      Reconciliation Wizard for the last closed period to confirm the
+      opening balance.</li>
+  <li><strong>Enable Online Sync Later</strong> – Wait until after
+      cut-over and internal verification before turning on Plaid/OFX to
+      avoid duplicate transactions.</li>
+</ul>
+</section>
+
+<section id="process-and-training" class="section-content">
+<h2>3. Process and Training</h2>
+<h3 id="process-documentation">Process Documentation:</h3>
+<ul>
+<li>Document current AccuFund workflows and identify changes in the new
+system</li>
+<li>Create standard operating procedures for core accounting
+functions</li>
+<li>Update approval workflows and internal controls</li>
+</ul>
+<h3 id="user-training">User Training:</h3>
+<ul>
+<li>Develop role-based training materials</li>
+<li>Conduct hands-on training sessions for finance staff</li>
+<li>Provide specialized training for administrators and report
+developers</li>
+</ul>
+</section>
+<section id="phased-implementation-approach" class="section-content">
+<h2>4. Phased Implementation Approach</h2>
+<h3 id="phase-1-core-setup-2-3-months">Phase 1: Core Setup (2-3
+months)</h3>
+<ul>
+<li>Install infrastructure</li>
+<li>Configure chart of accounts and funds</li>
+<li>Migrate master data (vendor/customer records)</li>
+<li>Set up user accounts and permissions</li>
+</ul>
+<h3 id="phase-2-historical-data-1-2-months">Phase 2: Historical Data
+(1-2 months)</h3>
+<ul>
+<li>Import historical transactions</li>
+<li>Validate financial reports against AccuFund</li>
+<li>Test period closings and reconciliations</li>
+</ul>
+<h3 id="phase-3-parallel-operations-1-2-months">Phase 3: Parallel
+Operations (1-2 months)</h3>
+<ul>
+<li>Run both systems simultaneously</li>
+<li>Process transactions in both systems</li>
+<li>Compare outputs and resolve discrepancies</li>
+</ul>
+<h3 id="phase-4-cutover-1-week">Phase 4: Cutover (1 week)</h3>
+<ul>
+<li>Finalize balance transfers</li>
+<li>Complete final verifications</li>
+<li>Switch to the new system as primary</li>
+</ul>
+</section>
+<section id="common-challenges-and-mitigation" class="section-content">
+<h2>5. Common Challenges and Mitigation</h2>
+<h3 id="data-complexity">Data Complexity:</h3>
+<ul>
+<li>AccuFund likely contains years of historical transactions and
+customizations</li>
+<li>Solution: Detailed data mapping and validation processes</li>
+</ul>
+<h3 id="feature-gaps">Feature Gaps:</h3>
+<ul>
+<li>The custom solution may not immediately replicate all AccuFund
+features</li>
+<li>Solution: Prioritize critical functionality; phase additional
+features</li>
+</ul>
+<h3 id="user-resistance">User Resistance:</h3>
+<ul>
+<li>Staff comfortable with AccuFund may resist change</li>
+<li>Solution: Early stakeholder involvement and comprehensive
+training</li>
+</ul>
+<h3 id="reporting-differences">Reporting Differences:</h3>
+<ul>
+<li>Custom reports in AccuFund need to be recreated</li>
+<li>Solution: Identify critical reports early and prioritize their
+development</li>
+</ul>
+</section>
+<section id="cost-considerations" class="section-content">
+<h2>6. Cost Considerations</h2>
+<ul>
+<li>Development costs for migration utilities</li>
+<li>Staff time for data validation and testing</li>
+<li>Potential consulting assistance for complex data mapping</li>
+<li>Training and documentation development</li>
+</ul>
+<p>A successful migration would typically take 4-6 months from planning
+to full implementation, depending on the complexity of your AccuFund
+implementation and the amount of historical data to be migrated.</p>
+</section>
+<div class="footer">
+Generated by Droid by FACTORY on
+</div>
