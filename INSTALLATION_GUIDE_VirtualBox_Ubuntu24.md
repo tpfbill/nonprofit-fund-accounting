@@ -1,8 +1,18 @@
 # Nonprofit Fund Accounting System v8.8  
-### Installation Guide – VirtualBox + Ubuntu 24.04 LTS
+### Installation Guide – VirtualBox on Windows 11 (Ubuntu 24.04 LTS Guest)
 
-> Deploy the application inside an Ubuntu 24.04 guest running on Oracle VM VirtualBox 7.x.  
-> Steps cover VM creation, OS install, prerequisite packages, cloning the repo to **/opt/nonprofit-fund-accounting**, setting up PostgreSQL 16, loading schema/seed data, and running the app.
+> Architecture overview  
+> • **Host OS:** Windows 11 – where Oracle VM VirtualBox is installed  
+> • **Virtualisation:** VirtualBox 7.x running on the Windows 11 host  
+> • **Guest OS:** Ubuntu Desktop 24.04 inside the VirtualBox VM  
+> • **Application:** Non-profit Fund Accounting System v8.8 installed **inside the Ubuntu guest** under `/opt/nonprofit-fund-accounting`
+
+The steps below walk through:  
+1. Installing / configuring VirtualBox on the Windows 11 host  
+2. Creating an Ubuntu 24.04 VM in VirtualBox  
+3. Installing prerequisite packages inside the Ubuntu guest  
+4. Cloning the repository, configuring PostgreSQL 16, loading schema / seed data  
+5. Running the application and verifying functionality
 
 ---
 
