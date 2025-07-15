@@ -46,10 +46,10 @@ Open **PowerShell (Admin)** inside the VM and run:
 
 ```powershell
 # 3-a. Install Chocolatey (package manager)
+# Allow TLS 1.2 and bypass the PowerShell execution policy just for this session
 Set-ExecutionPolicy Bypass -Scope Process -Force; `
 [System.Net.ServicePointManager]::SecurityProtocol = 3072; `
 iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-
 # 3-b. Use choco to install tools
 choco install -y git nodejs-lts postgresql16 vscode
 ```
@@ -88,8 +88,8 @@ npm install            # installs server + client packages
 
 ```powershell
 psql -U postgres -W       # password: P@ssw0rd!
-CREATE ROLE funduser LOGIN PASSWORD 'fundpass';
-CREATE DATABASE fundacct OWNER funduser;
+CREATE ROLE npfadmin LOGIN PASSWORD 'npfa123';
+CREATE DATABASE fund_accounting_db OWNER npfadmin;
 \q
 ```
 
@@ -97,8 +97,8 @@ CREATE DATABASE fundacct OWNER funduser;
 
 ```powershell
 cd .\database
-psql -U funduser -d fundacct -f schema.sql
-psql -U funduser -d fundacct -f seed-data.sql
+psql -U npfadmin -d fund_accounting_db -f schema.sql
+psql -U npfadmin -d fund_accounting_db -f seed-data.sql
 ```
 
 3. **Configure connection string**
@@ -108,9 +108,9 @@ Create `.env` in project root:
 ```
 PGHOST=localhost
 PGPORT=5432
-PGDATABASE=fundacct
-PGUSER=funduser
-PGPASSWORD=fundpass
+PGDATABASE=fund_accounting_db
+PGUSER=npfadmin
+PGPASSWORD=npfa123
 ```
 
 ---
@@ -192,10 +192,10 @@ pkill -f "http-server"
 pkill -f "node server.js"
 
 # backup database
-pg_dump -U funduser -Fc fundacct > backup.dump
+pg_dump -U npfadmin -Fc fund_accounting_db > backup.dump
 
 # restore
-pg_restore -U funduser -d fundacct -c backup.dump
+pg_restore -U npfadmin -d fund_accounting_db -c backup.dump
 ```
 
 ---
