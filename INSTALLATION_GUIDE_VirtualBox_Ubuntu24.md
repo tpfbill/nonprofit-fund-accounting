@@ -121,8 +121,9 @@ SQL
 ```bash
 cd /opt/nonprofit-fund-accounting
 
-# 1. Create the full schema (tables, constraints, minimal seed rows)
-sudo -u postgres psql -d fund_accounting_db -f src/db/db-init.sql
+# 1. Create the schema (tables, constraints) **only**  
+#    Use the root `db-init.sql` which does NOT insert generic demo entities.
+sudo -u postgres psql -d fund_accounting_db -f db-init.sql
 
 # 2. Add **The Principle Foundation – Parent** entity
 #    Creates the single top-level `TPF_PARENT` entity so child entities
