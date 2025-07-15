@@ -124,14 +124,19 @@ cd /opt/nonprofit-fund-accounting
 # 1. Create the full schema (tables, constraints, minimal seed rows)
 sudo -u postgres psql -d fund_accounting_db -f src/db/db-init.sql
 
-# 2. Add **The Principle Foundation** entity hierarchy
-#    This script creates the three-tier structure:
+# 2. Add **The Principle Foundation – Parent** entity
+#    Creates the single top-level `TPF_PARENT` entity so child entities
+#    can attach to it.
+sudo -u postgres psql -d fund_accounting_db -f add_top_level_organization.sql
+
+# 3. Add **The Principle Foundation** child entities
+#    This script creates the three-tier structure underneath `TPF_PARENT`:
 #      • TPF          – top-level parent  
 #      • TPF-ES       – middle tier (Environmental Services)  
 #      • IFCSN        – middle tier (Community Service Networks)
 node add-tpf-hierarchy.js
 
-# 3. Load rich test transactions that reference those entities / funds
+# 4. Load rich test transactions that reference those entities / funds
 sudo -u postgres psql -d fund_accounting_db -f test-data.sql
 ```
 
