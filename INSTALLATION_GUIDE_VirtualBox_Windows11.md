@@ -96,9 +96,9 @@ CREATE DATABASE fund_accounting_db OWNER npfadmin;
 2. **Load schema & seed data**
 
 ```powershell
-cd .\database
-psql -U npfadmin -d fund_accounting_db -f schema.sql
-psql -U npfadmin -d fund_accounting_db -f seed-data.sql
+# from the project root where the SQL scripts reside
+psql -U npfadmin -d fund_accounting_db -f db-init.sql      # creates all tables & constraints
+psql -U npfadmin -d fund_accounting_db -f test-data.sql    # loads sample/seed data
 ```
 
 3. **Configure connection string**
