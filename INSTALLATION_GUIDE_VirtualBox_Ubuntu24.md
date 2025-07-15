@@ -121,8 +121,8 @@ SQL
 ```bash
 cd /opt/nonprofit-fund-accounting
 
-sudo -u postgres psql -d fund_accounting_db -f db-init.sql      # tables & constraints
-sudo -u postgres psql -d fund_accounting_db -f test-data.sql    # sample data
+# The **comprehensive** schema script already includes sample data
+sudo -u postgres psql -d fund_accounting_db -f src/db/db-init.sql
 ```
 
 ### 5.3 Application Environment File
