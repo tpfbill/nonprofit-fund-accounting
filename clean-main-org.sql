@@ -12,7 +12,6 @@
 BEGIN;
 
 -- Display current entities (BEFORE state)
-RAISE NOTICE '--- BEFORE: Current entities ---';
 SELECT 
     e.id, 
     e.name, 
@@ -115,7 +114,6 @@ BEGIN
 END $$;
 
 -- Display entities after deletion (AFTER state)
-RAISE NOTICE '--- AFTER: Current entities ---';
 SELECT 
     e.id, 
     e.name, 
@@ -132,7 +130,6 @@ ORDER BY
     e.name;
 
 -- Show all top-level entities for verification
-RAISE NOTICE '--- All top-level entities ---';
 SELECT 
     e.id, 
     e.name, 
