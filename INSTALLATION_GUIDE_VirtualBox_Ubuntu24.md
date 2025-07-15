@@ -121,12 +121,17 @@ SQL
 ```bash
 cd /opt/nonprofit-fund-accounting
 
-# 1. Create the full schema (tables, constraints, basic seed rows)
+# 1. Create the full schema (tables, constraints, minimal seed rows)
 sudo -u postgres psql -d fund_accounting_db -f src/db/db-init.sql
 
-# 2. Load *The Principle Foundation* (TPF) hierarchy & rich test data  
-#    Includes entities **TPF**, **TPF-ES**, **IFCSN**, funds, accounts, and
-#    journal entries that reflect real-world scenarios.
+# 2. Add **The Principle Foundation** entity hierarchy
+#    This script creates the three-tier structure:
+#      • TPF          – top-level parent  
+#      • TPF-ES       – middle tier (Environmental Services)  
+#      • IFCSN        – middle tier (Community Service Networks)
+node add-tpf-hierarchy.js
+
+# 3. Load rich test transactions that reference those entities / funds
 sudo -u postgres psql -d fund_accounting_db -f test-data.sql
 ```
 
