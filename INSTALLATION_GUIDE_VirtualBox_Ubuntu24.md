@@ -121,8 +121,13 @@ SQL
 ```bash
 cd /opt/nonprofit-fund-accounting
 
-# The **comprehensive** schema script already includes sample data
+# 1. Create the full schema (tables, constraints, basic seed rows)
 sudo -u postgres psql -d fund_accounting_db -f src/db/db-init.sql
+
+# 2. Load *The Principle Foundation* (TPF) hierarchy & rich test data  
+#    Includes entities **TPF**, **TPF-ES**, **IFCSN**, funds, accounts, and
+#    journal entries that reflect real-world scenarios.
+sudo -u postgres psql -d fund_accounting_db -f test-data.sql
 ```
 
 ### 5.3 Application Environment File
