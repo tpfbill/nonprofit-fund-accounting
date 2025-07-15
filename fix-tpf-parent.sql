@@ -61,20 +61,30 @@ WHERE parent.code = 'TPF_PARENT'
   AND child.code IN ('TPF', 'TPF-ES', 'IFCSN')
   AND (child.parent_entity_id IS NULL OR child.parent_entity_id != parent.id);
 
--- Step 4: Remove any duplicate entities
-WITH duplicates AS (
-    SELECT code, MIN(id) as keep_id
+-- ---------------------------------------------------------------------------
+-- Step 4: Remove duplicate entities (UUID-safe)
+-- ---------------------------------------------------------------------------
+--  PostgreSQL cannot apply MIN()/MAX() directly on UUID columns.  Instead,
+--  use ROW_NUMBER() to mark every entity after the first (per code) and
+--  delete rows where rn > 1.  This approach is idempotent and works on all
+--  PG versions ≥9.6.
+WITH dupes AS (
+    SELECT
+        id,
+        code,
+        ROW_NUMBER() OVER (PARTITION BY code ORDER BY id) AS rn
     FROM entities
     WHERE code IN ('TPF_PARENT', 'TPF', 'TPF-ES', 'IFCSN')
-    GROUP BY code
-    HAVING COUNT(*) > 1
 )
 DELETE FROM entities
-WHERE id IN (
-    SELECT e.id 
-    FROM entities e
-    JOIN duplicates d ON e.code = d.code AND e.id != d.keep_id
-);
+WHERE id IN (SELECT id FROM dupes WHERE rn > 1);
+
+-- ---------------------------------------------------------------------------
+-- Step 4.1: Remove stray generic “Main Organization” entities (if any)
+-- ---------------------------------------------------------------------------
+DELETE FROM entities
+WHERE (code IN ('MAIN', 'MAINHQ') OR name ILIKE 'Main Organization%')
+  AND id NOT IN (SELECT parent_entity_id FROM entities WHERE parent_entity_id IS NOT NULL);
 
 -- Display final entity hierarchy to verify changes
 SELECT 
