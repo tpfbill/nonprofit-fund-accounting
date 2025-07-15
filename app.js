@@ -2114,6 +2114,25 @@ function initializeNavigation() {
             loadDashboardData();
         });
     }
+
+    /* ------------------------------------------------------------------
+     * Entity Modal – Save button
+     * ------------------------------------------------------------------
+     * Wire #btn-save-entity to the saveEntity() function so that editing
+     * or creating an entity actually persists the data and closes the
+     * modal.  This listener was previously missing, causing the “Save”
+     * button to appear unresponsive.
+     * ------------------------------------------------------------------ */
+    const btnSaveEntity = document.getElementById('btn-save-entity');
+    if (btnSaveEntity) {
+        btnSaveEntity.addEventListener('click', async () => {
+            try {
+                await saveEntity();
+            } catch (err) {
+                console.error('[Entity] Save failed:', err);
+            }
+        });
+    }
 }
 
 // Application Initialization
