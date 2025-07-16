@@ -221,17 +221,17 @@
     <!-- Navigation - matching main application -->
     <div class="main-nav" id="mainNavContainer"> 
         <div class="nav-container">
-            <a href="http://localhost:8080" class="nav-item">Dashboard</a>
-            <a href="http://localhost:8080" class="nav-item">Chart of Accounts</a>
-            <a href="http://localhost:8080" class="nav-item">Funds</a>
-            <a href="http://localhost:8080" class="nav-item">Journal Entries</a>
-            <a href="http://localhost:8080" class="nav-item">Inter-Entity Transfer</a>
-            <a href="http://localhost:8080" class="nav-item">Fund Reports</a>
-            <a href="http://localhost:8080" class="nav-item">Custom Reports</a>
-            <a href="http://localhost:8080" class="nav-item">Ask Questions</a>
+            <a href="/" class="nav-item">Dashboard</a>
+            <a href="/" class="nav-item">Chart of Accounts</a>
+            <a href="/" class="nav-item">Funds</a>
+            <a href="/" class="nav-item">Journal Entries</a>
+            <a href="/" class="nav-item">Inter-Entity Transfer</a>
+            <a href="/" class="nav-item">Fund Reports</a>
+            <a href="/" class="nav-item">Custom Reports</a>
+            <a href="/" class="nav-item">Ask Questions</a>
             <a href="direct-docs.html" class="nav-item active">Documentation</a>
-            <a href="http://localhost:8080" class="nav-item">Reports</a>
-            <a href="http://localhost:8080" class="nav-item">Settings</a>
+            <a href="/" class="nav-item">Reports</a>
+            <a href="/" class="nav-item">Settings</a>
         </div>
     </div>
 
@@ -418,4 +418,20 @@
         </div>
     </div>
 </body>
+<!-- --------------------------------------------------------------------- -->
+<!-- Dynamic host patch: replace hard-coded localhost:3000 in PDF links     -->
+<!-- with the current hostname + :3000 so links work via Tailscale/mobile.  -->
+<!-- --------------------------------------------------------------------- -->
+<script>
+  // Build dynamic backend base (protocol + hostname + :3000)
+  const HOST_BASE = `${window.location.protocol}//${window.location.hostname}:3000`;
+
+  // Find all anchor tags that still point at hard-coded localhost:3000
+  document
+    .querySelectorAll('a[href^="http://localhost:3000"]')
+    .forEach((anchor) => {
+      anchor.href = anchor.href.replace('http://localhost:3000', HOST_BASE);
+    });
+</script>
+</html>
 </html>

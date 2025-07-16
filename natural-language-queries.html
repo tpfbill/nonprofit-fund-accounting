@@ -235,7 +235,11 @@
      *  Centralised base URL for backend requests so that all relative
      *  endpoints automatically point to the correct server/port.
      * ============================================================== */
-    const API_BASE_URL = 'http://localhost:3000';
+    /* ----------------------------------------------------------------
+     * Use dynamic host detection so the frontend works on localhost,
+     * Tailscale IPs/hostnames, Docker, VM guests, etc.
+     * ---------------------------------------------------------------- */
+    const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:3000`;
 
         document.addEventListener('DOMContentLoaded', () => {
             const state = {

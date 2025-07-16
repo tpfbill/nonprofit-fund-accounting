@@ -440,6 +440,10 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Dynamic API base URL - automatically uses current host (works with
+        // localhost, Tailscale IP/hostname, Docker, VM guests, etc.)
+        const API_BASE = `${window.location.protocol}//${window.location.hostname}:3000`;
+        
         // Global variables
         let entities = [];
         let funds = [];
@@ -472,7 +476,7 @@
         async function fetchEntities() {
             showInfo("Loading entities...");
             try {
-                const response = await fetch('http://localhost:3000/api/entities');
+                const response = await fetch(`${API_BASE}/api/entities`);
                 if (!response.ok) throw new Error('Failed to fetch entities');
                 
                 entities = await response.json();
@@ -559,7 +563,7 @@
         async function fetchFundsForEntity(entityId, targetElement) {
             showInfo("Loading funds...");
             try {
-                const response = await fetch(`http://localhost:3000/api/funds?entityId=${entityId}`);
+                const response = await fetch(`${API_BASE}/api/funds?entityId=${entityId}`);
                 if (!response.ok) throw new Error('Failed to fetch funds');
                 
                 const entityFunds = await response.json();
@@ -587,7 +591,7 @@
         async function fetchAccountsForEntity(entityId, prefix) {
             showInfo("Loading accounts...");
             try {
-                const response = await fetch(`http://localhost:3000/api/accounts?entityId=${entityId}`);
+                const response = await fetch(`${API_BASE}/api/accounts?entityId=${entityId}`);
                 if (!response.ok) throw new Error('Failed to fetch accounts');
                 
                 const entityAccounts = await response.json();
@@ -892,7 +896,7 @@
 
         // Create a journal entry
         async function createJournalEntry(journalEntryData) {
-            const response = await fetch('http://localhost:3000/api/journal-entries', {
+            const response = await fetch(`${API_BASE}/api/journal-entries`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -911,7 +915,7 @@
         // Create journal entry lines
         async function createJournalEntryLines(journalEntryId, lines) {
             for (const line of lines) {
-                const response = await fetch(`http://localhost:3000/api/journal-entries/${journalEntryId}/lines`, {
+                const response = await fetch(`${API_BASE}/api/journal-entries/${journalEntryId}/lines`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -945,7 +949,7 @@
         async function getCashAccountId(entityId) {
             // Check if we already have accounts for this entity
             if (!accounts[entityId]) {
-                const response = await fetch(`http://localhost:3000/api/accounts?entityId=${entityId}`);
+                const response = await fetch(`${API_BASE}/api/accounts?entityId=${entityId}`);
                 if (!response.ok) throw new Error('Failed to fetch accounts');
                 accounts[entityId] = await response.json();
             }
