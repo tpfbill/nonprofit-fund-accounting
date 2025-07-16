@@ -4,8 +4,14 @@
  * This script handles data fetching, UI rendering, navigation, and user interactions.
  */
 
+// ---------------------------------------------------------------------------
+// Dynamic API base URL – automatically uses current host (works with
+// localhost, Tailscale IP/hostname, or any other network interface)
+// ---------------------------------------------------------------------------
+const API_BASE = `${window.location.protocol}//${window.location.hostname}:3000`;
+
 // DEBUGGING: App.js loaded on (timestamp)
-console.log('App.js loaded:', new Date().toISOString(), '- Using API at http://localhost:3000');
+console.log('App.js loaded:', new Date().toISOString(), '- Using API at', API_BASE);
 
 // Application State
 const appState = {
@@ -59,7 +65,7 @@ async function fetchData(endpoint) {
         console.log(`Fetching data from /api/${endpoint}...`);
         /* Use absolute URL pointing at the backend API (port 3000) to avoid
          * accidental requests to the static-file server on port 8080. */
-        const response = await fetch(`http://localhost:3000/api/${endpoint}`);
+        const response = await fetch(`${API_BASE}/api/${endpoint}`);
         if (!response.ok) {
             throw new Error(`API Error: ${response.status}`);
         }
@@ -74,7 +80,7 @@ async function fetchData(endpoint) {
 
 async function saveData(endpoint, data, method = 'POST') {
     try {
-        const response = await fetch(`http://localhost:3000/api/${endpoint}`, {
+        const response = await fetch(`${API_BASE}/api/${endpoint}`, {
             method,
             headers: {
                 'Content-Type': 'application/json'
@@ -97,7 +103,7 @@ async function checkDatabaseConnection() {
         const dbStatusIndicator = document.getElementById('db-status-indicator');
         
         // Try to fetch entities as a connection test
-        const response = await fetch('http://localhost:3000/api/entities');
+        const response = await fetch(`${API_BASE}/api/entities`);
         if (response.ok) {
             if (dbStatusIndicator) {
                 dbStatusIndicator.textContent = 'DB Connected';

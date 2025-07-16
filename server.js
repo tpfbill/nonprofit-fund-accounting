@@ -413,9 +413,14 @@ app.get('/api/reports/fund-balance/:fundId', asyncHandler(async (req, res) => {
 /**
  * GET /api/reports/fund-activity/:fundId?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
  * Returns detailed transaction lines for a fund within an optional date range
- */
-app.get('/api/reports/fund-activity/:fundId', asyncHandler(async (req, res) => {
-  const { fundId } = req.params;
+// Bind to 0.0.0.0 so the server is reachable from all network interfaces
+// (required for access via Tailscale, Docker, VM guests, mobile devices, etc.)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT} (bound to 0.0.0.0)`);
+  console.log(
+    `If on the same machine open: http://localhost:${PORT}\n` +
+    `If on another device (e.g., via Tailscale) use the machine's Tailnet IP/hostname`
+  );
   const { startDate, endDate } = req.query;
 
   // Build dynamic query
@@ -1262,8 +1267,14 @@ app.use((err, req, res, next) => {
 // ---------------------------------------------------------------------------
 app.use(express.static('.'));
 
+// ---------------------------------------------------------------------------
 // Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Open http://localhost:${PORT} in your browser`);
+// ---------------------------------------------------------------------------
+// Bind to 0.0.0.0 so the server is reachable from ALL network interfaces.
+// This is required for access via Tailscale, mobile devices, Docker, VM guests, etc.
+// If you only need local access, change `'0.0.0.0'` to `'localhost'`.
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT} (bound to 0.0.0.0)`);
+  console.log(`Local  : http://localhost:${PORT}`);
+  console.log(`Remote : http://<this-host-IP-or-Tailscale-hostname>:${PORT}`);
 });
