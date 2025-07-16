@@ -3,14 +3,13 @@
 
 > Architecture overview  
 > • **Host OS:** Windows 11 – where Oracle VM VirtualBox is installed  
-> • **Virtualisation:** VirtualBox 7.x running on the Windows 11 host  
+### 5.1 Create Role & Database
 > • **Guest OS:** Ubuntu Desktop 24.04 inside the VirtualBox VM  
 > • **Application:** Non-profit Fund Accounting System v8.8 installed **inside the Ubuntu guest** under `/opt/nonprofit-fund-accounting`
-
-The steps below walk through:  
-1. Installing / configuring VirtualBox on the Windows 11 host  
-2. Creating an Ubuntu 24.04 VM in VirtualBox  
-3. Installing prerequisite packages inside the Ubuntu guest  
+# Run the one-step helper script that creates the **npfadmin** role,
+# the **fund_accounting_db** database, grants all privileges and
+# verifies everything in a single transaction.
+sudo -u postgres psql -f setup-database.sql
 4. Cloning the repository, configuring PostgreSQL 16, loading schema / seed data  
 5. Running the application and verifying functionality
 
@@ -86,19 +85,17 @@ psql -V    # 16.x
 
 ---
 
-## 4 Clone Repository & Install Node Dependencies
+Create the runtime configuration by copying the template and editing
+values if needed:
 
 ```bash
-# Conventional location for third-party apps
-sudo mkdir -p /opt && sudo chown "$USER":"$USER" /opt
-cd /opt
-
-# Clone & checkout v8.8 tag
+cd /opt/nonprofit-fund-accounting
+cp .env.example .env
+# (edit .env if you changed any defaults)
 git clone https://github.com/tpfbill/nonprofit-fund-accounting.git
 cd nonprofit-fund-accounting
 git checkout v8.8
 
-# Install Node packages (frontend + backend)
 npm install
 ```
 
