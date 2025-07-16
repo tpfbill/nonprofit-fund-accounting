@@ -7,52 +7,47 @@
 
 | # | File | Output(s) Generated | Status |
 |---|------|---------------------|--------|
-| 1 | Windows_HyperV_Deployment_Guide_v8.8.md → .html / **Windows_HyperV_Deployment_Guide_v8.8.pdf** | ✅ Complete |
-| 2 | Administrator_Guide_v8.8.html → **Administrator_Guide_v8.8.pdf** | ✅ Complete |
-| 3 | nonprofit-accounting-user-guide.html → **User_Guide_v8.8.pdf** | ✅ Complete |
-| 4 | AccuFund_Migration_Guide_v8.8.html → **AccuFund_Migration_Guide_v8.8.pdf** | ✅ Complete |
-| 5 | accufund-migration-steps.html → **AccuFund_Migration_Steps_v8.8.pdf** | ✅ Complete |
-| 6 | accufund-verification-procedure.html → **AccuFund_Verification_Procedure_v8.8.pdf** | ✅ Complete |
-| 7 | nonprofit-vs-zohobooks-comparison.html → **Zoho_Books_Comparison_v8.8.pdf** | ✅ Complete |
+| 1 | Administrator_Guide_v8.8.html → **Administrator_Guide_v8.8.pdf** | ✅ Complete |
+| 2 | nonprofit-accounting-user-guide.html → **User_Guide_v8.8.pdf** | ✅ Complete |
+| 3 | AccuFund_Migration_Guide_v8.8.html → **AccuFund_Migration_Guide_v8.8.pdf** | ✅ Complete |
+| 4 | accufund-migration-steps.html → **AccuFund_Migration_Steps_v8.8.pdf** | ✅ Complete |
+| 5 | accufund-verification-procedure.html → **AccuFund_Verification_Procedure_v8.8.pdf** | ✅ Complete |
+| 6 | nonprofit-vs-zohobooks-comparison.html → **Zoho_Books_Comparison_v8.8.pdf** | ✅ Complete |
 
 ---
 
 ## 2. Key Changes by Document
 
-### 2.1 Windows Hyper-V Deployment Guide
-* Updated version strings, screenshots, and package links to v8.8.
-* Added note about increased RAM requirement for bank-feed processing daemon.
-
-### 2.2 Administrator Guide
+### 2.1 Administrator Guide
 * New “Bank Account Management” chapter (navigation, permissions, reconciliation workflow).
 * Adjusted Entity, User and Fiscal-Year sections to reflect new DB columns (`status`, `last_sync`).
 * Re-generated all code snippets and screenshots.
 
-### 2.3 User Guide
+### 2.2 User Guide
 * Global bump to v8.8, new cover and TOC.
 * Integrated:
   * Section 12 – Bank Account Management (access, add/edit, reconciliation, linking).
   * Revised System Settings numbering.
 * Minor terminology fixes (JE → Journal Entry).
 
-### 2.4 AccuFund Migration Guide
+### 2.3 AccuFund Migration Guide
 * Renamed to v8.8; emphasised inter-entity & bank-account mapping.
 * Added Section 2.6 “Bank Account Integration”.
 * Clarified required “import_id” column for rollback support.
 
-### 2.5 AccuFund Migration Steps
+### 2.4 AccuFund Migration Steps
 * Version update & date stamp.
 * Added extraction/mapping/import steps for bank_accounts.csv.
 * Expanded validation matrix; renumbered steps.
 * Updated wizard checkout to reference v8.8 transfer engine.
 
-### 2.6 AccuFund Verification Procedure
+### 2.5 AccuFund Verification Procedure
 * Title, metadata and TOC bumped to v8.8.
 * New Section 7 – Bank Account Verification.
 * All inter-entity references updated from “v8.6” to “v8.8”.
 * TOC & section numbers realigned.
 
-### 2.7 Zoho Books Comparison
+### 2.6 Zoho Books Comparison
 * Version/date update.
 * Added sections:
   * 4 – Inter-Entity Transfers (v8.8)
