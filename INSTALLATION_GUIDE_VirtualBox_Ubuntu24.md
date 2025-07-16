@@ -103,14 +103,19 @@ npm install
 
 ## 5 Database Configuration & Initialization
 
-### 5.1 Create Role & Database
+### 5.1 Create Database (using default `postgres` super-user)
+
+Ubuntu’s default PostgreSQL installation creates a **super-user named `postgres`**
+that authenticates locally via *peer* (no password required).  
+We will simply create the application database with that user and skip extra roles:
 
 ```bash
-sudo -u postgres psql <<'SQL'
-CREATE ROLE npfadmin LOGIN PASSWORD 'npfa123';
-CREATE DATABASE fund_accounting_db OWNER npfadmin;
-\q
-SQL
+# Create the database if it does not already exist
+sudo -u postgres psql -c "SELECT 1 FROM pg_database WHERE datname = 'fund_accounting_db'" | \
+  grep -q 1 || sudo -u postgres createdb fund_accounting_db
+
+# (Optional) verify
+sudo -u postgres psql -l | grep fund_accounting_db
 ```
 
 ### 5.2 Load Schema & Seed Data
@@ -136,6 +141,10 @@ node add-tpf-hierarchy.js
 
 # 4. Load rich test transactions that reference those entities / funds
 sudo -u postgres psql -d fund_accounting_db -f test-data.sql
+
+# 5. Fix missing column on fresh installs (prevents 500-error in NLQ page)
+sudo -u postgres psql -d fund_accounting_db -c \
+"ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS entry_date DATE DEFAULT CURRENT_DATE;"
 ```
 
 ### 5.3 Application Environment File
@@ -146,8 +155,9 @@ Create `/opt/nonprofit-fund-accounting/.env`:
 PGHOST=localhost
 PGPORT=5432
 PGDATABASE=fund_accounting_db
-PGUSER=npfadmin
-PGPASSWORD=npfa123
+PGUSER=postgres
+# Leave password blank – peer authentication on Ubuntu
+PGPASSWORD=
 ```
 
 Optionally restrict PostgreSQL to localhost only (`/etc/postgresql/16/main/postgresql.conf`).
