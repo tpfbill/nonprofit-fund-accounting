@@ -1,5 +1,4 @@
--- db-init.sql
--- Comprehensive database initialization script for Nonprofit Fund Accounting System v8.7
+-- Comprehensive database initialization script for Nonprofit Fund Accounting System v8.8
 -- This script creates all necessary tables with proper relationships
 
 -- First, create the pgcrypto extension for UUID generation
@@ -95,6 +94,13 @@ CREATE TABLE IF NOT EXISTS journal_entries (
     posted_date TIMESTAMP,
     created_by UUID REFERENCES users(id),
     import_id VARCHAR(100),
+    -- Additional fields required by test-data loaders and application logic
+    entry_date DATE DEFAULT CURRENT_DATE,
+    reference_number VARCHAR(50),
+    total_amount DECIMAL(15,2) DEFAULT 0.00,
+    is_inter_entity BOOLEAN DEFAULT FALSE,
+    target_entity_id UUID,
+    matching_transaction_id UUID,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -167,7 +173,7 @@ END $$;
 -- =============================================
 -- Grant appropriate permissions
 -- =============================================
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO npfadmin;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO npfadmin;
 
 -- End of initialization script
