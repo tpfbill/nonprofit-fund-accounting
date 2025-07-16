@@ -8,7 +8,7 @@
  * 2. Creates/updates the hierarchy (TPF, TPF-ES, IFCSN)
  * 3. Creates standard chart of accounts for each entity
  * 4. Creates standard funds for each entity
- * 5. Sets initial fund balances
+ * 5. Creates sample journal entries to support fund balances
  */
 
 const { Client } = require('pg');
@@ -134,8 +134,12 @@ async function loadPrincipleFoundationData() {
     logSuccess('Standard chart of accounts created for all entities');
 
     // Step 4: Create standard funds for each entity
-    await createFunds(client, entityIds);
+    const fundIds = await createFunds(client, entityIds);
     logSuccess('Standard funds created for all entities');
+
+    // Step 5: Create sample journal entries
+    await createJournalEntries(client, entityIds, fundIds);
+    logSuccess('Sample journal entries created successfully');
 
     // Commit the transaction
     await client.query('COMMIT');
@@ -238,8 +242,11 @@ async function createEntityHierarchy(client, parentEntityId) {
 async function createChartOfAccounts(client, entityIds) {
   logInfo('Creating standard chart of accounts for each entity...');
   
+  const accountIds = {};
+  
   for (const entityKey of ['TPF', 'TPF_ES', 'IFCSN']) {
     const entityId = entityIds[entityKey];
+    accountIds[entityKey] = {};
     
     for (const account of CONFIG.ACCOUNTS) {
       // Check if account already exists for this entity
@@ -255,21 +262,30 @@ async function createChartOfAccounts(client, entityIds) {
           'INSERT INTO accounts (id, entity_id, code, name, type) VALUES ($1, $2, $3, $4, $5)',
           [accountId, entityId, account.code, account.name, account.type]
         );
+        accountIds[entityKey][account.code] = accountId;
         logInfo(`Created account ${account.code} - ${account.name} for ${CONFIG.ENTITIES[entityKey].name}`);
+      } else {
+        // Store existing account ID
+        accountIds[entityKey][account.code] = checkResult.rows[0].id;
       }
     }
     
     logSuccess(`Completed chart of accounts for ${CONFIG.ENTITIES[entityKey].name}`);
   }
+  
+  return accountIds;
 }
 
 // Create standard funds for each entity
 async function createFunds(client, entityIds) {
   logInfo('Creating standard funds for each entity...');
   
+  const fundIds = {};
+  
   for (const entityKey of ['TPF', 'TPF_ES', 'IFCSN']) {
     const entityId = entityIds[entityKey];
     const funds = CONFIG.FUNDS[entityKey];
+    fundIds[entityKey] = {};
     
     for (const fund of funds) {
       // Check if fund already exists for this entity
@@ -285,6 +301,7 @@ async function createFunds(client, entityIds) {
           'INSERT INTO funds (id, entity_id, code, name, type, balance, description) VALUES ($1, $2, $3, $4, $5, $6, $7)',
           [fundId, entityId, fund.code, fund.name, fund.type, fund.balance, fund.description]
         );
+        fundIds[entityKey][fund.code] = fundId;
         logInfo(`Created fund ${fund.code} - ${fund.name} for ${CONFIG.ENTITIES[entityKey].name} with balance ${fund.balance}`);
       } else {
         // Update existing fund's balance
@@ -292,12 +309,382 @@ async function createFunds(client, entityIds) {
           'UPDATE funds SET balance = $1, updated_at = CURRENT_TIMESTAMP WHERE entity_id = $2 AND code = $3',
           [fund.balance, entityId, fund.code]
         );
+        fundIds[entityKey][fund.code] = checkResult.rows[0].id;
         logInfo(`Updated fund ${fund.code} - ${fund.name} for ${CONFIG.ENTITIES[entityKey].name} with balance ${fund.balance}`);
       }
     }
     
     logSuccess(`Completed funds for ${CONFIG.ENTITIES[entityKey].name}`);
   }
+  
+  return fundIds;
+}
+
+// Create sample journal entries
+async function createJournalEntries(client, entityIds, fundIds) {
+  logInfo('Creating sample journal entries...');
+  
+  // Get account IDs for each entity
+  const accountIds = {};
+  for (const entityKey of ['TPF', 'TPF_ES', 'IFCSN']) {
+    const entityId = entityIds[entityKey];
+    accountIds[entityKey] = {};
+    
+    const accountsResult = await client.query(
+      'SELECT id, code FROM accounts WHERE entity_id = $1',
+      [entityId]
+    );
+    
+    accountsResult.rows.forEach(row => {
+      accountIds[entityKey][row.code] = row.id;
+    });
+  }
+  
+  // Clear existing journal entries (to prevent duplicates)
+  await client.query('DELETE FROM journal_entry_items');
+  await client.query('DELETE FROM journal_entries');
+  
+  // Create journal entries for each entity
+  for (const entityKey of ['TPF', 'TPF_ES', 'IFCSN']) {
+    const entityId = entityIds[entityKey];
+    const entityName = CONFIG.ENTITIES[entityKey].name;
+    
+    // 1. Opening Balance Entries (one per fund)
+    for (const fund of CONFIG.FUNDS[entityKey]) {
+      if (fund.balance > 0) {
+        const jeId = await createJournalEntry(
+          client,
+          entityId,
+          `Opening Balance - ${fund.name}`,
+          '2025-01-01',
+          `OB-${entityKey}-${fund.code}`,
+          fund.balance
+        );
+        
+        // Debit Cash
+        await createJournalEntryItem(
+          client,
+          jeId,
+          accountIds[entityKey]['1000'], // Cash
+          fundIds[entityKey][fund.code],
+          fund.balance,
+          0,
+          `Opening balance for ${fund.name}`
+        );
+        
+        // Credit appropriate equity account based on fund type
+        const equityAccountCode = fund.type === 'Unrestricted' ? '3000' : '3100';
+        await createJournalEntryItem(
+          client,
+          jeId,
+          accountIds[entityKey][equityAccountCode],
+          fundIds[entityKey][fund.code],
+          0,
+          fund.balance,
+          `Opening balance for ${fund.name}`
+        );
+        
+        logInfo(`Created opening balance entry for ${fund.name} (${entityName}): ${fund.balance}`);
+      }
+    }
+    
+    // 2. Contribution/Revenue Entries (for funds with balances)
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    
+    // Major donation to general fund
+    if (fundIds[entityKey]['GEN']) {
+      const amount = 5000;
+      const jeId = await createJournalEntry(
+        client,
+        entityId,
+        `Major Donation - ${entityName}`,
+        `${currentYear}-${(currentMonth - 2).toString().padStart(2, '0')}-15`, // 2 months ago
+        `DON-${entityKey}-${generateRandomRef()}`,
+        amount
+      );
+      
+      // Debit Cash
+      await createJournalEntryItem(
+        client,
+        jeId,
+        accountIds[entityKey]['1000'], // Cash
+        fundIds[entityKey]['GEN'],
+        amount,
+        0,
+        'Major unrestricted donation'
+      );
+      
+      // Credit Contributions
+      await createJournalEntryItem(
+        client,
+        jeId,
+        accountIds[entityKey]['4000'], // Contributions - Unrestricted
+        fundIds[entityKey]['GEN'],
+        0,
+        amount,
+        'Major unrestricted donation'
+      );
+      
+      logInfo(`Created major donation entry for ${entityName}: ${amount}`);
+    }
+    
+    // Restricted donation (if entity has restricted funds)
+    const restrictedFundCode = entityKey === 'TPF' ? 'TPF-SCH' : 
+                              entityKey === 'TPF_ES' ? 'ES-GRNT' : 
+                              entityKey === 'IFCSN' ? 'IFCSN-COM' : null;
+    
+    if (restrictedFundCode && fundIds[entityKey][restrictedFundCode]) {
+      const amount = 2500;
+      const jeId = await createJournalEntry(
+        client,
+        entityId,
+        `Restricted Donation - ${CONFIG.FUNDS[entityKey].find(f => f.code === restrictedFundCode).name}`,
+        `${currentYear}-${(currentMonth - 1).toString().padStart(2, '0')}-10`, // 1 month ago
+        `RDON-${entityKey}-${generateRandomRef()}`,
+        amount
+      );
+      
+      // Debit Cash
+      await createJournalEntryItem(
+        client,
+        jeId,
+        accountIds[entityKey]['1000'], // Cash
+        fundIds[entityKey][restrictedFundCode],
+        amount,
+        0,
+        'Restricted donation for specific program'
+      );
+      
+      // Credit Restricted Contributions
+      await createJournalEntryItem(
+        client,
+        jeId,
+        accountIds[entityKey]['4100'], // Contributions - Restricted
+        fundIds[entityKey][restrictedFundCode],
+        0,
+        amount,
+        'Restricted donation for specific program'
+      );
+      
+      logInfo(`Created restricted donation entry for ${entityName}: ${amount}`);
+    }
+    
+    // 3. Expense Entries
+    // Office supplies expense
+    const suppliesAmount = 750;
+    const suppliesJeId = await createJournalEntry(
+      client,
+      entityId,
+      `Office Supplies - ${entityName}`,
+      `${currentYear}-${(currentMonth - 1).toString().padStart(2, '0')}-20`, // Last month
+      `EXP-${entityKey}-${generateRandomRef()}`,
+      suppliesAmount
+    );
+    
+    // Debit Office Supplies expense
+    await createJournalEntryItem(
+      client,
+      suppliesJeId,
+      accountIds[entityKey]['5200'], // Office Supplies
+      fundIds[entityKey]['GEN'],
+      suppliesAmount,
+      0,
+      'Monthly office supplies'
+    );
+    
+    // Credit Cash
+    await createJournalEntryItem(
+      client,
+      suppliesJeId,
+      accountIds[entityKey]['1000'], // Cash
+      fundIds[entityKey]['GEN'],
+      0,
+      suppliesAmount,
+      'Monthly office supplies'
+    );
+    
+    logInfo(`Created office supplies expense entry for ${entityName}: ${suppliesAmount}`);
+    
+    // Program expense (if entity has restricted funds)
+    if (restrictedFundCode && fundIds[entityKey][restrictedFundCode]) {
+      const programAmount = 1200;
+      const programJeId = await createJournalEntry(
+        client,
+        entityId,
+        `Program Expense - ${CONFIG.FUNDS[entityKey].find(f => f.code === restrictedFundCode).name}`,
+        `${currentYear}-${currentMonth.toString().padStart(2, '0')}-05`, // This month
+        `PEXP-${entityKey}-${generateRandomRef()}`,
+        programAmount
+      );
+      
+      // Debit Program Expenses
+      await createJournalEntryItem(
+        client,
+        programJeId,
+        accountIds[entityKey]['5600'], // Program Expenses
+        fundIds[entityKey][restrictedFundCode],
+        programAmount,
+        0,
+        'Program-related expenses'
+      );
+      
+      // Credit Cash
+      await createJournalEntryItem(
+        client,
+        programJeId,
+        accountIds[entityKey]['1000'], // Cash
+        fundIds[entityKey][restrictedFundCode],
+        0,
+        programAmount,
+        'Program-related expenses'
+      );
+      
+      logInfo(`Created program expense entry for ${entityName}: ${programAmount}`);
+    }
+    
+    // 4. Inter-Entity Transfer (for TPF entity only)
+    if (entityKey === 'TPF' && fundIds['TPF_ES'] && fundIds['TPF_ES']['ES-GRNT']) {
+      const transferAmount = 1500;
+      const transferJeId = await createJournalEntry(
+        client,
+        entityId,
+        'Transfer to TPF-ES Grant Fund',
+        `${currentYear}-${currentMonth.toString().padStart(2, '0')}-10`, // This month
+        `TRF-TPF-TPFES-${generateRandomRef()}`,
+        transferAmount,
+        true, // is_inter_entity
+        entityIds['TPF_ES'] // target_entity_id
+      );
+      
+      // Debit Inter-Entity Transfers
+      await createJournalEntryItem(
+        client,
+        transferJeId,
+        accountIds[entityKey]['9100'], // Inter-Entity Transfers
+        fundIds[entityKey]['GEN'],
+        transferAmount,
+        0,
+        'Transfer to TPF Educational Services for grant funding'
+      );
+      
+      // Credit Cash
+      await createJournalEntryItem(
+        client,
+        transferJeId,
+        accountIds[entityKey]['1000'], // Cash
+        fundIds[entityKey]['GEN'],
+        0,
+        transferAmount,
+        'Transfer to TPF Educational Services for grant funding'
+      );
+      
+      // Create matching entry in TPF-ES
+      const matchingJeId = await createJournalEntry(
+        client,
+        entityIds['TPF_ES'],
+        'Transfer from TPF',
+        `${currentYear}-${currentMonth.toString().padStart(2, '0')}-10`, // Same date
+        `TRF-TPFES-TPF-${generateRandomRef()}`,
+        transferAmount,
+        true, // is_inter_entity
+        entityId, // target_entity_id
+        transferJeId // matching_transaction_id
+      );
+      
+      // Debit Cash
+      await createJournalEntryItem(
+        client,
+        matchingJeId,
+        accountIds['TPF_ES']['1000'], // Cash
+        fundIds['TPF_ES']['ES-GRNT'],
+        transferAmount,
+        0,
+        'Transfer from TPF for grant funding'
+      );
+      
+      // Credit Inter-Entity Transfers
+      await createJournalEntryItem(
+        client,
+        matchingJeId,
+        accountIds['TPF_ES']['9100'], // Inter-Entity Transfers
+        fundIds['TPF_ES']['ES-GRNT'],
+        0,
+        transferAmount,
+        'Transfer from TPF for grant funding'
+      );
+      
+      // Update matching_transaction_id for the first entry
+      await client.query(
+        'UPDATE journal_entries SET matching_transaction_id = $1 WHERE id = $2',
+        [matchingJeId, transferJeId]
+      );
+      
+      logInfo(`Created inter-entity transfer entries between TPF and TPF-ES: ${transferAmount}`);
+    }
+  }
+  
+  logSuccess('Sample journal entries created successfully');
+}
+
+// Helper function to create a journal entry
+async function createJournalEntry(client, entityId, description, entryDate, referenceNumber, totalAmount, isInterEntity = false, targetEntityId = null, matchingTransactionId = null) {
+  const journalEntryId = generateId();
+  
+  await client.query(
+    `INSERT INTO journal_entries 
+     (id, entity_id, description, date, reference_number, total_amount, status, is_inter_entity, target_entity_id, matching_transaction_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+    [
+      journalEntryId,
+      entityId,
+      description,
+      entryDate,
+      referenceNumber,
+      totalAmount,
+      'Posted',
+      isInterEntity,
+      targetEntityId,
+      matchingTransactionId
+    ]
+  );
+  
+  return journalEntryId;
+}
+
+// Helper function to create a journal entry item
+async function createJournalEntryItem(
+  client,
+  journalEntryId,
+  accountId,
+  fundId,
+  debit,
+  credit,
+  description
+) {
+  const itemId = generateId();
+  
+  await client.query(
+    `INSERT INTO journal_entry_items
+     (id, journal_entry_id, account_id, fund_id, debit, credit, description)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      itemId,
+      journalEntryId,
+      accountId,
+      fundId,
+      debit,
+      credit,
+      description
+    ]
+  );
+  
+  return itemId;
+}
+
+// Helper function to generate a random reference number
+function generateRandomRef() {
+  return Math.floor(10000 + Math.random() * 90000).toString();
 }
 
 // Display the entity hierarchy
