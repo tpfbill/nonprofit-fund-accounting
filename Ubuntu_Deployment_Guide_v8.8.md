@@ -38,8 +38,34 @@ sudo chown -R fundapp:fundapp /opt/nonprofit-fund-accounting
 
 ### 1.2 Database Bootstrap  (one-time)
 ```bash
-sudo -u postgres psql -f setup-database-cross-platform.sql
-# creates role npfadmin / npfa123 and database fund_accounting_db
+#
+# Two idempotent helper scripts now ship with the repository:
+#   • **setup-ubuntu-database.sh**  – _full fresh install_
+#   • **fix-ubuntu-permissions.sh** – _repair / data-load on existing server_
+#
+# ──────────────────────────────────────────────────────────────────
+# A)  Fresh Installation  (first time on a new server)
+# ──────────────────────────────────────────────────────────────────
+sudo chmod +x setup-ubuntu-database.sh
+sudo ./setup-ubuntu-database.sh
+# • creates *npfadmin / npfa123* role
+# • (re)creates **fund_accounting_db**
+# • runs **db-init.sql**   → tables & constraints
+# • grants ALL + DEFAULT privileges to npfadmin
+# • loads The Principle Foundation test data (entities, funds, **23 journal entries**)
+# • writes/updates `.env`
+#
+# ──────────────────────────────────────────────────────────────────
+# B)  Fix Existing Installation  (permission errors, missing data)
+# ──────────────────────────────────────────────────────────────────
+sudo chmod +x fix-ubuntu-permissions.sh
+sudo ./fix-ubuntu-permissions.sh
+# • repairs schema/table/sequence privileges for npfadmin
+# • re-runs test-data loader (safe & idempotent)
+#
+# Both scripts are safe to run multiple times.  If you prefer
+# manual SQL, you can still run:
+#   sudo -u postgres psql -f setup-database-cross-platform.sql
 ```
 
 ---
