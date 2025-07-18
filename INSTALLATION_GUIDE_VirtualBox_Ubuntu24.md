@@ -1,4 +1,4 @@
-# Nonprofit Fund Accounting System v8.8  
+# Nonprofit Fund Accounting System v8.9  
 ### Installation Guide – VirtualBox on Windows 11 (Ubuntu 24.04 LTS Guest)
 
 > Architecture overview  
@@ -94,7 +94,7 @@ cp .env.example .env
 # (edit .env if you changed any defaults)
 git clone https://github.com/tpfbill/nonprofit-fund-accounting.git
 cd nonprofit-fund-accounting
-git checkout v8.8
+git checkout v8.9
 
 npm install
 ```
@@ -146,7 +146,19 @@ sudo -u postgres psql -d fund_accounting_db -f test-data.sql
 sudo -u postgres psql -d fund_accounting_db -c \
 "ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS entry_date DATE DEFAULT CURRENT_DATE;"
 ```
+### 5.3 NACHA Vendor Payments Schema (v8.9 New Feature)
 
+Load the database objects required for the new **NACHA Vendor Payment System** introduced in v8.9.  
+This script creates the `vendors`, `vendor_bank_accounts`, `company_nacha_settings`, `payment_batches`, `payment_items`, and `nacha_files` tables, plus related constraints and indexes.
+
+```bash
+# Run once after the standard schema is in place
+sudo -u postgres psql -d fund_accounting_db -f nacha-vendor-payments-schema.sql
+```
+
+> After loading, you can immediately begin adding vendors, bank accounts, and payment batches via the application UI (`vendor-payments.html`).
+
+### 5.4 Application Environment File
 ### 5.3 Application Environment File
 
 Create `/opt/nonprofit-fund-accounting/.env`:
@@ -164,7 +176,7 @@ Optionally restrict PostgreSQL to localhost only (`/etc/postgresql/16/main/postg
 
 ---
 
-## 6 Running the Application
+## 7 Running the Application
 
 Open **two shells**:
 
@@ -185,7 +197,7 @@ Dashboard cards and charts should populate within a few seconds.
 
 ---
 
-## 7 Testing Checklist
+## 8 Testing Checklist
 
 | Test | Expected outcome |
 |------|------------------|
@@ -194,12 +206,13 @@ Dashboard cards and charts should populate within a few seconds.
 | Fund Reports | Fund dropdown lists all funds |
 | Inter-Entity Transfer wizard | Form loads, API endpoints return 200 |
 | DB status badge | **Connected** (green) |
+| Vendor Payments tab | Opens **vendor-payments.html**, UI loads with tabs for Vendors, Batches, Settings, Files |
 
 Run `npm test` for automated unit tests (if included).
 
 ---
 
-## 8 Troubleshooting
+## 9 Troubleshooting
 
 | Issue | Resolution |
 |-------|------------|
@@ -210,7 +223,7 @@ Run `npm test` for automated unit tests (if included).
 
 ---
 
-## 9 Performance Optimisation
+## 10 Performance Optimisation
 
 1. Allocate additional **vCPU/RAM** via VirtualBox settings.  
 2. Enable **Nested Paging**, **I/O APIC**, **KVM Paravirtualization** (System ➜ Acceleration).  
@@ -224,7 +237,7 @@ Run `npm test` for automated unit tests (if included).
 
 ---
 
-## 10 Security Notes
+## 11 Security Notes
 
 - Update guest OS regularly: `sudo apt update && sudo apt upgrade`.  
 - Change default passwords before production.  
@@ -257,4 +270,6 @@ sudo -u postgres pg_restore -d fund_accounting_db -c fundacct_2024-07-15.dump
 ---
 
 **Enjoy your fully-functional Nonprofit Fund Accounting System v8.8 on Ubuntu 24.04!**  
+
+*Updated for v8.9 – now with integrated NACHA Vendor Payments!*  
 For additional documentation refer to the in-app **Documentation** tab or the GitHub wiki.

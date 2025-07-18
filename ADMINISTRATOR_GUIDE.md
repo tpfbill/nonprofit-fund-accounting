@@ -1,4 +1,4 @@
-# Nonprofit Fund Accounting System - Administrator's Guide (v8.6)
+# Nonprofit Fund Accounting System - Administrator's Guide (v8.9)
 
 ## 1. Introduction and Scope
 
@@ -161,7 +161,73 @@ These accounts should be **Active** and mapped to the correct entity.
 
 ---
 
-## 8. Backup and Recovery Procedures
+## 8. NACHA Vendor Payment System Administration
+
+### 8.1 Overview
+Version 8.9 introduces a fully-integrated NACHA (ACH) **Vendor Payment System** that lets your organization pay suppliers electronically and generate bank-ready ACH files.  The feature set includes:
+* Vendor master records with multiple bank accounts  
+* Company-wide NACHA settings (Originating DFI, Company ID, SEC code)  
+* Payment batch workflow (draft → approved → processed)  
+* Automatic trace-number generation and **961-byte** ACH file creation  
+* Secure file storage and download tracking  
+
+### 8.2 Database Schema Additions
+The following tables were added (see `nacha-vendor-payments-schema.sql`):
+
+| Table | Purpose |
+|-------|---------|
+| `vendors` | Stores supplier / contractor master data |
+| `vendor_bank_accounts` | ACH routing & account info (supports multiple per vendor) |
+| `company_nacha_settings` | One record per legal entity containing ACH parameters |
+| `payment_batches` | Container for one or more vendor payments |
+| `payment_items` | Individual payment lines linked to a batch & vendor |
+| `nacha_files` | Metadata for each generated ACH file |
+
+All tables include audit columns (`created_at`, `updated_at`, `created_by`, etc.) and appropriate foreign-key constraints.
+
+### 8.3 Initial Setup
+1. **Company NACHA Settings**  
+   Navigate to **Settings → NACHA** and create a record for each entity that will originate ACH files.  Required fields:  
+   * Originating DFI (8-digit routing)  
+   * Immediate Destination (bank routing)  
+   * Company ID (Tax ID)  
+   * SEC Code (`CCD` or `PPD`)  
+2. **Vendors & Bank Accounts**  
+   * Go to **Vendors** → *Add Vendor*. Complete address & tax fields.  
+   * Add at least one bank account. Routing numbers are validated via ABA checksum; account numbers are masked after save.  
+3. **User Permissions**  
+   Only users with the **Finance Manager** or **Administrator** role can approve batches or generate ACH files.  Assign roles under **Settings → Users**.
+
+### 8.4 Payment Batch Workflow
+1. **Create Batch** → *draft* status.  
+2. **Add Payment Items** (amount > 0, memo & invoice refs optional).  
+3. **Approve** → moves to *approved*; locks items from further edits.  
+4. **Generate NACHA File** → status changes to *processed*; `trace_number` field on each item is populated automatically.  
+5. **Transmit to Bank** – download the `.txt` file from **Files → Download** and upload via your bank portal.  Mark *transmitted* in the UI for audit completeness.
+
+### 8.5 File Storage & Download
+* Files are stored under `<project>/nacha-files/` (ignored by Git).  
+* Download endpoint: `GET /api/nacha-files/:id/download` returns the file with `Content-Disposition: attachment`.  
+* The table `nacha_files` tracks created & transmitted timestamps, batch linkage, and  **file_control_total** for quick reconciliation.
+
+### 8.6 Security Considerations
+* **Least-Privilege Access** – restrict NACHA screens to finance staff.  
+* **File Permissions** – the `nacha-files/` directory is `chmod 700` and owned by the app user.  
+* **Data at Rest** – Account numbers are stored encrypted or truncated (last 4 digits visible).  
+* **Transport Security** – Always access the server over HTTPS; never email NACHA files.  
+* **Audit Trail** – All CRUD actions on vendors, batches, and files are logged with user IDs.
+
+### 8.7 Monitoring & Troubleshooting
+| Symptom | Likely Cause | Resolution |
+|---------|--------------|------------|
+| Batch stuck in *approved* | Trace-number generation error | Check server logs; ensure `company_nacha_settings` exists |
+| “Routing number invalid” | Fails ABA checksum | Verify 9-digit routing with vendor |
+| File control total mismatch | Manual edit of file | Regenerate file; do **not** edit ACH files manually |
+| Download 404 | File deleted or wrong ID | Verify `nacha_files.path`; regenerate if needed |
+
+---
+
+## 9. Backup and Recovery Procedures
 
 ### 8.1. Backup
 Automated backup scripts are included in the `scripts/` directory.
