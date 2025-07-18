@@ -10,6 +10,8 @@ const { parse } = require('csv-parse/sync');
 const crypto = require('crypto');
 // Inter-entity transfer helper
 const registerInterEntityTransferRoutes = require('./inter-entity-transfer-api');
+// NACHA file generator
+const NachaGenerator = require('./nacha-generator');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1057,213 +1059,1238 @@ app.delete('/api/reports/custom/:id', asyncHandler(async (req, res) => {
 }));
 
 // ---------------------------------------------------------------------------
-// DOCUMENT LIBRARY API  (moved ABOVE error-handler so it is reachable)
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// Quick sanity-check route to verify that new banking routes section is
-// reachable before any further route-registration.  Remove or disable in
-// production deployments.
-app.get('/api/bank-test', (req, res) =>
-  res.json({ test: 'bank route works' })
-);
-
-// Additional simple route (no asyncHandler) to help isolate routing issues
-app.get('/api/bank-simple', (req, res) => {
-  res.json({ ok: true, message: 'simple bank route reached' });
-});
-
-// BANK ACCOUNT CONNECTIONS API
+// NACHA VENDOR PAYMENTS API
 // ---------------------------------------------------------------------------
 
-/**
- * GET /api/bank-accounts
- * Returns all bank accounts.
- */
-
-// One-time registration debug
-console.log('[startup] Registering GET /api/bank-accounts route');
-app.get('/api/bank-accounts', asyncHandler(async (_req, res) => {
-  console.log('[/api/bank-accounts] handler invoked');  // runtime debug
+// --- VENDORS API ---
+app.get('/api/vendors', asyncHandler(async (req, res) => {
+  const { entityId } = req.query;
   const { rows } = await pool.query(
-    'SELECT * FROM bank_accounts ORDER BY bank_name, account_name'
+    `SELECT v.*, e.name as entity_name 
+     FROM vendors v 
+     LEFT JOIN entities e ON e.id = v.entity_id 
+     ${entityId ? 'WHERE v.entity_id = $1' : ''} 
+     ORDER BY v.name`,
+    entityId ? [entityId] : []
   );
   res.json(rows);
 }));
 
-/**
- * POST /api/bank-accounts
- * Creates a new bank account.
- */
-app.post('/api/bank-accounts', asyncHandler(async (req, res) => {
-  const {
-    bank_name,
-    account_name,
-    account_number,
-    routing_number,
-    type,
-    status,
-    balance,
-    connection_method,
-    description
-  } = req.body;
-
-  const { rows } = await pool.query(
-    `INSERT INTO bank_accounts
-     (bank_name, account_name, account_number, routing_number, type, status, balance, connection_method, description)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-     RETURNING *`,
-    [
-      bank_name,
-      account_name,
-      account_number,
-      routing_number,
-      type,
-      status,
-      balance ?? 0,
-      connection_method,
-      description
-    ]
-  );
-  res.status(201).json(rows[0]);
-}));
-
-/**
- * PUT /api/bank-accounts/:id
- * Updates an existing bank account.
- */
-app.put('/api/bank-accounts/:id', asyncHandler(async (req, res) => {
+app.get('/api/vendors/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const {
-    bank_name,
-    account_name,
-    account_number,
-    routing_number,
-    type,
-    status,
-    balance,
-    connection_method,
-    description
-  } = req.body;
-
   const { rows } = await pool.query(
-    `UPDATE bank_accounts
-       SET bank_name=$1,
-           account_name=$2,
-           account_number=$3,
-           routing_number=$4,
-           type=$5,
-           status=$6,
-           balance=$7,
-           connection_method=$8,
-           description=$9,
-           updated_at = NOW()
-     WHERE id = $10
-     RETURNING *`,
-    [
-      bank_name,
-      account_name,
-      account_number,
-      routing_number,
-      type,
-      status,
-      balance ?? 0,
-      connection_method,
-      description,
-      id
-    ]
+    `SELECT v.*, e.name as entity_name 
+     FROM vendors v 
+     LEFT JOIN entities e ON e.id = v.entity_id 
+     WHERE v.id = $1`,
+    [id]
   );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Vendor not found' });
+  }
+  
   res.json(rows[0]);
 }));
 
-/**
- * DELETE /api/bank-accounts/:id
- * Deletes a bank account.
- */
-app.delete('/api/bank-accounts/:id', asyncHandler(async (req, res) => {
+app.post('/api/vendors', asyncHandler(async (req, res) => {
+  const {
+    entity_id,
+    vendor_code,
+    name,
+    tax_id,
+    contact_name,
+    email,
+    phone,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    postal_code,
+    country,
+    vendor_type,
+    status,
+    notes
+  } = req.body;
+  
+  const { rows } = await pool.query(
+    `INSERT INTO vendors (
+      entity_id, vendor_code, name, tax_id, contact_name, email, phone,
+      address_line1, address_line2, city, state, postal_code, country,
+      vendor_type, status, notes
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) 
+    RETURNING *`,
+    [
+      entity_id, vendor_code, name, tax_id, contact_name, email, phone,
+      address_line1, address_line2, city, state, postal_code, country || 'USA',
+      vendor_type, status || 'active', notes
+    ]
+  );
+  
+  res.status(201).json(rows[0]);
+}));
+
+app.put('/api/vendors/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  await pool.query('DELETE FROM bank_accounts WHERE id=$1', [id]);
+  const {
+    entity_id,
+    vendor_code,
+    name,
+    tax_id,
+    contact_name,
+    email,
+    phone,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    postal_code,
+    country,
+    vendor_type,
+    status,
+    notes
+  } = req.body;
+  
+  const { rows } = await pool.query(
+    `UPDATE vendors SET
+      entity_id = $1,
+      vendor_code = $2,
+      name = $3,
+      tax_id = $4,
+      contact_name = $5,
+      email = $6,
+      phone = $7,
+      address_line1 = $8,
+      address_line2 = $9,
+      city = $10,
+      state = $11,
+      postal_code = $12,
+      country = $13,
+      vendor_type = $14,
+      status = $15,
+      notes = $16,
+      updated_at = NOW()
+    WHERE id = $17
+    RETURNING *`,
+    [
+      entity_id, vendor_code, name, tax_id, contact_name, email, phone,
+      address_line1, address_line2, city, state, postal_code, country || 'USA',
+      vendor_type, status || 'active', notes, id
+    ]
+  );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Vendor not found' });
+  }
+  
+  res.json(rows[0]);
+}));
+
+app.delete('/api/vendors/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  // Check if vendor has bank accounts or payment items
+  const { rows: relatedItems } = await pool.query(
+    `SELECT 
+      (SELECT COUNT(*) FROM vendor_bank_accounts WHERE vendor_id = $1) as bank_accounts,
+      (SELECT COUNT(*) FROM payment_items WHERE vendor_id = $1) as payment_items`,
+    [id]
+  );
+  
+  if (relatedItems[0].bank_accounts > 0 || relatedItems[0].payment_items > 0) {
+    return res.status(400).json({ 
+      error: 'Cannot delete vendor with related bank accounts or payments',
+      bank_accounts: relatedItems[0].bank_accounts,
+      payment_items: relatedItems[0].payment_items
+    });
+  }
+  
+  await pool.query('DELETE FROM vendors WHERE id = $1', [id]);
   res.status(204).send();
 }));
 
-/**
- * POST /api/bank-accounts/sync
- * Placeholder: updates last_sync timestamp for all bank accounts.
- */
-app.post('/api/bank-accounts/sync', asyncHandler(async (_req, res) => {
-  await pool.query('UPDATE bank_accounts SET last_sync = NOW(), updated_at = NOW()');
-  res.json({ message: 'Bank accounts synced (placeholder).' });
+// --- VENDOR BANK ACCOUNTS API ---
+app.get('/api/vendors/:vendorId/bank-accounts', asyncHandler(async (req, res) => {
+  const { vendorId } = req.params;
+  const { rows } = await pool.query(
+    `SELECT * FROM vendor_bank_accounts WHERE vendor_id = $1 ORDER BY is_primary DESC, account_name`,
+    [vendorId]
+  );
+  res.json(rows);
 }));
 
-/**
- * POST /api/bank-accounts/:id/test-connection
- * Placeholder: randomly succeed/fail connection test.
- */
-app.post('/api/bank-accounts/:id/test-connection', asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const connectionOk = Math.random() < 0.8;
-  if (connectionOk) {
-    await pool.query('UPDATE bank_accounts SET last_sync = NOW(), updated_at = NOW() WHERE id=$1', [id]);
-    res.json({ success: true, message: 'Connection successful.' });
-  } else {
-    res.status(500).json({ success: false, message: 'Unable to connect to bank.' });
+app.post('/api/vendors/:vendorId/bank-accounts', asyncHandler(async (req, res) => {
+  const { vendorId } = req.params;
+  const {
+    account_name,
+    routing_number,
+    account_number,
+    account_type,
+    is_primary,
+    status
+  } = req.body;
+  
+  // Validate routing number using NachaGenerator
+  if (!NachaGenerator.validateRoutingNumber(routing_number)) {
+    return res.status(400).json({ error: 'Invalid routing number' });
   }
-}));
-
-/**
- * GET /api/documents
- * Returns a list of all PDF documents in the project root with basic metadata.
- */
-app.get('/api/documents', (req, res) => {
-  /* ------------------------------------------------------------------
-   *  DOCUMENT LIST ENDPOINT
-   *  Adds runtime diagnostics to help trace issues in production
-   * ---------------------------------------------------------------- */
-  console.log('[/api/documents] endpoint hit');
+  
+  const client = await pool.connect();
   try {
-    console.log('Looking for PDFs in:', __dirname);
-
-    // Locate PDF files in the same directory as server.js
-    const files = fs
-      .readdirSync(__dirname)
-      .filter((file) => file.toLowerCase().endsWith('.pdf'));
-
-    console.log('PDF files discovered:', files);
-
-    const documents = files.map((filename) => {
-      const stats = fs.statSync(path.join(__dirname, filename));
-      return {
-        filename,
-        // Turn "AccuFund_Migration_Guide_v8.6.pdf" ➜ "AccuFund Migration Guide v8.6"
-        displayName: filename.replace(/_/g, ' ').replace(/\.pdf$/i, ''),
-        size: stats.size,
-        lastModified: stats.mtime,
-        url: `/${filename}`,
-      };
-    });
-
-    console.log('Returning document metadata count:', documents.length);
-    res.json({ success: true, count: documents.length, documents });
+    await client.query('BEGIN');
+    
+    // If this is marked as primary, unset any existing primary accounts
+    if (is_primary) {
+      await client.query(
+        'UPDATE vendor_bank_accounts SET is_primary = false WHERE vendor_id = $1',
+        [vendorId]
+      );
+    }
+    
+    // Insert the new bank account
+    const { rows } = await client.query(
+      `INSERT INTO vendor_bank_accounts (
+        vendor_id, account_name, routing_number, account_number, 
+        account_type, is_primary, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7) 
+      RETURNING *`,
+      [
+        vendorId, account_name, routing_number, account_number,
+        account_type, is_primary || false, status || 'active'
+      ]
+    );
+    
+    await client.query('COMMIT');
+    res.status(201).json(rows[0]);
   } catch (error) {
-    console.error('Error fetching documents:', error);
-    res
-      .status(500)
-      .json({ success: false, error: 'Failed to fetch documents' });
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
+}));
+
+app.get('/api/vendor-bank-accounts/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await pool.query(
+    `SELECT vba.*, v.name as vendor_name 
+     FROM vendor_bank_accounts vba 
+     JOIN vendors v ON v.id = vba.vendor_id 
+     WHERE vba.id = $1`,
+    [id]
+  );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Bank account not found' });
+  }
+  
+  res.json(rows[0]);
+}));
+
+app.put('/api/vendor-bank-accounts/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    account_name,
+    routing_number,
+    account_number,
+    account_type,
+    is_primary,
+    status
+  } = req.body;
+  
+  // Validate routing number using NachaGenerator
+  if (!NachaGenerator.validateRoutingNumber(routing_number)) {
+    return res.status(400).json({ error: 'Invalid routing number' });
+  }
+  
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Get the vendor_id for this bank account
+    const { rows: accountRows } = await client.query(
+      'SELECT vendor_id FROM vendor_bank_accounts WHERE id = $1',
+      [id]
+    );
+    
+    if (accountRows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Bank account not found' });
+    }
+    
+    const vendorId = accountRows[0].vendor_id;
+    
+    // If this is marked as primary, unset any existing primary accounts
+    if (is_primary) {
+      await client.query(
+        'UPDATE vendor_bank_accounts SET is_primary = false WHERE vendor_id = $1 AND id != $2',
+        [vendorId, id]
+      );
+    }
+    
+    // Update the bank account
+    const { rows } = await client.query(
+      `UPDATE vendor_bank_accounts SET
+        account_name = $1,
+        routing_number = $2,
+        account_number = $3,
+        account_type = $4,
+        is_primary = $5,
+        status = $6,
+        updated_at = NOW()
+      WHERE id = $7
+      RETURNING *`,
+      [
+        account_name, routing_number, account_number,
+        account_type, is_primary || false, status || 'active', id
+      ]
+    );
+    
+    await client.query('COMMIT');
+    res.json(rows[0]);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}));
+
+app.delete('/api/vendor-bank-accounts/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  // Check if bank account is used in any payment items
+  const { rows } = await pool.query(
+    'SELECT COUNT(*) as count FROM payment_items WHERE vendor_bank_account_id = $1',
+    [id]
+  );
+  
+  if (rows[0].count > 0) {
+    return res.status(400).json({ 
+      error: 'Cannot delete bank account that is used in payments',
+      payment_items: rows[0].count
+    });
+  }
+  
+  await pool.query('DELETE FROM vendor_bank_accounts WHERE id = $1', [id]);
+  res.status(204).send();
+}));
+
+// --- NACHA SETTINGS API ---
+app.get('/api/nacha-settings', asyncHandler(async (req, res) => {
+  const { entityId } = req.query;
+  const { rows } = await pool.query(
+    `SELECT s.*, e.name as entity_name, ba.account_name as settlement_account_name
+     FROM company_nacha_settings s
+     LEFT JOIN entities e ON e.id = s.entity_id
+     LEFT JOIN bank_accounts ba ON ba.id = s.settlement_account_id
+     ${entityId ? 'WHERE s.entity_id = $1' : ''}
+     ORDER BY s.company_name`,
+    entityId ? [entityId] : []
+  );
+  res.json(rows);
+}));
+
+app.post('/api/nacha-settings', asyncHandler(async (req, res) => {
+  const {
+    entity_id,
+    company_name,
+    company_id,
+    originating_dfi_id,
+    company_entry_description,
+    company_descriptive_date,
+    effective_entry_date,
+    settlement_account_id,
+    is_production
+  } = req.body;
+  
+  // Validate originating DFI ID (routing number)
+  if (!originating_dfi_id || originating_dfi_id.length !== 8) {
+    return res.status(400).json({ error: 'Originating DFI ID must be 8 digits' });
+  }
+  
+  const { rows } = await pool.query(
+    `INSERT INTO company_nacha_settings (
+      entity_id, company_name, company_id, originating_dfi_id,
+      company_entry_description, company_descriptive_date, effective_entry_date,
+      settlement_account_id, is_production
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING *`,
+    [
+      entity_id, company_name, company_id, originating_dfi_id,
+      company_entry_description, company_descriptive_date, effective_entry_date,
+      settlement_account_id, is_production || false
+    ]
+  );
+  
+  res.status(201).json(rows[0]);
+}));
+
+app.get('/api/nacha-settings/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await pool.query(
+    `SELECT s.*, e.name as entity_name, ba.account_name as settlement_account_name
+     FROM company_nacha_settings s
+     LEFT JOIN entities e ON e.id = s.entity_id
+     LEFT JOIN bank_accounts ba ON ba.id = s.settlement_account_id
+     WHERE s.id = $1`,
+    [id]
+  );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'NACHA settings not found' });
+  }
+  
+  res.json(rows[0]);
+}));
+
+app.put('/api/nacha-settings/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    entity_id,
+    company_name,
+    company_id,
+    originating_dfi_id,
+    company_entry_description,
+    company_descriptive_date,
+    effective_entry_date,
+    settlement_account_id,
+    is_production
+  } = req.body;
+  
+  // Validate originating DFI ID (routing number)
+  if (!originating_dfi_id || originating_dfi_id.length !== 8) {
+    return res.status(400).json({ error: 'Originating DFI ID must be 8 digits' });
+  }
+  
+  const { rows } = await pool.query(
+    `UPDATE company_nacha_settings SET
+      entity_id = $1,
+      company_name = $2,
+      company_id = $3,
+      originating_dfi_id = $4,
+      company_entry_description = $5,
+      company_descriptive_date = $6,
+      effective_entry_date = $7,
+      settlement_account_id = $8,
+      is_production = $9,
+      updated_at = NOW()
+    WHERE id = $10
+    RETURNING *`,
+    [
+      entity_id, company_name, company_id, originating_dfi_id,
+      company_entry_description, company_descriptive_date, effective_entry_date,
+      settlement_account_id, is_production || false, id
+    ]
+  );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'NACHA settings not found' });
+  }
+  
+  res.json(rows[0]);
+}));
+
+app.delete('/api/nacha-settings/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  // Check if settings are used in any payment batches
+  const { rows } = await pool.query(
+    'SELECT COUNT(*) as count FROM payment_batches WHERE nacha_settings_id = $1',
+    [id]
+  );
+  
+  if (rows[0].count > 0) {
+    return res.status(400).json({ 
+      error: 'Cannot delete NACHA settings that are used in payment batches',
+      payment_batches: rows[0].count
+    });
+  }
+  
+  await pool.query('DELETE FROM company_nacha_settings WHERE id = $1', [id]);
+  res.status(204).send();
+}));
+
+// --- PAYMENT BATCHES API ---
+app.get('/api/payment-batches', asyncHandler(async (req, res) => {
+  const { entityId, status } = req.query;
+  let queryParams = [];
+  let whereClause = '';
+  
+  if (entityId) {
+    queryParams.push(entityId);
+    whereClause = 'WHERE pb.entity_id = $1';
+  }
+  
+  if (status) {
+    queryParams.push(status);
+    whereClause = whereClause 
+      ? `${whereClause} AND pb.status = $${queryParams.length}`
+      : `WHERE pb.status = $1`;
+  }
+  
+  const { rows } = await pool.query(
+    `SELECT 
+      pb.*,
+      e.name as entity_name,
+      f.name as fund_name,
+      s.company_name as nacha_company_name,
+      u1.name as created_by_name,
+      u2.name as approved_by_name
+     FROM payment_batches pb
+     LEFT JOIN entities e ON e.id = pb.entity_id
+     LEFT JOIN funds f ON f.id = pb.fund_id
+     LEFT JOIN company_nacha_settings s ON s.id = pb.nacha_settings_id
+     LEFT JOIN users u1 ON u1.id = pb.created_by
+     LEFT JOIN users u2 ON u2.id = pb.approved_by
+     ${whereClause}
+     ORDER BY pb.batch_date DESC, pb.batch_number`,
+    queryParams
+  );
+  
+  res.json(rows);
+}));
+
+app.post('/api/payment-batches', asyncHandler(async (req, res) => {
+  const {
+    entity_id,
+    fund_id,
+    nacha_settings_id,
+    batch_date,
+    effective_date,
+    description,
+    created_by
+  } = req.body;
+  
+  // Generate a batch number in format YYYYMMDD-001
+  const batchDate = new Date(batch_date);
+  const dateStr = batchDate.toISOString().slice(0, 10).replace(/-/g, '');
+  
+  // Get the next batch number for this date
+  const { rows: batchCountRows } = await pool.query(
+    "SELECT COUNT(*) + 1 as next_num FROM payment_batches WHERE batch_number LIKE $1",
+    [`${dateStr}-%`]
+  );
+  const nextNum = batchCountRows[0].next_num;
+  const batchNumber = `${dateStr}-${nextNum.toString().padStart(3, '0')}`;
+  
+  const { rows } = await pool.query(
+    `INSERT INTO payment_batches (
+      entity_id, fund_id, nacha_settings_id, batch_number,
+      batch_date, effective_date, description, created_by, status
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft')
+    RETURNING *`,
+    [
+      entity_id, fund_id, nacha_settings_id, batchNumber,
+      batch_date, effective_date, description, created_by
+    ]
+  );
+  
+  res.status(201).json(rows[0]);
+}));
+
+app.get('/api/payment-batches/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await pool.query(
+    `SELECT 
+      pb.*,
+      e.name as entity_name,
+      f.name as fund_name,
+      s.company_name as nacha_company_name,
+      u1.name as created_by_name,
+      u2.name as approved_by_name
+     FROM payment_batches pb
+     LEFT JOIN entities e ON e.id = pb.entity_id
+     LEFT JOIN funds f ON f.id = pb.fund_id
+     LEFT JOIN company_nacha_settings s ON s.id = pb.nacha_settings_id
+     LEFT JOIN users u1 ON u1.id = pb.created_by
+     LEFT JOIN users u2 ON u2.id = pb.approved_by
+     WHERE pb.id = $1`,
+    [id]
+  );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Payment batch not found' });
+  }
+  
+  res.json(rows[0]);
+}));
+
+app.put('/api/payment-batches/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    entity_id,
+    fund_id,
+    nacha_settings_id,
+    batch_date,
+    effective_date,
+    description,
+    status
+  } = req.body;
+  
+  // Don't allow status changes for batches that have been processed
+  const { rows: currentBatch } = await pool.query(
+    'SELECT status FROM payment_batches WHERE id = $1',
+    [id]
+  );
+  
+  if (currentBatch.length === 0) {
+    return res.status(404).json({ error: 'Payment batch not found' });
+  }
+  
+  if (['processed', 'canceled'].includes(currentBatch[0].status) && status !== currentBatch[0].status) {
+    return res.status(400).json({ 
+      error: `Cannot change status of a batch that is ${currentBatch[0].status}`
+    });
+  }
+  
+  const { rows } = await pool.query(
+    `UPDATE payment_batches SET
+      entity_id = $1,
+      fund_id = $2,
+      nacha_settings_id = $3,
+      batch_date = $4,
+      effective_date = $5,
+      description = $6,
+      status = $7,
+      updated_at = NOW()
+    WHERE id = $8
+    RETURNING *`,
+    [
+      entity_id, fund_id, nacha_settings_id, batch_date,
+      effective_date, description, status, id
+    ]
+  );
+  
+  res.json(rows[0]);
+}));
+
+// Approve payment batch
+app.post('/api/payment-batches/:id/approve', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { approved_by } = req.body;
+  
+  if (!approved_by) {
+    return res.status(400).json({ error: 'Approved by user ID is required' });
+  }
+  
+  const { rows: currentBatch } = await pool.query(
+    'SELECT status FROM payment_batches WHERE id = $1',
+    [id]
+  );
+  
+  if (currentBatch.length === 0) {
+    return res.status(404).json({ error: 'Payment batch not found' });
+  }
+  
+  if (currentBatch[0].status !== 'draft' && currentBatch[0].status !== 'pending_approval') {
+    return res.status(400).json({ 
+      error: `Cannot approve a batch with status: ${currentBatch[0].status}`
+    });
+  }
+  
+  const { rows } = await pool.query(
+    `UPDATE payment_batches SET
+      status = 'approved',
+      approved_by = $1,
+      approved_at = NOW(),
+      updated_at = NOW()
+    WHERE id = $2
+    RETURNING *`,
+    [approved_by, id]
+  );
+  
+  res.json(rows[0]);
+}));
+
+app.delete('/api/payment-batches/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  // Check batch status
+  const { rows: currentBatch } = await pool.query(
+    'SELECT status FROM payment_batches WHERE id = $1',
+    [id]
+  );
+  
+  if (currentBatch.length === 0) {
+    return res.status(404).json({ error: 'Payment batch not found' });
+  }
+  
+  if (currentBatch[0].status === 'processed') {
+    return res.status(400).json({ error: 'Cannot delete a processed batch' });
+  }
+  
+  // Use a transaction to delete the batch and all related items
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Delete related payment items
+    await client.query('DELETE FROM payment_items WHERE payment_batch_id = $1', [id]);
+    
+    // Delete related NACHA files
+    await client.query('DELETE FROM nacha_files WHERE payment_batch_id = $1', [id]);
+    
+    // Delete the batch
+    await client.query('DELETE FROM payment_batches WHERE id = $1', [id]);
+    
+    await client.query('COMMIT');
+    res.status(204).send();
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}));
+
+// --- PAYMENT ITEMS API ---
+app.get('/api/payment-batches/:batchId/items', asyncHandler(async (req, res) => {
+  const { batchId } = req.params;
+  
+  const { rows } = await pool.query(
+    `SELECT 
+      pi.*,
+      v.name as vendor_name,
+      v.vendor_code,
+      vba.account_name,
+      vba.routing_number,
+      vba.account_type,
+      je.reference_number as journal_entry_reference
+     FROM payment_items pi
+     JOIN vendors v ON v.id = pi.vendor_id
+     JOIN vendor_bank_accounts vba ON vba.id = pi.vendor_bank_account_id
+     LEFT JOIN journal_entries je ON je.id = pi.journal_entry_id
+     WHERE pi.payment_batch_id = $1
+     ORDER BY v.name, pi.created_at`,
+    [batchId]
+  );
+  
+  res.json(rows);
+}));
+
+app.post('/api/payment-batches/:batchId/items', asyncHandler(async (req, res) => {
+  const { batchId } = req.params;
+  const {
+    vendor_id,
+    vendor_bank_account_id,
+    amount,
+    memo,
+    invoice_number,
+    invoice_date,
+    due_date,
+    addenda
+  } = req.body;
+  
+  // Check batch status
+  const { rows: batchRows } = await pool.query(
+    'SELECT status FROM payment_batches WHERE id = $1',
+    [batchId]
+  );
+  
+  if (batchRows.length === 0) {
+    return res.status(404).json({ error: 'Payment batch not found' });
+  }
+  
+  if (batchRows[0].status !== 'draft') {
+    return res.status(400).json({ 
+      error: `Cannot add items to a batch with status: ${batchRows[0].status}`
+    });
+  }
+  
+  // Validate amount
+  if (!amount || parseFloat(amount) <= 0) {
+    return res.status(400).json({ error: 'Amount must be greater than zero' });
+  }
+  
+  // Insert the payment item
+  const { rows } = await pool.query(
+    `INSERT INTO payment_items (
+      payment_batch_id, vendor_id, vendor_bank_account_id,
+      amount, memo, invoice_number, invoice_date, due_date, addenda
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING *`,
+    [
+      batchId, vendor_id, vendor_bank_account_id,
+      amount, memo, invoice_number, invoice_date, due_date, addenda
+    ]
+  );
+  
+  // Update batch totals
+  await pool.query(
+    `UPDATE payment_batches SET
+      total_amount = (
+        SELECT COALESCE(SUM(amount), 0)
+        FROM payment_items
+        WHERE payment_batch_id = $1
+      ),
+      total_items = (
+        SELECT COUNT(*)
+        FROM payment_items
+        WHERE payment_batch_id = $1
+      ),
+      updated_at = NOW()
+    WHERE id = $1`,
+    [batchId]
+  );
+  
+  res.status(201).json(rows[0]);
+}));
+
+app.get('/api/payment-items/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  const { rows } = await pool.query(
+    `SELECT 
+      pi.*,
+      v.name as vendor_name,
+      v.vendor_code,
+      vba.account_name,
+      vba.routing_number,
+      vba.account_type,
+      je.reference_number as journal_entry_reference,
+      pb.batch_number as batch_number
+     FROM payment_items pi
+     JOIN vendors v ON v.id = pi.vendor_id
+     JOIN vendor_bank_accounts vba ON vba.id = pi.vendor_bank_account_id
+     JOIN payment_batches pb ON pb.id = pi.payment_batch_id
+     LEFT JOIN journal_entries je ON je.id = pi.journal_entry_id
+     WHERE pi.id = $1`,
+    [id]
+  );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Payment item not found' });
+  }
+  
+  res.json(rows[0]);
+}));
+
+app.put('/api/payment-items/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    vendor_id,
+    vendor_bank_account_id,
+    amount,
+    memo,
+    invoice_number,
+    invoice_date,
+    due_date,
+    addenda
+  } = req.body;
+  
+  // Get the payment batch ID and check status
+  const { rows: itemRows } = await pool.query(
+    `SELECT pi.payment_batch_id, pb.status 
+     FROM payment_items pi
+     JOIN payment_batches pb ON pb.id = pi.payment_batch_id
+     WHERE pi.id = $1`,
+    [id]
+  );
+  
+  if (itemRows.length === 0) {
+    return res.status(404).json({ error: 'Payment item not found' });
+  }
+  
+  if (itemRows[0].status !== 'draft') {
+    return res.status(400).json({ 
+      error: `Cannot modify items in a batch with status: ${itemRows[0].status}`
+    });
+  }
+  
+  // Validate amount
+  if (!amount || parseFloat(amount) <= 0) {
+    return res.status(400).json({ error: 'Amount must be greater than zero' });
+  }
+  
+  // Update the payment item
+  const { rows } = await pool.query(
+    `UPDATE payment_items SET
+      vendor_id = $1,
+      vendor_bank_account_id = $2,
+      amount = $3,
+      memo = $4,
+      invoice_number = $5,
+      invoice_date = $6,
+      due_date = $7,      addenda = $8,
+      updated_at = NOW()
+    WHERE id = $9
+    RETURNING *`,
+    [
+      vendor_id, vendor_bank_account_id, amount, memo,
+      invoice_number, invoice_date, due_date, addenda, id
+    ]
+  );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Payment item not found' });
+  }
+  
+  // Update batch totals
+  await pool.query(
+    `UPDATE payment_batches SET
+      total_amount = (
+        SELECT COALESCE(SUM(amount), 0)
+        FROM payment_items
+        WHERE payment_batch_id = $1
+      ),
+      total_items = (
+        SELECT COUNT(*)
+        FROM payment_items
+        WHERE payment_batch_id = $1
+      ),
+      updated_at = NOW()
+    WHERE id = $1`,
+    [itemRows[0].payment_batch_id]
+  );
+  
+  res.json(rows[0]);
+}));
+
+app.delete('/api/payment-items/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  // Get the payment batch ID and check status
+  const { rows: itemRows } = await pool.query(
+    `SELECT pi.payment_batch_id, pb.status 
+     FROM payment_items pi
+     JOIN payment_batches pb ON pb.id = pi.payment_batch_id
+     WHERE pi.id = $1`,
+    [id]
+  );
+  
+  if (itemRows.length === 0) {
+    return res.status(404).json({ error: 'Payment item not found' });
+  }
+  
+  if (itemRows[0].status !== 'draft') {
+    return res.status(400).json({ 
+      error: `Cannot delete items from a batch with status: ${itemRows[0].status}`
+    });
+  }
+  
+  const batchId = itemRows[0].payment_batch_id;
+  
+  // Delete the payment item
+  await pool.query('DELETE FROM payment_items WHERE id = $1', [id]);
+  
+  // Update batch totals
+  await pool.query(
+    `UPDATE payment_batches SET
+      total_amount = (
+        SELECT COALESCE(SUM(amount), 0)
+        FROM payment_items
+        WHERE payment_batch_id = $1
+      ),
+      total_items = (
+        SELECT COUNT(*)
+        FROM payment_items
+        WHERE payment_batch_id = $1
+      ),
+      updated_at = NOW()
+    WHERE id = $1`,
+    [batchId]
+  );
+  
+  res.status(204).send();
+}));
+
+// --- NACHA FILE GENERATION API ---
+app.post('/api/payment-batches/:id/generate-nacha', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  // Get batch details with NACHA settings
+  const { rows: batchRows } = await pool.query(
+    `SELECT 
+      pb.*,
+      ns.company_name,
+      ns.company_id,
+      ns.originating_dfi_id,
+      ns.company_entry_description,
+      ns.company_descriptive_date,
+      ns.effective_entry_date,
+      ns.is_production,
+      ns.batch_number_counter
+     FROM payment_batches pb
+     JOIN company_nacha_settings ns ON ns.id = pb.nacha_settings_id
+     WHERE pb.id = $1`,
+    [id]
+  );
+  
+  if (batchRows.length === 0) {
+    return res.status(404).json({ error: 'Payment batch not found' });
+  }
+  
+  const batch = batchRows[0];
+  
+  // Check batch status
+  if (batch.status !== 'approved') {
+    return res.status(400).json({ 
+      error: `Batch must be approved before generating NACHA file. Current status: ${batch.status}`
+    });
+  }
+  
+  // Get payment items
+  const { rows: itemRows } = await pool.query(
+    `SELECT 
+      pi.*,
+      v.name as vendor_name,
+      vba.routing_number,
+      vba.account_number,
+      vba.account_type
+     FROM payment_items pi
+     JOIN vendors v ON v.id = pi.vendor_id
+     JOIN vendor_bank_accounts vba ON vba.id = pi.vendor_bank_account_id
+     WHERE pi.payment_batch_id = $1
+     ORDER BY v.name`,
+    [id]
+  );
+  
+  if (itemRows.length === 0) {
+    return res.status(400).json({ error: 'Batch contains no payment items' });
+  }
+  
+  // Format dates for NACHA
+  const formatNachaDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toISOString().slice(2, 10).replace(/-/g, '');
+  };
+  
+  // Initialize NACHA generator
+  const nachaGenerator = new NachaGenerator({
+    immediateDestination: '999999999', // This would be the receiving bank routing number
+    immediateOrigin: batch.company_id.padStart(10, '0'),
+    companyName: batch.company_name,
+    companyIdentification: batch.company_id,
+    companyEntryDescription: batch.company_entry_description,
+    companyDescriptiveDate: batch.company_descriptive_date || formatNachaDate(batch.batch_date),
+    effectiveEntryDate: batch.effective_entry_date || formatNachaDate(batch.effective_date),
+    originatingDFIId: batch.originating_dfi_id,
+    isProduction: batch.is_production
+  });
+  
+  // Create a batch
+  const nachaBatch = nachaGenerator.createBatch();
+  
+  // Add entries to the batch
+  let totalAmount = 0;
+  itemRows.forEach(item => {
+    // Determine transaction code based on account type
+    let transactionCode = NachaGenerator.TRANSACTION_CODES.CHECKING_CREDIT;
+    if (item.account_type === 'savings') {
+      transactionCode = NachaGenerator.TRANSACTION_CODES.SAVINGS_CREDIT;
+    }
+    
+    nachaGenerator.addEntry(nachaBatch, {
+      transactionCode,
+      routingNumber: item.routing_number,
+      accountNumber: item.account_number,
+      amount: item.amount,
+      receivingCompanyId: item.vendor_id,
+      receivingCompanyName: item.vendor_name,
+      addenda: item.addenda || item.memo,
+      vendorId: item.vendor_id
+    });
+    
+    totalAmount += parseFloat(item.amount);
+  });
+  
+  // Generate the NACHA file content
+  const nachaFileContent = nachaGenerator.generateFile();
+  
+  // Create a file name
+  const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
+  const fileName = `ACH_${batch.batch_number}_${timestamp}.txt`;
+  
+  // Save file path - in a real app, this would save to a secure location
+  const filePath = path.join(__dirname, 'nacha-files', fileName);
+  
+  // Ensure directory exists
+  const fileDir = path.dirname(filePath);
+  if (!fs.existsSync(fileDir)) {
+    fs.mkdirSync(fileDir, { recursive: true });
+  }
+  
+  // Write the file
+  fs.writeFileSync(filePath, nachaFileContent, 'utf8');
+  
+  // Update batch number counter in NACHA settings
+  await pool.query(
+    'UPDATE company_nacha_settings SET batch_number_counter = batch_number_counter + 1 WHERE id = $1',
+    [batch.nacha_settings_id]
+  );
+  
+  // Create NACHA file record
+  const { rows: fileRows } = await pool.query(
+    `INSERT INTO nacha_files (
+      payment_batch_id, file_name, file_path,
+      total_amount, total_items, file_control_total, status
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'generated')
+    RETURNING *`,
+    [
+      id, fileName, filePath,
+      totalAmount, itemRows.length, nachaGenerator.totalEntryHash.toString()
+    ]
+  );
+  
+  // Update batch status to processed
+  await pool.query(
+    `UPDATE payment_batches SET
+      status = 'processed',
+      updated_at = NOW()
+    WHERE id = $1`,
+    [id]
+  );
+  
+  /**
+   * Persist individual trace numbers for each payment item
+   * The order of nachaBatch.entries matches the order we iterated itemRows,
+   * so we can safely map by index.
+   */
+  for (let i = 0; i < itemRows.length; i++) {
+    const item = itemRows[i];
+    const generatedTrace = nachaBatch.entries[i]?.traceNumber || null;
+
+    // Safety-check: ensure trace number is valid length (<=15 digits)
+    if (!generatedTrace || generatedTrace.length > 15) {
+      console.warn(
+        `Skipping trace number update for payment_item ${item.id}. ` +
+        `Invalid trace '${generatedTrace}'`
+      );
+      continue;
+    }
+
+    await pool.query(
+      `UPDATE payment_items
+         SET status = 'processed',
+             trace_number = $1,
+             updated_at  = NOW()
+       WHERE id = $2`,
+      [generatedTrace, item.id]
+    );
+  }
+  
+  res.json({
+    message: 'NACHA file generated successfully',
+    file: fileRows[0],
+    fileName,
+    downloadUrl: `/api/nacha-files/${fileRows[0].id}/download`
+  });
+}));
+
+// --- NACHA FILE DOWNLOAD API ---
+app.get('/api/nacha-files', asyncHandler(async (req, res) => {
+  const { batchId } = req.query;
+  
+  let queryParams = [];
+  let whereClause = '';
+  
+  if (batchId) {
+    queryParams.push(batchId);
+    whereClause = 'WHERE nf.payment_batch_id = $1';
+  }
+  
+  const { rows } = await pool.query(
+    `SELECT 
+      nf.*,
+      pb.batch_number,
+      pb.description as batch_description
+     FROM nacha_files nf
+     JOIN payment_batches pb ON pb.id = nf.payment_batch_id
+     ${whereClause}
+     ORDER BY nf.file_date DESC`,
+    queryParams
+  );
+  
+  res.json(rows);
+}));
+
+app.get('/api/nacha-files/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  const { rows } = await pool.query(
+    `SELECT 
+      nf.*,
+      pb.batch_number,
+      pb.description as batch_description
+     FROM nacha_files nf
+     JOIN payment_batches pb ON pb.id = nf.payment_batch_id
+     WHERE nf.id = $1`,
+    [id]
+  );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'NACHA file not found' });
+  }
+  
+  res.json(rows[0]);
+}));
+
+app.get('/api/nacha-files/:id/download', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  const { rows } = await pool.query(
+    'SELECT file_name, file_path FROM nacha_files WHERE id = $1',
+    [id]
+  );
+  
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'NACHA file not found' });
+  }
+  
+  const { file_name, file_path } = rows[0];
+  
+  // Check if file exists
+  if (!fs.existsSync(file_path)) {
+    return res.status(404).json({ error: 'File not found on disk' });
+  }
+  
+  // Update file status to transmitted
+  await pool.query(
+    `UPDATE nacha_files SET
+      status = 'transmitted',
+      transmitted_at = NOW(),
+      transmitted_by = $1,
+      updated_at = NOW()
+    WHERE id = $2`,
+    [req.query.userId || null, id]
+  );
+  
+  // Send file as download
+  res.download(file_path, file_name, (err) => {
+    if (err) {
+      console.error('Error downloading NACHA file:', err);
+      // If headers already sent, we can't send an error response
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Error downloading file' });
+      }
+    }
+  });
+}));
+
+// ---------------------------------------------------------------------------
+// ERROR HANDLING MIDDLEWARE
+// ---------------------------------------------------------------------------
+
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({ error: 'Not Found', path: req.path });
 });
 
-// Error handler
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error('Server error:', err.stack);
-  res.status(500).json({ error: 'Internal Server Error', message: err.message });
+  console.error('Server Error:', err);
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+  res.status(statusCode).json({ error: message });
 });
 
 // ---------------------------------------------------------------------------
-// Static files (registered LAST so they don't intercept /api routes)
+// START SERVER
 // ---------------------------------------------------------------------------
-app.use(express.static('.'));
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Open http://localhost:${PORT} in your browser`);
+  console.log(`http://localhost:${PORT}`);
 });
