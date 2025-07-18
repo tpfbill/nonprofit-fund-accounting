@@ -32,6 +32,15 @@ app.use(express.json({ limit: '50mb' })); // Increase limit for large data uploa
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
+// ---------------------------------------------------------------------------
+// STATIC FILES
+// ---------------------------------------------------------------------------
+// Serve all frontend assets (HTML, CSS, JS, images) directly from the
+// repository root so routes like `/vendor-payments.html` resolve correctly.
+// This must be registered BEFORE any API routes so that existing files
+// short-circuit to the static handler instead of falling through to the 404.
+app.use(express.static('.'));
+
 // Initialize database connection pool
 const pool = new Pool(getDbConfig());
 

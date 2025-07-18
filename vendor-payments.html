@@ -1178,7 +1178,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
         // API Configuration
-        // API Configuration
         const API_BASE_URL = 'http://localhost:3000';
         
         // Global variables
@@ -1269,6 +1268,12 @@
                     document.getElementById('editSettingsEntityId')
                 ];
                 
+                // DEBUG: log which selects are detected (helps confirm presence when modal is open/closed)
+                console.debug(
+                    '[fetchEntities] selects found:',
+                    entitySelects.map(s => (s ? `${s.id} ✅` : 'null ❌'))
+                );
+
                 entitySelects.forEach(select => {
                     if (!select) return;
                     
@@ -1327,6 +1332,25 @@
         async function fetchBankAccounts() {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/bank-accounts`);
+
+                /* ----------------------------------------------------------
+                   Gracefully handle missing endpoint
+                   ----------------------------------------------------------
+                   Some installations may not yet expose /api/bank-accounts.
+                   If the endpoint returns 404 we treat it as “feature not
+                   implemented” – log and exit without bothering the user.
+                ---------------------------------------------------------- */
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        console.info(
+                            '[fetchBankAccounts] /api/bank-accounts not available (404) – skipping'
+                        );
+                        return; // silently ignore
+                    }
+                    // For other HTTP errors, escalate to catch block
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
                 bankAccounts = await response.json();
                 
                 // Populate bank account dropdowns
@@ -1353,10 +1377,7 @@
                 });
             } catch (error) {
                 console.error('Error fetching bank accounts:', error);
-                // This might be a new feature, so don't show error if endpoint doesn't exist yet
-                if (error.message !== 'Failed to fetch') {
-                    showToast('Error', 'Failed to load bank accounts', true);
-                }
+                showToast('Error', 'Failed to load bank accounts', true);
             }
         }
         
@@ -1474,6 +1495,129 @@
             }
         }
         
+        /* --------------------------------------------------------------
+           Render payment batches table
+        -------------------------------------------------------------- */
+        function renderBatchesTable(batches) {
+            const tableBody = document.getElementById('batchesTableBody');
+            tableBody.innerHTML = '';
+
+            // No data
+            if (!batches || batches.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="8" class="text-center">No payment batches found</td>';
+                tableBody.appendChild(row);
+                return;
+            }
+
+            // Populate rows
+            batches.forEach(batch => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${batch.batch_number}</td>
+                    <td>${formatDate(batch.batch_date)}</td>
+                    <td>${batch.description || ''}</td>
+                    <td>${batch.entity_name || ''}</td>
+                    <td>${formatCurrency(batch.total_amount)}</td>
+                    <td>${batch.total_items || 0}</td>
+                    <td><span class="badge ${getStatusBadgeClass(batch.status)}">${batch.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary view-batch-btn" data-batch-id="${batch.id}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Attach event listeners
+            document.querySelectorAll('.view-batch-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const batchId = btn.getAttribute('data-batch-id');
+                    fetchBatchDetails(batchId);
+                });
+            });
+        }
+
+        /* --------------------------------------------------------------
+           Render NACHA settings table
+        -------------------------------------------------------------- */
+        function renderNachaSettingsTable() {
+            const tableBody = document.getElementById('nachaSettingsTableBody');
+            if (!tableBody) return;
+
+            // Clear previous rows
+            tableBody.innerHTML = '';
+
+            // Empty state
+            if (!nachaSettings || nachaSettings.length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML =
+                    '<td colspan="7" class="text-center">No NACHA settings found</td>';
+                tableBody.appendChild(emptyRow);
+                return;
+            }
+
+            // Populate table
+            nachaSettings.forEach(setting => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${setting.company_name}</td>
+                    <td>${setting.company_id}</td>
+                    <td>${setting.originating_dfi_id}</td>
+                    <td>${setting.company_entry_description}</td>
+                    <td>${setting.settlement_account_name || ''}</td>
+                    <td>${setting.is_production ? 'Yes' : 'No'}</td>
+                    <td>
+                        <button
+                            class="btn btn-sm btn-outline-primary edit-nacha-settings-btn"
+                            data-settings-id="${setting.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button
+                            class="btn btn-sm btn-outline-danger delete-nacha-settings-btn"
+                            data-settings-id="${setting.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            /* ----------------------------------------------------------
+               Attach action handlers (if corresponding functions exist)
+            ---------------------------------------------------------- */
+            document
+                .querySelectorAll('.edit-nacha-settings-btn')
+                .forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.getAttribute('data-settings-id');
+                        const setting = nachaSettings.find(s => s.id === id);
+                        if (typeof populateEditNachaSettingsForm === 'function' && setting) {
+                            populateEditNachaSettingsForm(setting);
+                            new bootstrap.Modal(
+                                document.getElementById('editNachaSettingsModal')
+                            ).show();
+                        } else {
+                            console.warn('Edit NACHA settings handler not implemented');
+                        }
+                    });
+                });
+
+            document
+                .querySelectorAll('.delete-nacha-settings-btn')
+                .forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.getAttribute('data-settings-id');
+                        if (typeof showDeleteNachaSettingsConfirmation === 'function') {
+                            showDeleteNachaSettingsConfirmation(id);
+                        } else {
+                            console.warn('Delete NACHA settings handler not implemented');
+                        }
+                    });
+                });
+        }
+
         async function fetchBatchDetails(batchId) {
             try {
                 showLoading();
@@ -1629,4 +1773,76 @@
             
             bankAccounts.forEach(account => {
                 const card = document.createElement('div');
-                card.className = `col-md-6 mb-3
+                card.className = `col-md-6 mb-3`;
+                
+                const cardInner = document.createElement('div');
+                cardInner.className = `card bank-account-card ${account.is_primary ? 'primary' : ''}`;
+                
+                cardInner.innerHTML = `
+                    <div class="card-body">
+                        <h5 class="card-title">${account.account_name} ${account.is_primary ? '<span class="badge bg-success">Primary</span>' : ''}</h5>
+                        <p class="card-text">                            <span class="badge-account">${account.account_type}</span><br>
+                            Account: <code class="account-number-masked">${maskAccountNumber(account.account_number)}</code><br>
+                            Routing: <span class="badge-account">${account.routing_number}</span>
+                        </p>
+                        <div class="d-flex justify-content-between">
+                            <span class="badge ${getStatusBadgeClass(account.status)}">${account.status}</span>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary edit-bank-account-btn" data-account-id="${account.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-bank-account-btn" data-account-id="${account.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                card.appendChild(cardInner);
+                bankAccountsContainer.appendChild(card);
+            });
+        }
+        
+        // Initialize page when DOM is loaded
+        document.addEventListener("DOMContentLoaded", function() {
+            // Initialize data
+            fetchEntities();
+            fetchFunds();
+            fetchBankAccounts();
+            fetchVendors();
+            fetchNachaSettings();
+            fetchBatches();
+            
+            // Set up event listeners for entity changes to update funds
+            document.getElementById("batchEntityId").addEventListener("change", function() {
+                const selectedEntityId = this.value;
+                if (selectedEntityId) {
+                    fetchFunds(selectedEntityId);
+                } else {
+                    fetchFunds();
+                }
+            });
+
+            /* -----------------------------------------------------------------
+               Ensure entity / fund dropdowns are populated *every* time
+               the Create Batch modal becomes visible (covers cases where the
+               modal’s DOM is not present or gets rebuilt after initial page
+               load).
+            ----------------------------------------------------------------- */
+            const batchModalEl = document.getElementById('createBatchModal');
+            if (batchModalEl) {
+                batchModalEl.addEventListener('shown.bs.modal', () => {
+                    console.debug('[modal] createBatchModal shown – refreshing entities & funds');
+                    fetchEntities().then(() => {
+                        const curEntity = document.getElementById('batchEntityId')?.value || '';
+                        fetchFunds(curEntity || null);
+                    });
+                });
+            }
+            
+            console.log("Vendor payments page initialized");
+        });
+    </script>
+</body>
+</html>
